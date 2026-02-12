@@ -21,13 +21,13 @@ We’re excited to see what the community will build around the PXL Clock. Below
 **Getting Started (3 steps):**
 1. Run `./start.sh` in the terminal
 2. Open the simulator at `http://localhost:5001`
-3. Edit `apps/Program.cs` and save to see changes
+3. Edit any `.cs` file in the `apps/` directory and save to see changes
 
 > **Windows users:** Use Git Bash, WSL, or run `bash start.sh` in any terminal
 
 **First time?** Don't worry! The start script automatically checks if you have everything installed (.NET SDK 10, VS Code extensions) and provides clear instructions if anything is missing.
 
-**Examples:** Check out the example apps in `apps/Apps/` directory
+**Examples:** Check out the example apps in `apps/demos/` and the clock faces in `apps/clockFaces/`
 
 ---
 
@@ -108,7 +108,7 @@ Just head over to the [**Issues**](../../issues) tab and click **New Issue** to 
 
 1. In the PXL-App, go to the "Settings" tab of your connected PXL Clock, and "Turn Off Display".
 
-2. In `Program.cs`, set the target device to your connected PXL Clock.
+2. In your app script, set the target device to your connected PXL Clock.
 
 3. Start as usual (see above).
 
