@@ -1,0 +1,29 @@
+// Example 20: Layers with Blend Modes
+// Different blend modes create different visual effects
+
+#:package Pxl@0.0.42
+
+using Pxl.Ui.CSharp;
+using SkiaSharp;
+
+var scene = PxlApp.CreateScene(ctx =>
+{
+    // Draw colorful background
+    ctx.DrawRectXyWh(0, 0, 12, 24, colorFill: Colors.Red);
+    ctx.DrawRectXyWh(12, 0, 12, 24, colorFill: Colors.Blue);
+
+    // Create layer with shapes
+    var layer = ctx.NewLayer(clearColor: Colors.TransparentBlack);
+    layer.DrawCircle(12, 8, 6, colorFill: Colors.Yellow);
+    layer.DrawCircle(12, 16, 6, colorFill: Colors.Cyan);
+
+    // Try different blend modes:
+    // - SrcOver: Normal alpha blending (default)
+    // - Multiply: Darkens (good for shadows)
+    // - Screen: Lightens (good for glow)
+    // - Difference: Inverts colors
+
+    layer.Apply(SKBlendMode.Screen);  // Change this to experiment!
+});
+
+await PxlApp.Simulate(scene);

@@ -5,7 +5,7 @@
   },
   "tasks": [
     {
-      "label": "PXL :: Start",
+      "label": "PXL-CLOCK :: Start",
       "type": "shell",
       "command": "./start.sh",
       "group": {
