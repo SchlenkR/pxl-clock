@@ -2,13 +2,13 @@
 
 Welcome to the **PXL Clock** repository! This repo serves as a central hub for:
 
-- **Resources for creating custom PXL Clock applications**
+- **Resources for creating your own custom PXL Clock applications**
 - **Issue tracking** and **idea proposals** (hardware, software, use cases, features)
 
 We’re excited to see what the community will build around the PXL Clock. Below you’ll find everything you need to get started.
 
 <p align="center">
-  <a href="https://www.pxlclock.com">
+  <a href="https://www.pxlclock.com/?ref=RONALD">
     <img width="842" height="832" alt="image" src="https://github.com/user-attachments/assets/9b92c9d7-b20b-4316-8104-ac980fa449d5" />
   </a>
   <!--<img width="640" alt="image" src="https://github.com/user-attachments/assets/4c898f7e-56ae-4a8b-be34-464ad83a5ffb" />-->
@@ -19,11 +19,14 @@ We’re excited to see what the community will build around the PXL Clock. Below
 ## Quick-Start Development of PXL Clock Apps
 
 **Getting Started (3 steps):**
-1. Run `./start.sh` in the terminal
+1. Start the simulator (see below - either by VS Code or terminal)
 2. Open the simulator at `http://localhost:5001`
 3. Edit any `.cs` file in the `apps/` directory and save to see changes
 
-> **Windows users:** Use Git Bash, WSL, or run `bash start.sh` in any terminal
+**Starting the development environment:**
+
+- **VS Code (easiest):** Press `Cmd+Shift+B` (macOS) or `Ctrl+Shift+B` (Windows/Linux) to run the preconfigured build task **PXL-CLOCK :: Start**.
+- **Terminal:** Run `./start.sh` (macOS/Linux) or `start.cmd` (Windows with Git Bash/WSL).
 
 **First time?** Don't worry! The start script automatically checks if you have everything installed (.NET SDK 10, VS Code extensions) and provides clear instructions if anything is missing.
 
@@ -33,7 +36,9 @@ We’re excited to see what the community will build around the PXL Clock. Below
 
 ## Order Your PXL Clock!
 
-Exciting news: ordering the PXL Clock will soon be possible! 🎉 You can find more information and updates on our official website: [pxlclock.com](https://pxlclock.com)
+Exciting news: ordering the PXL Clock will soon be possible! 🎉 You can find more information and updates on our official website: [pxlclock.com](https://www.pxlclock.com/?ref=RONALD)
+
+🎁 **Currently 25% OFF** — get your PXL Clock at a discount while the offer lasts!
 
 We’re currently working on the first 100 units, the MK1 edition! We’re in the certification and refining all the little details that make this a fine product. We’re fully committed to delivering something amazing, and we’ll keep you updated every step of the way.
 
@@ -104,13 +109,26 @@ Just head over to the [**Issues**](../../issues) tab and click **New Issue** to 
 [![NuGet](https://img.shields.io/nuget/v/Pxl.svg?style=flat-square&logo=nuget)](https://www.nuget.org/packages/Pxl)
 [![NuGet Downloads](https://img.shields.io/nuget/dt/Pxl.svg?style=flat-square)](https://www.nuget.org/packages/Pxl)
 
-### Use Your PXL Clock for Development
+### Send to Your PXL Clock
 
-1. In the PXL-App, go to the "Settings" tab of your connected PXL Clock, and "Turn Off Display".
+To send your app to a real PXL Clock:
 
-2. In your app script, set the target device to your connected PXL Clock.
+1. In the **PXL-App**, go to the **Settings** of your clock and set the mode to **"Development"**. The display will turn black, indicating it's ready to receive from your computer.
 
-3. Start as usual (see above).
+2. In your app script, choose one of the following methods and provide the **IP address or name** of your clock:
+
+   ```csharp
+   // Only send to the clock (no local simulator)
+   await PxlApp.SendToDevice(scene, "192.168.1.42");
+
+   // Run in the simulator AND send to the clock simultaneously
+   await PxlApp.SimulateAndSendToDevice(scene, "192.168.1.42");
+
+   // Only run in the local simulator (default, no clock needed)
+   await PxlApp.Simulate(scene);
+   ```
+
+3. Start the development environment as usual (see [Quick-Start](#quick-start-development-of-pxl-clock-apps)).
 
 
 ### Troubleshooting
