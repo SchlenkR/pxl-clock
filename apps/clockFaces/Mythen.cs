@@ -2,7 +2,7 @@
 // Mountain silhouette image with dynamic sky gradient based on time of day
 // Design: Urs Enzler
 
-#:package Pxl@0.0.44
+#:package Pxl@0.0.45
 
 using Pxl.Ui.CSharp;
 

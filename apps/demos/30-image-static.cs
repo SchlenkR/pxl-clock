@@ -1,7 +1,7 @@
 // Example 30: Static Image
 // Load and draw a static PNG image
 
-#:package Pxl@0.0.44
+#:package Pxl@0.0.45
 
 using Pxl.Ui.CSharp;
 

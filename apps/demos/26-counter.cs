@@ -1,7 +1,7 @@
 // Example 26: Counter Display
 // A simple counter using state variables
 
-#:package Pxl@0.0.44
+#:package Pxl@0.0.45
 
 using Pxl.Ui.CSharp;
 

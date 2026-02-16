@@ -1,7 +1,7 @@
 // Example 05: Working with Colors
 // Different ways to create and use colors
 
-#:package Pxl@0.0.44
+#:package Pxl@0.0.45
 
 using Pxl.Ui.CSharp;
 

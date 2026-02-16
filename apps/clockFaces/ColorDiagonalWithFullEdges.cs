@@ -2,7 +2,7 @@
 // Diagonal lines with corner fills that change based on time
 // Design: Nora & Urs Enzler
 
-#:package Pxl@0.0.44
+#:package Pxl@0.0.45
 
 using Pxl.Ui.CSharp;
 
