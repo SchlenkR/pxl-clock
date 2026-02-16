@@ -2,7 +2,7 @@
 // Colorful rain lines flowing down with time overlay
 // Design: Nico & Urs Enzler
 
-#:package Pxl@0.0.42
+#:package Pxl@0.0.43
 
 using Pxl.Ui.CSharp;
 

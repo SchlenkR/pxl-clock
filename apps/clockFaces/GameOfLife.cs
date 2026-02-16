@@ -2,7 +2,7 @@
 // Conway's Game of Life seeded with the current time digits
 // Design: Urs Enzler
 
-#:package Pxl@0.0.42
+#:package Pxl@0.0.43
 
 using Pxl.Ui.CSharp;
 

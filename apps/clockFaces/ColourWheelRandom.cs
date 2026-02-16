@@ -2,7 +2,7 @@
 // Color wheel with random hue seeds that change each minute
 // Design: Urs Enzler
 
-#:package Pxl@0.0.42
+#:package Pxl@0.0.43
 
 using Pxl.Ui.CSharp;
 

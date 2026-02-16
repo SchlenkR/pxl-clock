@@ -1,7 +1,7 @@
 // Example 11: Bouncing Animation
 // A ball that bounces back and forth
 
-#:package Pxl@0.0.42
+#:package Pxl@0.0.43
 
 using Pxl.Ui.CSharp;
 

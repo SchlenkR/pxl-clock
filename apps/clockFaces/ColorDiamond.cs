@@ -3,7 +3,7 @@
 // Color changes based on time of day (peak brightness at 15:00)
 // Design: Nico & Urs Enzler
 
-#:package Pxl@0.0.42
+#:package Pxl@0.0.43
 
 using Pxl.Ui.CSharp;
 

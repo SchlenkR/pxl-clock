@@ -1,7 +1,7 @@
 // Example 18: Iterating Over Pixels
 // Use the Cells property to iterate with coordinates
 
-#:package Pxl@0.0.42
+#:package Pxl@0.0.43
 
 using Pxl.Ui.CSharp;
 

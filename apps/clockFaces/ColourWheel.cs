@@ -2,7 +2,7 @@
 // HSV color wheel that takes 6 minutes to cycle through the full spectrum
 // Design: Urs Enzler
 
-#:package Pxl@0.0.42
+#:package Pxl@0.0.43
 
 using Pxl.Ui.CSharp;
 

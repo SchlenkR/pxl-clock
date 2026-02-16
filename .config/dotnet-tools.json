@@ -3,7 +3,7 @@
   "isRoot": true,
   "tools": {
     "pxl.simulator": {
-      "version": "0.0.15",
+      "version": "0.0.16",
       "commands": ["Pxl.Simulator"],
       "rollForward": true
     }

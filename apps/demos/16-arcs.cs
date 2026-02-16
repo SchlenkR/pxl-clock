@@ -1,7 +1,7 @@
 // Example 16: Arcs and Pie Charts
 // Draw arcs for progress indicators and pie charts
 
-#:package Pxl@0.0.42
+#:package Pxl@0.0.43
 
 using Pxl.Ui.CSharp;
 

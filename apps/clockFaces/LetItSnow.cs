@@ -2,7 +2,7 @@
 // Snow particles falling around time digits displayed as ice
 // Design: Urs Enzler
 
-#:package Pxl@0.0.42
+#:package Pxl@0.0.43
 
 using Pxl.Ui.CSharp;
 

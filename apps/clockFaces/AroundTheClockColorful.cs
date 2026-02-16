@@ -2,7 +2,7 @@
 // Three concentric pixel paths with rainbow colors
 // Design: Nico & Urs Enzler
 
-#:package Pxl@0.0.42
+#:package Pxl@0.0.43
 
 using Pxl.Ui.CSharp;
 using SkiaSharp;
