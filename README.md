@@ -1,18 +1,42 @@
 # PXL Clock
 
+**Support my Work**
+
+Buy a **PXL Clock** and help me create more videos like this!
+Use code **RONALD** for a **25€ discount**:
+
+[https://www.pxlclock.com/?ref=RONALD](https://www.pxlclock.com/?ref=RONALD)
+
+PXL Clock is a fun device, made with ❤️ - and it's programmable in an easy and quick way.
+
+<p align="center">
+  <a href="https://www.pxlclock.com/?ref=RONALD">
+    <img width="842" height="832" alt="468354531-9b92c9d7-b20b-4316-8104-ac980fa449d5" src="https://github.com/user-attachments/assets/0a5a495d-731b-4f65-ac8f-3719f9b9010a" />
+  </a>
+</p>
+
+Find out more:
+
+- On the [PXL Clock Discord Server](https://discord.gg/KDbVdKQh5j)
+- check out the [PXL Clock Repo on GitHub](https://github.com/CuminAndPotato/PXL-Clock)
+- Visit the official [PXL Clock Store](https://www.pxlclock.com/?ref=RONALD)
+
+<p align="center">
+  <h3>Join the PXL Clock Community on Discord</h3>
+  <a href="https://discord.gg/KDbVdKQh5j">
+    <img src="https://img.shields.io/badge/Discord-Join%20Server-blue?style=flat-square&logo=discord" alt="Join Our Discord">
+  </a>
+</p>
+
+---
+
+
 Welcome to the **PXL Clock** repository! This repo serves as a central hub for:
 
 - **Resources for creating your own custom PXL Clock applications**
 - **Issue tracking** and **idea proposals** (hardware, software, use cases, features)
 
 We’re excited to see what the community will build around the PXL Clock. Below you’ll find everything you need to get started.
-
-<p align="center">
-  <a href="https://www.pxlclock.com/?ref=RONALD">
-    <img width="842" height="832" alt="image" src="https://github.com/user-attachments/assets/9b92c9d7-b20b-4316-8104-ac980fa449d5" />
-  </a>
-  <!--<img width="640" alt="image" src="https://github.com/user-attachments/assets/4c898f7e-56ae-4a8b-be34-464ad83a5ffb" />-->
-</p>
 
 ---
 
@@ -31,39 +55,6 @@ We’re excited to see what the community will build around the PXL Clock. Below
 **First time?** Don't worry! The start script automatically checks if you have everything installed (.NET SDK 10, VS Code extensions) and provides clear instructions if anything is missing.
 
 **Examples:** Check out the example apps in `apps/demos/` and the clock faces in `apps/clockFaces/`
-
----
-
-## Order Your PXL Clock!
-
-Exciting news: ordering the PXL Clock will soon be possible! 🎉 You can find more information and updates on our official website: [pxlclock.com](https://www.pxlclock.com/?ref=RONALD)
-
-🎁 **Currently 25% OFF** — get your PXL Clock at a discount while the offer lasts!
-
-We’re currently working on the first 100 units, the MK1 edition! We’re in the certification and refining all the little details that make this a fine product. We’re fully committed to delivering something amazing, and we’ll keep you updated every step of the way.
-
-Stay in the loop by following the #pxlclock hashtag on our channels for the latest news and progress updates.
-
-Thank you for your patience and support! 💡
-
----
-
-## Get In Touch
-
-### Discord
-
-Get in touch with us and others on our [**Discord Server**](https://discord.gg/KDbVdKQh5j)
-
-<p align="center">
-  <h3>Join the PXL Clock Community on Discord</h3>
-  <a href="https://discord.gg/KDbVdKQh5j">
-    <img src="https://img.shields.io/badge/Discord-Join%20Server-blue?style=flat-square&logo=discord" alt="Join Our Discord">
-  </a>
-</p>
-
-### Bluesky
-
-Follow the [**#pxlclock hashtag**](https://bsky.app/hashtag/PXLclock) on **Bluesky** for getting news and see what others do!
 
 ---
 
