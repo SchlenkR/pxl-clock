@@ -1,6 +1,10 @@
-// Colour Rain
-// Colorful rain lines flowing down with time overlay
-// Design: Nico & Urs Enzler
+// ---
+// app: ColourRain
+// displayName: Colour Rain
+// appType: ClockFace
+// author: "Nico & Urs Enzler"
+// description: Colorful rain lines flowing down with time overlay
+// ---
 
 #:package Pxl@0.0.45
 

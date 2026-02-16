@@ -1,7 +1,10 @@
-// Color Diamond
-// Nested colored rectangles with a seconds hand moving around the border
-// Color changes based on time of day (peak brightness at 15:00)
-// Design: Nico & Urs Enzler
+// ---
+// app: ColorDiamond
+// displayName: Color Diamond
+// appType: ClockFace
+// author: "Nico & Urs Enzler"
+// description: Nested colored rectangles with a seconds hand around the border
+// ---
 
 #:package Pxl@0.0.45
 

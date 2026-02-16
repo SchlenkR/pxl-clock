@@ -1,6 +1,10 @@
-// Colour Wheel Random
-// Color wheel with random hue seeds that change each minute
-// Design: Urs Enzler
+// ---
+// app: ColourWheelRandom
+// displayName: Colour Wheel Random
+// appType: ClockFace
+// author: Urs Enzler
+// description: Color wheel with random hue seeds that change each minute
+// ---
 
 #:package Pxl@0.0.45
 

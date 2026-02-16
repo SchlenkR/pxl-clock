@@ -1,6 +1,10 @@
-// Colour Wheel
-// HSV color wheel that takes 6 minutes to cycle through the full spectrum
-// Design: Urs Enzler
+// ---
+// app: ColourWheel
+// displayName: Colour Wheel
+// appType: ClockFace
+// author: Urs Enzler
+// description: HSV color wheel cycling through the full spectrum
+// ---
 
 #:package Pxl@0.0.45
 

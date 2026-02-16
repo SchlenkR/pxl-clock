@@ -1,6 +1,10 @@
-// Let It Snow
-// Snow particles falling around time digits displayed as ice
-// Design: Urs Enzler
+// ---
+// app: LetItSnow
+// displayName: Let It Snow
+// appType: ClockFace
+// author: Urs Enzler
+// description: Snow particles falling around time digits displayed as ice
+// ---
 
 #:package Pxl@0.0.45
 

@@ -1,6 +1,10 @@
-// Colour Wheel Dynamic
-// Dynamic HSV color wheel where all positions are always visible
-// Design: Urs Enzler
+// ---
+// app: ColourWheelDynamic
+// displayName: Colour Wheel Dynamic
+// appType: ClockFace
+// author: Urs Enzler
+// description: Dynamic HSV color wheel where all positions are always visible
+// ---
 
 #:package Pxl@0.0.45
 

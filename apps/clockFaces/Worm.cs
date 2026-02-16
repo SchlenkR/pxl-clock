@@ -1,6 +1,10 @@
-// Worm
-// Bouncing color worm trail with time overlay
-// Design: Urs Enzler
+// ---
+// app: Worm
+// displayName: Worm
+// appType: ClockFace
+// author: Urs Enzler
+// description: Bouncing color worm trail with time overlay
+// ---
 
 #:package Pxl@0.0.45
 

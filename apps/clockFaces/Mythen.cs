@@ -1,6 +1,10 @@
-// Mythen
-// Mountain silhouette image with dynamic sky gradient based on time of day
-// Design: Urs Enzler
+// ---
+// app: Mythen
+// displayName: Mythen
+// appType: ClockFace
+// author: Urs Enzler
+// description: Mountain silhouette with dynamic sky gradient
+// ---
 
 #:package Pxl@0.0.45
 

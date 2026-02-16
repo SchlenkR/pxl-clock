@@ -1,6 +1,10 @@
-// Color Diagonal With Full Edges
-// Diagonal lines with corner fills that change based on time
-// Design: Nora & Urs Enzler
+// ---
+// app: ColorDiagonalWithFullEdges
+// displayName: Color Diagonal With Full Edges
+// appType: ClockFace
+// author: "Nora & Urs Enzler"
+// description: Diagonal lines with corner fills that change based on time
+// ---
 
 #:package Pxl@0.0.45
 

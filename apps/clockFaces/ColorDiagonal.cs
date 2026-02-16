@@ -1,6 +1,10 @@
-// Color Diagonal
-// Animated diagonal lines that alternate direction each minute
-// Design: Nora & Urs Enzler
+// ---
+// app: ColorDiagonal
+// displayName: Color Diagonal
+// appType: ClockFace
+// author: "Nora & Urs Enzler"
+// description: Animated diagonal lines that alternate direction each minute
+// ---
 
 #:package Pxl@0.0.45
 

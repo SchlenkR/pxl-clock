@@ -1,6 +1,10 @@
-// Nicos Dog
-// Pixel art dog scrolling across the screen with time overlay
-// Design: Urs Enzler
+// ---
+// app: NicosDog
+// displayName: Nicos Dog
+// appType: ClockFace
+// author: Urs Enzler
+// description: Pixel art dog scrolling across the screen with time overlay
+// ---
 
 #:package Pxl@0.0.45
 

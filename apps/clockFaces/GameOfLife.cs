@@ -1,6 +1,10 @@
-// Game Of Life
-// Conway's Game of Life seeded with the current time digits
-// Design: Urs Enzler
+// ---
+// app: GameOfLife
+// displayName: Game Of Life
+// appType: ClockFace
+// author: Urs Enzler
+// description: Conway's Game of Life seeded with the current time digits
+// ---
 
 #:package Pxl@0.0.45
 

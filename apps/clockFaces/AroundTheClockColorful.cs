@@ -1,6 +1,10 @@
-// Around The Clock Colorful
-// Three concentric pixel paths with rainbow colors
-// Design: Nico & Urs Enzler
+// ---
+// app: AroundTheClockColorful
+// displayName: Around The Clock Colorful
+// appType: ClockFace
+// author: "Nico & Urs Enzler"
+// description: Three concentric pixel paths with rainbow colors
+// ---
 
 #:package Pxl@0.0.45
 
