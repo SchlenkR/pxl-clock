@@ -6,7 +6,7 @@
 // description: Color wheel with random hue seeds that change each minute
 // ---
 
-#:package Pxl@0.0.45
+#:package Pxl@0.0.46
 
 using Pxl.Ui.CSharp;
 

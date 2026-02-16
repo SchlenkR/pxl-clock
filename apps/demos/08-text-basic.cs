@@ -1,7 +1,7 @@
 // Example 08: Basic Text
 // Draw text with different fonts
 
-#:package Pxl@0.0.45
+#:package Pxl@0.0.46
 
 using Pxl.Ui.CSharp;
 

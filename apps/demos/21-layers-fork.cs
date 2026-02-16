@@ -1,7 +1,7 @@
 // Example 21: Fork Layer (Copy Content)
 // Fork creates a layer with a copy of the current canvas
 
-#:package Pxl@0.0.45
+#:package Pxl@0.0.46
 
 using Pxl.Ui.CSharp;
 using SkiaSharp;

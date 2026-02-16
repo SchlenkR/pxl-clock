@@ -1,7 +1,7 @@
 // Example 33: Easing Animations
 // Compare different easing functions side by side
 
-#:package Pxl@0.0.45
+#:package Pxl@0.0.46
 
 using Pxl.Ui.CSharp;
 
