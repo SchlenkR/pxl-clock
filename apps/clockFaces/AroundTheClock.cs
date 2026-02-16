@@ -2,7 +2,7 @@
 // Three concentric pixel paths show seconds (0-59), minutes (0-59) and hours (0-23)
 // Design: Urs Enzler
 
-#:package Pxl@0.0.43
+#:package Pxl@0.0.44
 
 using Pxl.Ui.CSharp;
 using SkiaSharp;

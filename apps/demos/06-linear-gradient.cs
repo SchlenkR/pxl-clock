@@ -1,7 +1,7 @@
 // Example 06: Linear Gradients
 // Create smooth color transitions with linear gradients
 
-#:package Pxl@0.0.43
+#:package Pxl@0.0.44
 
 using Pxl.Ui.CSharp;
 

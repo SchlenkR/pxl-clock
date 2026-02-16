@@ -1,7 +1,7 @@
 // Example 04: Fill and Stroke
 // Shapes can have both fill and stroke (outline)
 
-#:package Pxl@0.0.43
+#:package Pxl@0.0.44
 
 using Pxl.Ui.CSharp;
 

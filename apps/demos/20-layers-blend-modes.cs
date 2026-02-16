@@ -1,7 +1,7 @@
 // Example 20: Layers with Blend Modes
 // Different blend modes create different visual effects
 
-#:package Pxl@0.0.43
+#:package Pxl@0.0.44
 
 using Pxl.Ui.CSharp;
 using SkiaSharp;

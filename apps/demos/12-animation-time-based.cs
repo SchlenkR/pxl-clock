@@ -1,7 +1,7 @@
 // Example 12: Time-Based Animation
 // Use ctx.Elapsed for smooth, frame-rate independent animation
 
-#:package Pxl@0.0.43
+#:package Pxl@0.0.44
 
 using Pxl.Ui.CSharp;
 

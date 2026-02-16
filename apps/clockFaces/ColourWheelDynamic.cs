@@ -2,7 +2,7 @@
 // Dynamic HSV color wheel where all positions are always visible
 // Design: Urs Enzler
 
-#:package Pxl@0.0.43
+#:package Pxl@0.0.44
 
 using Pxl.Ui.CSharp;
 

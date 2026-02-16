@@ -2,7 +2,7 @@
 // Animated diagonal lines that alternate direction each minute
 // Design: Nora & Urs Enzler
 
-#:package Pxl@0.0.43
+#:package Pxl@0.0.44
 
 using Pxl.Ui.CSharp;
 

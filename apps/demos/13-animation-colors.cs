@@ -1,7 +1,7 @@
 // Example 13: Color Animation
 // Animate colors using HSL for smooth hue transitions
 
-#:package Pxl@0.0.43
+#:package Pxl@0.0.44
 
 using Pxl.Ui.CSharp;
 

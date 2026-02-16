@@ -2,7 +2,7 @@
 // Pixel art dog scrolling across the screen with time overlay
 // Design: Urs Enzler
 
-#:package Pxl@0.0.43
+#:package Pxl@0.0.44
 
 using Pxl.Ui.CSharp;
 
