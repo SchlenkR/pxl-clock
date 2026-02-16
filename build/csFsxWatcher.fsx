@@ -3,7 +3,10 @@ open System.IO
 open System.Diagnostics
 open System.Threading
 
-let watchPath = Path.Combine(__SOURCE_DIRECTORY__, "..", "apps")
+let watchPath =
+    match Environment.GetEnvironmentVariable("PXL_WATCH_PATH") with
+    | null | "" -> Path.Combine(__SOURCE_DIRECTORY__, "..", "apps")
+    | path -> Path.GetFullPath(path)
 
 let mutable currentProcess: Process option = None
 let processLock = obj()
