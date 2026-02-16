@@ -24,34 +24,52 @@ echo ""
 echo "Starting PXL Clock development environment..."
 echo ""
 
-# Restore and start the Simulator in the background
+# Load .env to check settings
+PXL_SEND_TO_SIMULATOR="true"
+if [ -f .env ]; then
+    while IFS='=' read -r key value; do
+        key=$(echo "$key" | xargs)
+        [[ -z "$key" || "$key" == \#* ]] && continue
+        value=$(echo "$value" | xargs)
+        if [ "$key" = "PXL_SEND_TO_SIMULATOR" ]; then
+            PXL_SEND_TO_SIMULATOR="$value"
+        fi
+    done < .env
+fi
+
 dotnet tool restore
-dotnet Pxl.Simulator &
 
-# Wait for the simulator to be reachable (max 10 seconds)
-echo "Waiting for simulator..."
-for i in {1..20}; do
-    if curl -s --head http://127.0.0.1:5001 > /dev/null 2>&1; then
-        echo "Simulator ready at http://127.0.0.1:5001"
-        break
+# Start the Simulator if enabled
+if [ "$PXL_SEND_TO_SIMULATOR" = "true" ]; then
+    dotnet Pxl.Simulator &
+
+    # Wait for the simulator to be reachable (max 10 seconds)
+    echo "Waiting for simulator..."
+    for i in {1..20}; do
+        if curl -s --head http://127.0.0.1:5001 > /dev/null 2>&1; then
+            echo "Simulator ready at http://127.0.0.1:5001"
+            break
+        fi
+        sleep 0.5
+    done
+
+    # Open browser
+    if command -v open &> /dev/null; then
+        open http://127.0.0.1:5001
+    elif command -v xdg-open &> /dev/null; then
+        xdg-open http://127.0.0.1:5001
+    elif command -v wslview &> /dev/null; then
+        wslview http://127.0.0.1:5001
     fi
-    sleep 0.5
-done
-
-# Open browser
-if command -v open &> /dev/null; then
-    open http://127.0.0.1:5001
-elif command -v xdg-open &> /dev/null; then
-    xdg-open http://127.0.0.1:5001
-elif command -v wslview &> /dev/null; then
-    wslview http://127.0.0.1:5001
+else
+    echo "Simulator disabled (PXL_SEND_TO_SIMULATOR=$PXL_SEND_TO_SIMULATOR)"
 fi
 
 # Start the C# Watcher in the background (.env is loaded by the watcher itself)
 dotnet fsi ./build/csFsxWatcher.fsx &
 
 echo ""
-echo "Save any .cs or .fsx file in the apps/ folder to send it to the simulator"
+echo "Save any .cs or .fsx file in the apps/ folder to start"
 echo ""
 
 # Watch .env for changes and restart everything if it changes

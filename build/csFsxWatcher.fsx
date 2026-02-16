@@ -5,10 +5,16 @@ open System.Threading
 
 // Load .env from the repo root (cwd)
 let envFile = Path.Combine(Environment.CurrentDirectory, ".env")
-let defaultEnvContent = """# Comma-separated list of device IPs to send frames to
+let defaultEnvContent = """
+# Comma-separated list of device names and addresses (IP, network name) to send frames to.
+# Format: name:address (e.g. myDevice:192.168.1.42)
 PXL_DEV_DEVICES=
-# Set to false to only simulate (ignore PXL_DEV_DEVICES)
-PXL_SEND_TO_DEV_DEVICE=true
+
+# Name of the device (from PXL_DEV_DEVICES) to send frames to. Leave empty to not send to any device.
+PXL_SEND_TO_DEV_DEVICE=
+
+# Set to false to disable the simulator.
+PXL_SEND_TO_SIMULATOR=true
 """
 
 let loadEnvFile () =
