@@ -39,4 +39,4 @@ var scene = PxlApp.CreateScene(ctx =>
     ctx.DrawLine(7, 7, 12, 12, Colors.DarkRed, strokeWidth: 1);
 });
 
-await PxlApp.Simulate(scene);
+await PxlApp.SimulateAndSendToDevice(scene);

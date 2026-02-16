@@ -29,4 +29,4 @@ var scene = PxlApp.CreateScene(ctx =>
     forked.Apply(SKBlendMode.Difference);
 });
 
-await PxlApp.Simulate(scene);
+await PxlApp.SimulateAndSendToDevice(scene);

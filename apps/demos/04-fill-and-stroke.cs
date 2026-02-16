@@ -31,4 +31,4 @@ var scene = PxlApp.CreateScene(ctx =>
         strokeWidth: 1);
 });
 
-await PxlApp.Simulate(scene);
+await PxlApp.SimulateAndSendToDevice(scene);

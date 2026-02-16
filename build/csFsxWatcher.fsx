@@ -3,6 +3,30 @@ open System.IO
 open System.Diagnostics
 open System.Threading
 
+// Load .env from the repo root (cwd)
+let envFile = Path.Combine(Environment.CurrentDirectory, ".env")
+let defaultEnvContent = """# Comma-separated list of device IPs to send frames to
+PXL_DEV_DEVICES=
+# Set to false to only simulate (ignore PXL_DEV_DEVICES)
+PXL_SEND_TO_DEV_DEVICE=true
+"""
+
+let loadEnvFile () =
+    if not (File.Exists(envFile)) then
+        File.WriteAllText(envFile, defaultEnvContent)
+        printfn $"Created default .env at {envFile}"
+    printfn $"Loading .env from {envFile}:"
+    for line in File.ReadAllLines(envFile) do
+        let trimmed = line.Trim()
+        if trimmed <> "" && not (trimmed.StartsWith("#")) then
+            match trimmed.Split('=', 2) with
+            | [| key; value |] ->
+                Environment.SetEnvironmentVariable(key.Trim(), value.Trim())
+                printfn $"  {key.Trim()} = {value.Trim()}"
+            | _ -> ()
+
+loadEnvFile()
+
 let watchPath =
     match Environment.GetEnvironmentVariable("PXL_WATCH_PATH") with
     | null | "" -> Path.Combine(__SOURCE_DIRECTORY__, "..", "apps")
@@ -62,32 +86,60 @@ let mutable lastChangeTime = DateTime.MinValue
 let mutable lastChangedFile = ""
 let debounceMs = 500.0
 
-let onChanged (e: FileSystemEventArgs) =
-    // Debounce rapid file changes
+let mutable lastRunFile = ""
+
+let onCodeChanged (e: FileSystemEventArgs) =
     let now = DateTime.Now
     if (now - lastChangeTime).TotalMilliseconds < debounceMs && lastChangedFile = e.FullPath then
         ()
     else
         lastChangeTime <- now
         lastChangedFile <- e.FullPath
-        
+        lastRunFile <- e.FullPath
+
         let green = "\u001b[32m"
         let reset = "\u001b[0m"
-        
+
         printfn $"{green}File changed: {e.FullPath}{reset}"
         printfn $"{green}Restarting...{reset}"
-        
-        startDotnetRunForFile(e.FullPath)
+
+        startDotnetRunForFile e.FullPath
+
+let onEnvChanged (e: FileSystemEventArgs) =
+    let now = DateTime.Now
+    if (now - lastChangeTime).TotalMilliseconds < debounceMs && lastChangedFile = e.FullPath then
+        ()
+    else
+        lastChangeTime <- now
+        lastChangedFile <- e.FullPath
+
+        let yellow = "\u001b[33m"
+        let reset = "\u001b[0m"
+
+        printfn $"{yellow}.env changed — reloading environment variables...{reset}"
+        loadEnvFile()
+
+        if lastRunFile <> "" then
+            printfn $"{yellow}Restarting last run: {lastRunFile}{reset}"
+            startDotnetRunForFile lastRunFile
 
 do
     for pattern in ["*.cs"; "*.fsx"] do
         let watcher = new FileSystemWatcher(watchPath, pattern)
         watcher.IncludeSubdirectories <- true
         watcher.NotifyFilter <- NotifyFilters.FileName ||| NotifyFilters.LastWrite
-        watcher.Changed.Add(onChanged)
-        watcher.Created.Add(onChanged)
-        watcher.Renamed.Add(onChanged)
+        watcher.Changed.Add(onCodeChanged)
+        watcher.Created.Add(onCodeChanged)
+        watcher.Renamed.Add(onCodeChanged)
         watcher.EnableRaisingEvents <- true
+
+    if File.Exists(envFile) then
+        let envDir = Path.GetDirectoryName(envFile)
+        let envName = Path.GetFileName(envFile)
+        let envWatcher = new FileSystemWatcher(envDir, envName)
+        envWatcher.NotifyFilter <- NotifyFilters.LastWrite
+        envWatcher.Changed.Add(onEnvChanged)
+        envWatcher.EnableRaisingEvents <- true
 
 printfn $"Watching {watchPath} for C# and F# file changes (Ctrl+C to exit)..."
 printfn "Waiting for file changes... (No initial run - modify a .cs or .fsx file to start)"

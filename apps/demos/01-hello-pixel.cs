@@ -11,4 +11,4 @@ var scene = PxlApp.CreateScene(ctx =>
     ctx.SetPixel(12, 12, Colors.White);
 });
 
-await PxlApp.Simulate(scene);
+await PxlApp.SimulateAndSendToDevice(scene);

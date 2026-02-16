@@ -23,4 +23,4 @@ var scene = PxlApp.CreateScene(ctx =>
         x = -3;
 });
 
-await PxlApp.Simulate(scene);
+await PxlApp.SimulateAndSendToDevice(scene);

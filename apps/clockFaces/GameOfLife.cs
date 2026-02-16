@@ -113,4 +113,4 @@ var scene = PxlApp.CreateScene(ctx =>
         color: Colors.White.WithAlpha(0.7));
 });
 
-await PxlApp.Simulate(scene);
+await PxlApp.SimulateAndSendToDevice(scene);

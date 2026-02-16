@@ -20,4 +20,4 @@ var scene = PxlApp.CreateScene(ctx =>
     ctx.DrawTextVar3x5("TEXT", 0, 20, Colors.Lime);
 });
 
-await PxlApp.Simulate(scene);
+await PxlApp.SimulateAndSendToDevice(scene);

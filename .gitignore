@@ -7,6 +7,7 @@
 publish/
 .tmp/
 
+.env
 .venv
 
 # defaults for node projects in the workspace

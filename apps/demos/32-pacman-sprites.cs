@@ -27,4 +27,4 @@ var scene = PxlApp.CreateScene(ctx =>
     ctx.DrawImage(ghostPink, x - 38, 8);
 });
 
-await PxlApp.Simulate(scene);
+await PxlApp.SimulateAndSendToDevice(scene);

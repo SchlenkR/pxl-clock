@@ -17,4 +17,4 @@ var scene = PxlApp.CreateScene(ctx =>
     ctx.DrawImage(resized, 0, 0);
 });
 
-await PxlApp.Simulate(scene);
+await PxlApp.SimulateAndSendToDevice(scene);

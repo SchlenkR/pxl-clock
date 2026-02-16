@@ -122,10 +122,10 @@ To send your app to a real PXL Clock:
    await PxlApp.SendToDevice(scene, "192.168.1.42");
 
    // Run in the simulator AND send to the clock simultaneously
-   await PxlApp.SimulateAndSendToDevice(scene, "192.168.1.42");
+   await PxlApp.SimulateAndSendToDeviceAndSendToDevice(scene, "192.168.1.42");
 
    // Only run in the local simulator (default, no clock needed)
-   await PxlApp.Simulate(scene);
+   await PxlApp.SimulateAndSendToDevice(scene);
    ```
 
 3. Start the development environment as usual (see [Quick-Start](#quick-start-development-of-pxl-clock-apps)).
