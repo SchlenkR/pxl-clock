@@ -1,3 +1,8 @@
+// ---
+// app: Demo21LayersFork
+// displayName: Fork Layer (Copy Content)
+// author: PXL
+// ---
 // Example 21: Fork Layer (Copy Content)
 // Fork creates a layer with a copy of the current canvas
 

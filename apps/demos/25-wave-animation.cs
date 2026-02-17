@@ -1,3 +1,8 @@
+// ---
+// app: Demo25WaveAnimation
+// displayName: Wave Animation
+// author: PXL
+// ---
 // Example 25: Wave Animation
 // Create an animated sine wave
 

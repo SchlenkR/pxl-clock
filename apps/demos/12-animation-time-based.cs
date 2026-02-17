@@ -1,3 +1,8 @@
+// ---
+// app: Demo12AnimationTimeBased
+// displayName: Time-Based Animation
+// author: PXL
+// ---
 // Example 12: Time-Based Animation
 // Use ctx.Elapsed for smooth, frame-rate independent animation
 

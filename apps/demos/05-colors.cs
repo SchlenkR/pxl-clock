@@ -1,3 +1,8 @@
+// ---
+// app: Demo05Colors
+// displayName: Working with Colors
+// author: PXL
+// ---
 // Example 05: Working with Colors
 // Different ways to create and use colors
 

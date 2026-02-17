@@ -1,3 +1,8 @@
+// ---
+// app: Demo14AnimationPulse
+// displayName: Pulsing Animation
+// author: PXL
+// ---
 // Example 14: Pulsing Animation
 // Animate size and opacity for a pulsing effect
 

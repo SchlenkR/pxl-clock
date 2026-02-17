@@ -1,3 +1,8 @@
+// ---
+// app: Demo26Counter
+// displayName: Counter Display
+// author: PXL
+// ---
 // Example 26: Counter Display
 // A simple counter using state variables
 

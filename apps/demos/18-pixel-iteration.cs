@@ -1,3 +1,8 @@
+// ---
+// app: Demo18PixelIteration
+// displayName: Iterating Over Pixels
+// author: PXL
+// ---
 // Example 18: Iterating Over Pixels
 // Use the Cells property to iterate with coordinates
 

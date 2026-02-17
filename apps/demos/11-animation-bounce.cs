@@ -1,3 +1,8 @@
+// ---
+// app: Demo11AnimationBounce
+// displayName: Bouncing Animation
+// author: PXL
+// ---
 // Example 11: Bouncing Animation
 // A ball that bounces back and forth
 

@@ -1,3 +1,8 @@
+// ---
+// app: Demo27Smiley
+// displayName: Smiley Face
+// author: PXL
+// ---
 // Example 27: Smiley Face
 // Put it all together - gradients, shapes, and composition
 

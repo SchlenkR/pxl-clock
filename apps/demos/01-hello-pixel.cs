@@ -1,3 +1,8 @@
+// ---
+// app: Demo01HelloPixel
+// displayName: Hello Pixel
+// author: PXL
+// ---
 // Example 01: Hello Pixel
 // The simplest possible example - draw a single pixel
 

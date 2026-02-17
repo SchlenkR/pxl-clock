@@ -1,3 +1,8 @@
+// ---
+// app: Demo31ImageAnimatedGif
+// displayName: Animated GIF
+// author: PXL
+// ---
 // Example 31: Animated GIF
 // Load and draw an animated GIF with automatic frame cycling
 

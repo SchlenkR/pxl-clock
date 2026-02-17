@@ -1,3 +1,8 @@
+// ---
+// app: Demo13AnimationColors
+// displayName: Color Animation
+// author: PXL
+// ---
 // Example 13: Color Animation
 // Animate colors using HSL for smooth hue transitions
 

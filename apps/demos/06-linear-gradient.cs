@@ -1,3 +1,8 @@
+// ---
+// app: Demo06LinearGradient
+// displayName: Linear Gradients
+// author: PXL
+// ---
 // Example 06: Linear Gradients
 // Create smooth color transitions with linear gradients
 

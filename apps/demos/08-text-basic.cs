@@ -1,3 +1,8 @@
+// ---
+// app: Demo08TextBasic
+// displayName: Basic Text
+// author: PXL
+// ---
 // Example 08: Basic Text
 // Draw text with different fonts
 

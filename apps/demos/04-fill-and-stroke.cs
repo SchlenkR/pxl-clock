@@ -1,3 +1,8 @@
+// ---
+// app: Demo04FillAndStroke
+// displayName: Fill and Stroke
+// author: PXL
+// ---
 // Example 04: Fill and Stroke
 // Shapes can have both fill and stroke (outline)
 

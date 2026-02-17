@@ -1,3 +1,8 @@
+// ---
+// app: Demo09TextWithGradients
+// displayName: Text with Gradients
+// author: PXL
+// ---
 // Example 09: Text with Gradients
 // Combine text with gradient paints
 

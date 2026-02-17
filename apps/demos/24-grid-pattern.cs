@@ -1,3 +1,8 @@
+// ---
+// app: Demo24GridPattern
+// displayName: Drawing Grid Pattern
+// author: PXL
+// ---
 // Example 24: Drawing Grid Pattern
 // Use loops to create repetitive patterns
 
