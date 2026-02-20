@@ -14,6 +14,18 @@
       },
       "windows": {
         "command": "start.cmd"
+      },
+      "presentation": {
+        "focus": true
+      }
+    },
+    {
+      "label": "PXL-CLOCK :: Publish App to Device",
+      "type": "shell",
+      "command": "./publish-app.sh",
+      "problemMatcher": [],
+      "presentation": {
+        "focus": true
       }
     }
   ]
