@@ -43,23 +43,35 @@ dotnet tool restore
 if [ "$PXL_SEND_TO_SIMULATOR" = "true" ]; then
     dotnet Pxl.Simulator &
 
-    # Wait for the simulator to be reachable (max 10 seconds)
+    # Wait for the simulator to be reachable (max 15 seconds)
     echo "Waiting for simulator..."
-    for i in {1..20}; do
+    SIMULATOR_READY=false
+    for i in {1..30}; do
         if curl -s --head http://127.0.0.1:5001 > /dev/null 2>&1; then
+            SIMULATOR_READY=true
             echo "Simulator ready at http://127.0.0.1:5001"
             break
         fi
         sleep 0.5
     done
 
-    # Open browser
-    if command -v open &> /dev/null; then
-        open http://127.0.0.1:5001
-    elif command -v xdg-open &> /dev/null; then
-        xdg-open http://127.0.0.1:5001
-    elif command -v wslview &> /dev/null; then
-        wslview http://127.0.0.1:5001
+    if [ "$SIMULATOR_READY" = false ]; then
+        echo ""
+        echo "WARNING: Simulator did not start within 15 seconds."
+        echo "  Try running: dotnet tool restore && dotnet Pxl.Simulator"
+        echo "  Or check: ./build/setup-check.sh"
+        echo ""
+    fi
+
+    # Open browser (only if simulator is ready)
+    if [ "$SIMULATOR_READY" = true ]; then
+        if command -v open &> /dev/null; then
+            open http://127.0.0.1:5001
+        elif command -v xdg-open &> /dev/null; then
+            xdg-open http://127.0.0.1:5001
+        elif command -v wslview &> /dev/null; then
+            wslview http://127.0.0.1:5001
+        fi
     fi
 else
     echo "Simulator disabled (PXL_SEND_TO_SIMULATOR=$PXL_SEND_TO_SIMULATOR)"

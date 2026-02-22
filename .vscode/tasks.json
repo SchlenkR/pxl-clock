@@ -3,6 +3,14 @@
   "options": {
     "cwd": "${workspaceFolder}"
   },
+  "windows": {
+    "options": {
+      "shell": {
+        "executable": "C:\\Program Files\\Git\\bin\\bash.exe",
+        "args": ["-c"]
+      }
+    }
+  },
   "tasks": [
     {
       "label": "PXL-CLOCK :: Start",
@@ -12,9 +20,6 @@
         "kind": "build",
         "isDefault": true
       },
-      "windows": {
-        "command": "start.cmd"
-      },
       "presentation": {
         "focus": true
       }
@@ -23,6 +28,15 @@
       "label": "PXL-CLOCK :: Publish App to Device",
       "type": "shell",
       "command": "./publish-app.sh",
+      "problemMatcher": [],
+      "presentation": {
+        "focus": true
+      }
+    },
+    {
+      "label": "PXL-CLOCK :: Check Setup",
+      "type": "shell",
+      "command": "./build/setup-check.sh",
       "problemMatcher": [],
       "presentation": {
         "focus": true
