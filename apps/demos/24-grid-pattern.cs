@@ -6,7 +6,7 @@
 // Example 24: Drawing Grid Pattern
 // Use loops to create repetitive patterns
 
-#:package Pxl@0.0.50
+#:package Pxl@0.0.51
 
 using Pxl.Ui.CSharp;
 

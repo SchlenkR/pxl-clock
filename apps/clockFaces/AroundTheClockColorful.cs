@@ -6,7 +6,7 @@
 // description: Three concentric pixel paths with rainbow colors
 // ---
 
-#:package Pxl@0.0.50
+#:package Pxl@0.0.51
 
 using Pxl.Ui.CSharp;
 using SkiaSharp;
