@@ -1,7 +1,7 @@
 // ---
 // app: Demo33AnimationEasing
 // displayName: Easing Animations
-// author: PXL
+// author: Cumin & Potato
 // ---
 // Example 33: Easing Animations
 // Compare different easing functions side by side

@@ -1,7 +1,7 @@
 // ---
 // app: Demo23Starfield
 // displayName: Starfield Effect
-// author: PXL
+// author: Cumin & Potato
 // ---
 // Example 23: Starfield Effect
 // Create a simple animated starfield

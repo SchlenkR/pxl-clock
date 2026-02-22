@@ -1,7 +1,7 @@
 // ---
 // app: Demo20LayersBlendModes
 // displayName: Layers with Blend Modes
-// author: PXL
+// author: Cumin & Potato
 // ---
 // Example 20: Layers with Blend Modes
 // Different blend modes create different visual effects

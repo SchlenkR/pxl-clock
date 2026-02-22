@@ -1,7 +1,7 @@
 // ---
 // app: Demo07RadialGradient
 // displayName: Radial Gradients
-// author: PXL
+// author: Cumin & Potato
 // ---
 // Example 07: Radial Gradients
 // Create circular color transitions

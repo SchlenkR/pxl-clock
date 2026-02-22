@@ -1,7 +1,7 @@
 // ---
 // app: Demo11AnimationBounce
 // displayName: Bouncing Animation
-// author: PXL
+// author: Cumin & Potato
 // ---
 // Example 11: Bouncing Animation
 // A ball that bounces back and forth

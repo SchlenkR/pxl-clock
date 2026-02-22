@@ -1,7 +1,7 @@
 // ---
 // app: Demo15DisplayTime
 // displayName: Display Time
-// author: PXL
+// author: Cumin & Potato
 // ---
 // Example 15: Display Time
 // Show the current time on screen

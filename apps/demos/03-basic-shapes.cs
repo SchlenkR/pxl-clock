@@ -1,7 +1,7 @@
 // ---
 // app: Demo03BasicShapes
 // displayName: Basic Shapes
-// author: PXL
+// author: Cumin & Potato
 // ---
 // Example 03: Basic Shapes
 // Draw rectangles, circles, and lines

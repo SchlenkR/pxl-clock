@@ -1,7 +1,7 @@
 // ---
 // app: Demo16Arcs
 // displayName: Arcs and Pie Charts
-// author: PXL
+// author: Cumin & Potato
 // ---
 // Example 16: Arcs and Pie Charts
 // Draw arcs for progress indicators and pie charts

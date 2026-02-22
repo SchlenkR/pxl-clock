@@ -1,7 +1,7 @@
 // ---
 // app: Demo30ImageStatic
 // displayName: Static Image
-// author: PXL
+// author: Cumin & Potato
 // ---
 // Example 30: Static Image
 // Load and draw a static PNG image

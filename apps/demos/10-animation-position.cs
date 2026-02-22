@@ -1,7 +1,7 @@
 // ---
 // app: Demo10AnimationPosition
 // displayName: Simple Position Animation
-// author: PXL
+// author: Cumin & Potato
 // ---
 // Example 10: Simple Position Animation
 // Animate a shape's position using a variable outside the scene

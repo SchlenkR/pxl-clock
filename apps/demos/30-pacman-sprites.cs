@@ -1,7 +1,7 @@
 // ---
 // app: Demo32PacmanSprites
 // displayName: Pacman Sprites
-// author: PXL
+// author: Cumin & Potato
 // ---
 // Example 32: Pacman Sprites
 // Load a sprite sheet, create animations, and draw animated sprites

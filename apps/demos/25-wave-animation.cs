@@ -1,7 +1,7 @@
 // ---
 // app: Demo25WaveAnimation
 // displayName: Wave Animation
-// author: PXL
+// author: Cumin & Potato
 // ---
 // Example 25: Wave Animation
 // Create an animated sine wave

@@ -1,7 +1,7 @@
 // ---
 // app: Demo19LayersBasic
 // displayName: Layers - Basic
-// author: PXL
+// author: Cumin & Potato
 // ---
 // Example 19: Layers - Basic
 // Create a separate layer and apply it back

@@ -1,7 +1,7 @@
 // ---
 // app: Demo04FillAndStroke
 // displayName: Fill and Stroke
-// author: PXL
+// author: Cumin & Potato
 // ---
 // Example 04: Fill and Stroke
 // Shapes can have both fill and stroke (outline)

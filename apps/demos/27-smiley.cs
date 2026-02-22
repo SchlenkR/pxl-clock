@@ -1,7 +1,7 @@
 // ---
 // app: Demo27Smiley
 // displayName: Smiley Face
-// author: PXL
+// author: Cumin & Potato
 // ---
 // Example 27: Smiley Face
 // Put it all together - gradients, shapes, and composition

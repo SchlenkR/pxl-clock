@@ -1,7 +1,7 @@
 // ---
 // app: Demo17PixelAccess
 // displayName: Direct Pixel Access
-// author: PXL
+// author: Cumin & Potato
 // ---
 // Example 17: Direct Pixel Access
 // Read and write individual pixels

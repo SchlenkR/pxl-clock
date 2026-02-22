@@ -1,7 +1,7 @@
 // ---
 // app: Demo02BackgroundAndPoint
 // displayName: Background and Point
-// author: PXL
+// author: Cumin & Potato
 // ---
 // Example 02: Background and Point
 // Fill the background and draw a point with DrawPoint
