@@ -6,7 +6,7 @@
 // Example 22: Multiple Shapes - Scene Composition
 // Combine everything to create a complete scene
 
-#:package Pxl@0.0.46
+#:package Pxl@0.0.49
 
 using Pxl.Ui.CSharp;
 
@@ -43,3 +43,4 @@ var scene = (DrawingContext ctx) =>
     ctx.DrawLine(2, 12, 7, 7, Colors.DarkRed, strokeWidth: 1);
     ctx.DrawLine(7, 7, 12, 12, Colors.DarkRed, strokeWidth: 1);
 };
+

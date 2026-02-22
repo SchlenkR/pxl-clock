@@ -6,7 +6,7 @@
 // Example 08: Basic Text
 // Draw text with different fonts
 
-#:package Pxl@0.0.46
+#:package Pxl@0.0.49
 
 using Pxl.Ui.CSharp;
 
@@ -24,3 +24,4 @@ var scene = (DrawingContext ctx) =>
     ctx.DrawTextMono3x5("TINY", 0, 14, Colors.Cyan);
     ctx.DrawTextVar3x5("TEXT", 0, 20, Colors.Lime);
 };
+

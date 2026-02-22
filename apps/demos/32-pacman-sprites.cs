@@ -6,7 +6,7 @@
 // Example 32: Pacman Sprites
 // Load a sprite sheet, create animations, and draw animated sprites
 
-#:package Pxl@0.0.46
+#:package Pxl@0.0.49
 
 using Pxl.Ui.CSharp;
 
@@ -31,3 +31,4 @@ var scene = (DrawingContext ctx) =>
     ctx.DrawImage(ghostRed, x - 20, 8);
     ctx.DrawImage(ghostPink, x - 38, 8);
 };
+

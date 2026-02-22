@@ -6,7 +6,7 @@
 // Example 31: Animated GIF
 // Load and draw an animated GIF with automatic frame cycling
 
-#:package Pxl@0.0.46
+#:package Pxl@0.0.49
 
 using Pxl.Ui.CSharp;
 
@@ -21,3 +21,4 @@ var scene = (DrawingContext ctx) =>
     // The frame is automatically selected based on elapsed time
     ctx.DrawImage(animation, 0, 0, repeat: true);
 };
+

@@ -6,7 +6,7 @@
 // description: Conway's Game of Life seeded with the current time digits
 // ---
 
-#:package Pxl@0.0.46
+#:package Pxl@0.0.49
 
 using Pxl.Ui.CSharp;
 
@@ -116,3 +116,4 @@ var scene = (DrawingContext ctx) =>
     ctx.DrawTextVar4x5($"{now:dd}.{now:MM}.", 1, 13,
         color: Colors.White.WithAlpha(0.7));
 };
+

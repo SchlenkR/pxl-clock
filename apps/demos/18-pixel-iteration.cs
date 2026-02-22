@@ -6,7 +6,7 @@
 // Example 18: Iterating Over Pixels
 // Use the Cells property to iterate with coordinates
 
-#:package Pxl@0.0.46
+#:package Pxl@0.0.49
 
 using Pxl.Ui.CSharp;
 
@@ -34,3 +34,4 @@ var scene = (DrawingContext ctx) =>
         pixels[cell.X, cell.Y] = color;
     }
 };
+

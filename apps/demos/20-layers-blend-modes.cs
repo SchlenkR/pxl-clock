@@ -6,7 +6,7 @@
 // Example 20: Layers with Blend Modes
 // Different blend modes create different visual effects
 
-#:package Pxl@0.0.46
+#:package Pxl@0.0.49
 
 using Pxl.Ui.CSharp;
 using SkiaSharp;
@@ -30,3 +30,4 @@ var scene = (DrawingContext ctx) =>
 
     layer.Apply(SKBlendMode.Screen);  // Change this to experiment!
 };
+

@@ -6,7 +6,7 @@
 // description: Pixel art dog scrolling across the screen with time overlay
 // ---
 
-#:package Pxl@0.0.46
+#:package Pxl@0.0.49
 
 using Pxl.Ui.CSharp;
 
@@ -117,3 +117,4 @@ var scene = (DrawingContext ctx) =>
     ctx.DrawRectXyWh(0, 3, 24, 7, colorFill: Color.FromArgbByte(80, 0, 0, 0), isAntialias: true);
     ctx.DrawTextVar4x5($"{now:HH}:{now:mm}", 1, 4, color: Colors.White);
 };
+

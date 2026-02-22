@@ -6,7 +6,7 @@
 // Example 30: Static Image
 // Load and draw a static PNG image
 
-#:package Pxl@0.0.46
+#:package Pxl@0.0.49
 
 using Pxl.Ui.CSharp;
 
@@ -21,3 +21,4 @@ var scene = (DrawingContext ctx) =>
     ctx.DrawBackground(Colors.Black);
     ctx.DrawImage(resized, 0, 0);
 };
+

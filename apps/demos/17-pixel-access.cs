@@ -6,7 +6,7 @@
 // Example 17: Direct Pixel Access
 // Read and write individual pixels
 
-#:package Pxl@0.0.46
+#:package Pxl@0.0.49
 
 using Pxl.Ui.CSharp;
 
@@ -42,3 +42,4 @@ var scene = (DrawingContext ctx) =>
         }
     }
 };
+

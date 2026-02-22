@@ -6,7 +6,7 @@
 // description: Dynamic HSV color wheel where all positions are always visible
 // ---
 
-#:package Pxl@0.0.46
+#:package Pxl@0.0.49
 
 using Pxl.Ui.CSharp;
 
@@ -181,3 +181,4 @@ var scene = (DrawingContext ctx) =>
     ctx.DrawTextMono4x5($"{now:HH}", 6, 6, color: Colors.White);
     ctx.DrawTextMono4x5($"{now:mm}", 9, 13, color: Colors.White);
 };
+

@@ -6,7 +6,7 @@
 // Example 13: Color Animation
 // Animate colors using HSL for smooth hue transitions
 
-#:package Pxl@0.0.46
+#:package Pxl@0.0.49
 
 using Pxl.Ui.CSharp;
 
@@ -29,3 +29,4 @@ var scene = (DrawingContext ctx) =>
 
     ctx.DrawCircle(12, 12, 8, colorFill: complementary);
 };
+

@@ -6,7 +6,7 @@
 // description: Mountain silhouette with dynamic sky gradient
 // ---
 
-#:package Pxl@0.0.46
+#:package Pxl@0.0.49
 
 using Pxl.Ui.CSharp;
 
@@ -50,3 +50,4 @@ var scene = (DrawingContext ctx) =>
     // Centered time
     ctx.DrawTextVar4x5($"{now:HH}:{now:mm}", 1, 9, color: Colors.White);
 };
+

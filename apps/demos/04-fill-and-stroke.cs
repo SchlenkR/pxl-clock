@@ -6,7 +6,7 @@
 // Example 04: Fill and Stroke
 // Shapes can have both fill and stroke (outline)
 
-#:package Pxl@0.0.46
+#:package Pxl@0.0.49
 
 using Pxl.Ui.CSharp;
 
@@ -35,3 +35,4 @@ var scene = (DrawingContext ctx) =>
         colorStroke: Colors.Pink,
         strokeWidth: 1);
 };
+

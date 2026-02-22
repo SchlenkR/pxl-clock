@@ -6,7 +6,7 @@
 // description: Nested colored rectangles with a seconds hand around the border
 // ---
 
-#:package Pxl@0.0.46
+#:package Pxl@0.0.49
 
 using Pxl.Ui.CSharp;
 
@@ -65,3 +65,4 @@ var scene = (DrawingContext ctx) =>
     // Centered time
     ctx.DrawTextVar4x5($"{now:HH}:{now:mm}", 1, 9, color: Colors.White);
 };
+

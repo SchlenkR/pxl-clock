@@ -6,7 +6,7 @@
 // Example 09: Text with Gradients
 // Combine text with gradient paints
 
-#:package Pxl@0.0.46
+#:package Pxl@0.0.49
 
 using Pxl.Ui.CSharp;
 
@@ -38,3 +38,4 @@ var scene = (DrawingContext ctx) =>
             [Colors.White, Colors.Purple]
         ));
 };
+

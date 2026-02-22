@@ -6,7 +6,7 @@
 // Example 21: Fork Layer (Copy Content)
 // Fork creates a layer with a copy of the current canvas
 
-#:package Pxl@0.0.46
+#:package Pxl@0.0.49
 
 using Pxl.Ui.CSharp;
 using SkiaSharp;
@@ -33,3 +33,4 @@ var scene = (DrawingContext ctx) =>
     // Apply with difference blend for interesting effect
     forked.Apply(SKBlendMode.Difference);
 };
+

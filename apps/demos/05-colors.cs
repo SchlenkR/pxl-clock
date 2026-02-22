@@ -6,7 +6,7 @@
 // Example 05: Working with Colors
 // Different ways to create and use colors
 
-#:package Pxl@0.0.46
+#:package Pxl@0.0.49
 
 using Pxl.Ui.CSharp;
 
@@ -35,3 +35,4 @@ var scene = (DrawingContext ctx) =>
     var hslColor = Color.FromHsl(0.6, 1.0, 0.5); // Cyan-ish
     ctx.DrawRectXyWh(1, 15, 5, 5, colorFill: hslColor);
 };
+

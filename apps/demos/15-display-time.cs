@@ -6,7 +6,7 @@
 // Example 15: Display Time
 // Show the current time on screen
 
-#:package Pxl@0.0.46
+#:package Pxl@0.0.49
 
 using Pxl.Ui.CSharp;
 
@@ -32,3 +32,4 @@ var scene = (DrawingContext ctx) =>
         ctx.DrawPoint(12, 21, Colors.White, strokeWidth: 2);
     }
 };
+

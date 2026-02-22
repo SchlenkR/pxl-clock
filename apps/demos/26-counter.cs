@@ -6,7 +6,7 @@
 // Example 26: Counter Display
 // A simple counter using state variables
 
-#:package Pxl@0.0.46
+#:package Pxl@0.0.49
 
 using Pxl.Ui.CSharp;
 
@@ -40,3 +40,4 @@ var scene = (DrawingContext ctx) =>
     ctx.DrawRectXyWh(2, 20, 20 * progress, 2, colorFill: Colors.DarkGreen);
     ctx.DrawRectXyWh(2, 20, 20, 2, colorStroke: Colors.Green);
 };
+

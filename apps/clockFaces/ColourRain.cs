@@ -6,7 +6,7 @@
 // description: Colorful rain lines flowing down with time overlay
 // ---
 
-#:package Pxl@0.0.46
+#:package Pxl@0.0.49
 
 using Pxl.Ui.CSharp;
 
@@ -34,3 +34,4 @@ var scene = (DrawingContext ctx) =>
     ctx.DrawTextVar4x5($"{now.Second:D2}", 15, 19,
         color: Color.FromHsv360(100, 0.5, 1.0).WithAlpha(0.7));
 };
+

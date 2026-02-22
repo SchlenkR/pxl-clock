@@ -6,7 +6,7 @@
 // Example 33: Easing Animations
 // Compare different easing functions side by side
 
-#:package Pxl@0.0.46
+#:package Pxl@0.0.49
 
 using Pxl.Ui.CSharp;
 
@@ -32,3 +32,4 @@ var scene = (DrawingContext ctx) =>
     // Use the toggled color
     ctx.DrawText("ease", 0, 23, color: labelColor.Eval(ctx), fontSize: 5);
 };
+

@@ -6,7 +6,7 @@
 // Example 10: Simple Position Animation
 // Animate a shape's position using a variable outside the scene
 
-#:package Pxl@0.0.46
+#:package Pxl@0.0.49
 
 using Pxl.Ui.CSharp;
 
@@ -27,3 +27,4 @@ var scene = (DrawingContext ctx) =>
     if (x > ctx.Width + 3)
         x = -3;
 };
+

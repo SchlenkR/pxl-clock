@@ -6,7 +6,7 @@
 // Example 11: Bouncing Animation
 // A ball that bounces back and forth
 
-#:package Pxl@0.0.46
+#:package Pxl@0.0.49
 
 using Pxl.Ui.CSharp;
 
@@ -27,3 +27,4 @@ var scene = (DrawingContext ctx) =>
     if (x >= ctx.Width - 4 || x <= 4)
         dx = -dx;
 };
+

@@ -6,7 +6,7 @@
 // description: Snow particles falling around time digits displayed as ice
 // ---
 
-#:package Pxl@0.0.46
+#:package Pxl@0.0.49
 
 using Pxl.Ui.CSharp;
 
@@ -161,3 +161,4 @@ static int GetSnowHeight(int[] world, int col, int row)
         if (world[r * 24 + col] is Lying or Ice) h++;
     return h;
 }
+

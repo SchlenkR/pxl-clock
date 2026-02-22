@@ -6,7 +6,7 @@
 // Example 16: Arcs and Pie Charts
 // Draw arcs for progress indicators and pie charts
 
-#:package Pxl@0.0.46
+#:package Pxl@0.0.49
 
 using Pxl.Ui.CSharp;
 
@@ -35,3 +35,4 @@ var scene = (DrawingContext ctx) =>
     ctx.DrawArcCenter(18, 16, 5, 30, 90, colorFill: Colors.Blue);
     ctx.DrawArcCenter(18, 16, 5, 120, 150, colorFill: Colors.Yellow);
 };
+

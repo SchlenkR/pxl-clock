@@ -6,7 +6,7 @@
 // Example 03: Basic Shapes
 // Draw rectangles, circles, and lines
 
-#:package Pxl@0.0.46
+#:package Pxl@0.0.49
 
 using Pxl.Ui.CSharp;
 
@@ -23,3 +23,4 @@ var scene = (DrawingContext ctx) =>
     // Draw a line (x1, y1, x2, y2)
     ctx.DrawLine(2, 14, 22, 20, color: Colors.Blue);
 };
+

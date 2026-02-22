@@ -6,7 +6,7 @@
 // description: Three concentric pixel paths with rainbow colors
 // ---
 
-#:package Pxl@0.0.46
+#:package Pxl@0.0.49
 
 using Pxl.Ui.CSharp;
 using SkiaSharp;
@@ -77,3 +77,4 @@ var scene = (DrawingContext ctx) =>
         ctx.DrawPoint(x, y, color: color, isAntialias: false);
     }
 };
+

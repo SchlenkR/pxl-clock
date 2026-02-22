@@ -6,7 +6,7 @@
 // Example 27: Smiley Face
 // Put it all together - gradients, shapes, and composition
 
-#:package Pxl@0.0.46
+#:package Pxl@0.0.49
 
 using Pxl.Ui.CSharp;
 
@@ -72,3 +72,4 @@ var scene = (DrawingContext ctx) =>
             [Colors.Pink, Color.FromRgba(255, 192, 203, 0)]
         ));
 };
+
