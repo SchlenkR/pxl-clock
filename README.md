@@ -33,14 +33,14 @@ Find out more:
 
 Welcome to the **PXL Clock** repository! This repo serves as a central hub for:
 
-- **Resources for creating your own custom PXL Clock applications**
+- **Resources for creating your own custom PXL Clock Pixograms**
 - **Issue tracking** and **idea proposals** (hardware, software, use cases, features)
 
 We’re excited to see what the community will build around the PXL Clock. Below you’ll find everything you need to get started.
 
 ---
 
-## Quick-Start Development of PXL Clock Apps
+## Quick-Start Development of PXL Clock Pixograms
 
 **Getting Started (3 steps):**
 1. Start the simulator (see below - either by VS Code or terminal)
@@ -65,7 +65,7 @@ We’re excited to see what the community will build around the PXL Clock. Below
 1. [About PXL Clock](#about-pxl-clock)
 2. [Releases](#releases)
 3. [Filing Issues and Ideas](#filing-issues-and-ideas)
-4. [Developing Your Own Apps](#developing-your-own-apps)
+4. [Developing Your Own Pixograms](#developing-your-own-pixograms)
 5. [Contributing](#contributing)
 6. [License](LICENSE.md)
 
@@ -73,7 +73,7 @@ We’re excited to see what the community will build around the PXL Clock. Below
 
 ## About PXL Clock
 
-The **PXL Clock** is a device designed to display various fun clocks, animations, short stories, visuals and other creative things - all on a 24x24 pixel display. Whether you want to keep track of the current time in a futuristic manner or develop your own mini-apps to run on the clock, this project provides a flexible platform for creativity.
+The **PXL Clock** is a device designed to display various fun clocks, animations, short stories, visuals and other creative things - all on a 24x24 pixel display. Whether you want to keep track of the current time in a futuristic manner or develop your own Pixograms to run on the clock, this project provides a flexible platform for creativity.
 
 ---
 
@@ -95,16 +95,16 @@ Just head over to the [**Issues**](../../issues) tab and click **New Issue** to 
 
 ---
 
-## Developing Your Own Apps
+## Developing Your Own Pixograms
 
 [![NuGet](https://img.shields.io/nuget/v/Pxl.svg?style=flat-square&logo=nuget)](https://www.nuget.org/packages/Pxl)
 [![NuGet Downloads](https://img.shields.io/nuget/dt/Pxl.svg?style=flat-square)](https://www.nuget.org/packages/Pxl)
 
-The example apps always use the latest compatible versions of the Pxl NuGet package and tools. Running `./start.sh` automatically restores the correct tool versions.
+The example Pixograms always use the latest compatible versions of the Pxl NuGet package and tools. Running `./start.sh` automatically restores the correct tool versions.
 
 ### Getting Started with Code
 
-A PXL Clock app is a simple C# script. Here's a minimal example — a bouncing ball:
+A PXL Clock Pixogram is a simple C# script. Here's a minimal example — a bouncing ball:
 
 ```csharp
 #:package Pxl@0.0.46
@@ -146,11 +146,11 @@ var scene = PxlApp.CreateScene(ctx =>
 await PxlApp.SimulateAndSendToDevice(scene);
 ```
 
-Find many more examples in `apps/demos/` (numbered tutorials from basics to advanced) and in `apps/clockFaces/` (the factory clock face apps that ship with every PXL Clock).
+Find many more examples in `apps/demos/` (numbered tutorials from basics to advanced) and in `apps/clockFaces/` (the factory clock face Pixograms that ship with every PXL Clock).
 
 ### Using Images and Assets
 
-You can use images in your apps by placing them in an `assets/` folder next to your script. Supported formats: **PNG**, **GIF** (animated), and **JPEG**.
+You can use images in your Pixograms by placing them in an `assets/` folder next to your script. Supported formats: **PNG**, **GIF** (animated), and **JPEG**.
 
 ```csharp
 // Load a static image
@@ -169,17 +169,17 @@ var pacman = sprites.CreateAnimation((0, 0), (0, 1), (0, 2), (0, 1));
 ctx.DrawImage(pacman, x, y);
 ```
 
-**Important:** Asset paths must be **string literals** (not variables). The compiler embeds the assets into your app at compile time. Images are automatically scaled — use `.Resize(width, height)` to fit the 24x24 display.
+**Important:** Asset paths must be **string literals** (not variables). The compiler embeds the assets into your Pixogram at compile time. Images are automatically scaled — use `.Resize(width, height)` to fit the 24x24 display.
 
 See `apps/demos/28-image-static.cs`, `29-image-animated-gif.cs`, and `30-pacman-sprites.cs` for complete examples.
 
 ### Send to Your PXL Clock
 
-To send your app to a real PXL Clock:
+To send your Pixogram to a real PXL Clock:
 
 1. In the **PXL-App**, go to the **Settings** of your clock and set the mode to **"Development"**. The display will turn black, indicating it's ready to receive from your computer.
 
-2. In your app script, choose one of the following methods and provide the **IP address or name** of your clock:
+2. In your Pixogram script, choose one of the following methods and provide the **IP address or name** of your clock:
 
    ```csharp
    // Only send to the clock (no local simulator)
@@ -195,9 +195,9 @@ To send your app to a real PXL Clock:
 3. Start the development environment as usual (see [Quick-Start](#quick-start-development-of-pxl-clock-apps)).
 
 
-### Publish Your App to the PXL Clock
+### Publish Your Pixogram to the PXL Clock
 
-Once you're happy with your app in the simulator, you can publish it to your PXL Clock so it runs standalone — without your computer connected.
+Once you're happy with your Pixogram in the simulator, you can publish it to your PXL Clock so it runs standalone — without your computer connected.
 
 1. Make sure your PXL Clock is in **"Development"** mode (see above).
 2. Run the publish script:
@@ -208,7 +208,7 @@ Once you're happy with your app in the simulator, you can publish it to your PXL
 
    Or use the VS Code task: **PXL-CLOCK :: Publish App to Device**.
 
-This compiles your app and installs it on the clock. After publishing, you can switch the clock back to normal mode in the PXL-App — your app will appear in the app list.
+This compiles your Pixogram and installs it on the clock. After publishing, you can switch the clock back to normal mode in the PXL-App — your Pixogram will appear in the Pixogram list.
 
 ### Troubleshooting
 

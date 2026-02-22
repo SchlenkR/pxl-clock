@@ -7,7 +7,7 @@
 publish/
 .tmp/
 
-.env
+pxl-config.json
 .venv
 
 # defaults for node projects in the workspace

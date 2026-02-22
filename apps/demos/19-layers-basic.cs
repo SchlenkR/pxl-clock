@@ -28,4 +28,4 @@ var scene = PxlApp.CreateScene(ctx =>
     layer.Apply(SKBlendMode.SrcOver);
 });
 
-await PxlApp.SimulateAndSendToDevice(scene);
+await PxlApp.Run(scene);

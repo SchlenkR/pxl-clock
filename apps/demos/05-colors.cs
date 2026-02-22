@@ -36,4 +36,4 @@ var scene = PxlApp.CreateScene(ctx =>
     ctx.DrawRectXyWh(1, 15, 5, 5, colorFill: hslColor);
 });
 
-await PxlApp.SimulateAndSendToDevice(scene);
+await PxlApp.Run(scene);

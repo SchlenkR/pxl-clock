@@ -25,9 +25,9 @@
       }
     },
     {
-      "label": "PXL-CLOCK :: Publish App to Device",
+      "label": "PXL-CLOCK :: PXL Tool",
       "type": "shell",
-      "command": "./publish-app.sh",
+      "command": "./pxl-tool.sh",
       "problemMatcher": [],
       "presentation": {
         "focus": true

@@ -19,4 +19,4 @@ var scene = PxlApp.CreateScene(ctx =>
     ctx.DrawPoint(12, 12, Colors.Yellow);
 });
 
-await PxlApp.SimulateAndSendToDevice(scene);
+await PxlApp.Run(scene);

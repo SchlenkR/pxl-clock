@@ -1,17 +1,16 @@
 #!/bin/bash
-# Start Simulator and C# Watcher concurrently
+# Start PXL Clock development environment
+# The simulator now includes the file watcher and config management.
 
 cd "$(dirname "$0")"
 
-# Run setup check (only on first start, skip on .env restart)
-if [ "$PXL_RESTART" != "1" ]; then
-    ./build/setup-check.sh
-    if [ $? -ne 0 ]; then
-        exit 1
-    fi
+# Run setup check
+./build/setup-check.sh
+if [ $? -ne 0 ]; then
+    exit 1
 fi
 
-# Clean up all child processes on exit
+# Clean up on exit
 cleanup() {
     echo ""
     echo "Stopping PXL Clock development environment..."
@@ -24,87 +23,46 @@ echo ""
 echo "Starting PXL Clock development environment..."
 echo ""
 
-# Load .env to check settings
-PXL_SEND_TO_SIMULATOR="true"
-if [ -f .env ]; then
-    while IFS='=' read -r key value; do
-        key=$(echo "$key" | xargs)
-        [[ -z "$key" || "$key" == \#* ]] && continue
-        value=$(echo "$value" | xargs)
-        if [ "$key" = "PXL_SEND_TO_SIMULATOR" ]; then
-            PXL_SEND_TO_SIMULATOR="$value"
-        fi
-    done < .env
-fi
-
 dotnet tool restore
 
-# Start the Simulator if enabled
-if [ "$PXL_SEND_TO_SIMULATOR" = "true" ]; then
-    dotnet Pxl.Simulator &
+# Start the simulator (includes file watcher, config API, and web UI)
+dotnet Pxl.Simulator --clock-repo "$(pwd)" &
 
-    # Wait for the simulator to be reachable (max 15 seconds)
-    echo "Waiting for simulator..."
-    SIMULATOR_READY=false
-    for i in {1..30}; do
-        if curl -s --head http://127.0.0.1:5001 > /dev/null 2>&1; then
-            SIMULATOR_READY=true
-            echo "Simulator ready at http://127.0.0.1:5001"
-            break
-        fi
-        sleep 0.5
-    done
-
-    if [ "$SIMULATOR_READY" = false ]; then
-        echo ""
-        echo "WARNING: Simulator did not start within 15 seconds."
-        echo "  Try running: dotnet tool restore && dotnet Pxl.Simulator"
-        echo "  Or check: ./build/setup-check.sh"
-        echo ""
+# Wait for the simulator to be reachable (max 15 seconds)
+echo "Waiting for simulator..."
+SIMULATOR_READY=false
+for i in {1..30}; do
+    if curl -s --head http://127.0.0.1:5001 > /dev/null 2>&1; then
+        SIMULATOR_READY=true
+        echo "Simulator ready at http://127.0.0.1:5001"
+        break
     fi
+    sleep 0.5
+done
 
-    # Open browser (only if simulator is ready)
-    if [ "$SIMULATOR_READY" = true ]; then
-        if command -v open &> /dev/null; then
-            open http://127.0.0.1:5001
-        elif command -v xdg-open &> /dev/null; then
-            xdg-open http://127.0.0.1:5001
-        elif command -v wslview &> /dev/null; then
-            wslview http://127.0.0.1:5001
-        fi
-    fi
-else
-    echo "Simulator disabled (PXL_SEND_TO_SIMULATOR=$PXL_SEND_TO_SIMULATOR)"
+if [ "$SIMULATOR_READY" = false ]; then
+    echo ""
+    echo "WARNING: Simulator did not start within 15 seconds."
+    echo "  Try running: dotnet tool restore && dotnet Pxl.Simulator --clock-repo ."
+    echo "  Or check: ./build/setup-check.sh"
+    echo ""
 fi
 
-# Start the C# Watcher in the background (.env is loaded by the watcher itself)
-dotnet fsi ./build/csFsxWatcher.fsx &
-
-echo ""
-echo "Save any .cs or .fsx file in the apps/ folder to start"
-echo ""
-
-# Watch .env for changes and restart everything if it changes
-if [ -f .env ]; then
-    ENV_HASH=$(md5sum .env 2>/dev/null || md5 -q .env 2>/dev/null)
-    (
-        while true; do
-            sleep 2
-            if [ -f .env ]; then
-                NEW_HASH=$(md5sum .env 2>/dev/null || md5 -q .env 2>/dev/null)
-                if [ "$NEW_HASH" != "$ENV_HASH" ]; then
-                    echo ""
-                    echo ".env changed — restarting development environment..."
-                    echo ""
-                    kill $$
-                fi
-            fi
-        done
-    ) &
+# Open browser
+if [ "$SIMULATOR_READY" = true ]; then
+    if command -v open &> /dev/null; then
+        open http://127.0.0.1:5001
+    elif command -v xdg-open &> /dev/null; then
+        xdg-open http://127.0.0.1:5001
+    elif command -v wslview &> /dev/null; then
+        wslview http://127.0.0.1:5001
+    fi
 fi
 
-# Wait for all child processes
+echo ""
+echo "Save any .cs file in the apps/ folder to start"
+echo "Config and scripts are now managed in the browser at http://127.0.0.1:5001"
+echo ""
+
+# Wait for simulator process
 wait
-
-# If we got here via the .env watcher signal, restart
-PXL_RESTART=1 exec "$0" "$@"

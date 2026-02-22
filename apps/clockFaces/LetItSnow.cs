@@ -162,4 +162,4 @@ static int GetSnowHeight(int[] world, int col, int row)
     return h;
 }
 
-await PxlApp.SimulateAndSendToDevice(scene);
+await PxlApp.Run(scene);

@@ -7,9 +7,9 @@
       "commands": ["Pxl.Simulator"],
       "rollForward": true
     },
-    "pxl.compiler.cli": {
+    "pxl.tool.cli": {
       "version": "0.0.20",
-      "commands": ["Pxl.Compiler.Cli"],
+      "commands": ["Pxl.Tool"],
       "rollForward": true
     }
   }

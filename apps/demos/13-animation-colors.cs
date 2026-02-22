@@ -30,4 +30,4 @@ var scene = PxlApp.CreateScene(ctx =>
     ctx.DrawCircle(12, 12, 8, colorFill: complementary);
 });
 
-await PxlApp.SimulateAndSendToDevice(scene);
+await PxlApp.Run(scene);
