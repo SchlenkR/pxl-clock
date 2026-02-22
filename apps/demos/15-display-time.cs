@@ -6,7 +6,7 @@
 // Example 15: Display Time
 // Show the current time on screen
 
-#:package Pxl@0.0.51
+#:package Pxl@0.0.52
 
 using Pxl.Ui.CSharp;
 

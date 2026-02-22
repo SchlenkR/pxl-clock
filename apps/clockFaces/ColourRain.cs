@@ -6,7 +6,7 @@
 // description: Colorful rain lines flowing down with time overlay
 // ---
 
-#:package Pxl@0.0.51
+#:package Pxl@0.0.52
 
 using Pxl.Ui.CSharp;
 

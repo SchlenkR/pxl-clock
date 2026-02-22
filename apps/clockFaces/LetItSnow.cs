@@ -6,7 +6,7 @@
 // description: Snow particles falling around time digits displayed as ice
 // ---
 
-#:package Pxl@0.0.51
+#:package Pxl@0.0.52
 
 using Pxl.Ui.CSharp;
 
