@@ -33,4 +33,4 @@ var scene = PxlApp.CreateScene(ctx =>
     ctx.DrawText("ease", 0, 23, color: labelColor.Eval(ctx), fontSize: 5);
 });
 
-await PxlApp.Run(scene);
+await PxlApp.SimulateAndSendToDevice(scene);

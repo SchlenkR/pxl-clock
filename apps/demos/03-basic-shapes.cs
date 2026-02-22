@@ -24,4 +24,4 @@ var scene = PxlApp.CreateScene(ctx =>
     ctx.DrawLine(2, 14, 22, 20, color: Colors.Blue);
 });
 
-await PxlApp.Run(scene);
+await PxlApp.SimulateAndSendToDevice(scene);

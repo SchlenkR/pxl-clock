@@ -243,4 +243,4 @@ var scene = PxlApp.CreateScene(ctx =>
     ctx.DrawTextMono4x5($"{now:mm}", 9, 13, color: Colors.White);
 });
 
-await PxlApp.Run(scene);
+await PxlApp.SimulateAndSendToDevice(scene);

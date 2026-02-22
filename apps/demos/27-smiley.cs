@@ -73,4 +73,4 @@ var scene = PxlApp.CreateScene(ctx =>
         ));
 });
 
-await PxlApp.Run(scene);
+await PxlApp.SimulateAndSendToDevice(scene);

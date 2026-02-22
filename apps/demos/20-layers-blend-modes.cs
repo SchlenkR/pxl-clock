@@ -31,4 +31,4 @@ var scene = PxlApp.CreateScene(ctx =>
     layer.Apply(SKBlendMode.Screen);  // Change this to experiment!
 });
 
-await PxlApp.Run(scene);
+await PxlApp.SimulateAndSendToDevice(scene);
