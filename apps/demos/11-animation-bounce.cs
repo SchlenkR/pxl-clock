@@ -13,7 +13,7 @@ using Pxl.Ui.CSharp;
 double x = 12;
 double dx = 0.3;  // Velocity
 
-var scene = PxlApp.CreateScene(ctx =>
+var scene = (DrawingContext ctx) =>
 {
     ctx.DrawBackground(Colors.DarkBlue);
 
@@ -26,6 +26,4 @@ var scene = PxlApp.CreateScene(ctx =>
     // Bounce off walls
     if (x >= ctx.Width - 4 || x <= 4)
         dx = -dx;
-});
-
-await PxlApp.SimulateAndSendToDevice(scene);
+};

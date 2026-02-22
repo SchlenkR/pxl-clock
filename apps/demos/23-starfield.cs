@@ -23,7 +23,7 @@ for (var i = 0; i < stars.Length; i++)
     );
 }
 
-var scene = PxlApp.CreateScene(ctx =>
+var scene = (DrawingContext ctx) =>
 {
     ctx.DrawBackground(Colors.Black);
 
@@ -46,6 +46,4 @@ var scene = PxlApp.CreateScene(ctx =>
             stars[i].y = random.NextDouble() * 24;
         }
     }
-});
-
-await PxlApp.SimulateAndSendToDevice(scene);
+};

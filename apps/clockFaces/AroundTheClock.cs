@@ -11,7 +11,7 @@
 using Pxl.Ui.CSharp;
 using SkiaSharp;
 
-var scene = PxlApp.CreateScene(ctx =>
+var scene = (DrawingContext ctx) =>
 {
     var now = ctx.Now;
     ctx.DrawBackground(Color.FromHsv360(195, 0.9, 0.2));
@@ -77,6 +77,4 @@ var scene = PxlApp.CreateScene(ctx =>
         };
         ctx.DrawPoint(x, y, color: color, isAntialias: false);
     }
-});
-
-await PxlApp.SimulateAndSendToDevice(scene);
+};

@@ -13,7 +13,7 @@ using Pxl.Ui.CSharp;
 // State variable - lives outside the scene, persists between frames
 double x = 0;
 
-var scene = PxlApp.CreateScene(ctx =>
+var scene = (DrawingContext ctx) =>
 {
     ctx.DrawBackground(Colors.Black);
 
@@ -26,6 +26,4 @@ var scene = PxlApp.CreateScene(ctx =>
     // Wrap around when off screen
     if (x > ctx.Width + 3)
         x = -3;
-});
-
-await PxlApp.SimulateAndSendToDevice(scene);
+};

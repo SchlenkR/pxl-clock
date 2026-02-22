@@ -11,7 +11,7 @@
 using Pxl.Ui.CSharp;
 using SkiaSharp;
 
-var scene = PxlApp.CreateScene(ctx =>
+var scene = (DrawingContext ctx) =>
 {
     // Draw main background
     ctx.DrawBackground(Colors.DarkBlue);
@@ -26,6 +26,4 @@ var scene = PxlApp.CreateScene(ctx =>
     // Apply the layer back to the main context
     // SourceOver blends using alpha
     layer.Apply(SKBlendMode.SrcOver);
-});
-
-await PxlApp.SimulateAndSendToDevice(scene);
+};

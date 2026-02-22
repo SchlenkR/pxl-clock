@@ -16,7 +16,7 @@ var mythen = Image.LoadSingleImage("assets/mythen.png");
 static double Lerp(double start, double end, double step, double steps) =>
     start + (end - start) * (step / steps);
 
-var scene = PxlApp.CreateScene(ctx =>
+var scene = (DrawingContext ctx) =>
 {
     var now = ctx.Now;
     var hour = now.Hour;
@@ -49,6 +49,4 @@ var scene = PxlApp.CreateScene(ctx =>
 
     // Centered time
     ctx.DrawTextVar4x5($"{now:HH}:{now:mm}", 1, 9, color: Colors.White);
-});
-
-await PxlApp.SimulateAndSendToDevice(scene);
+};

@@ -10,7 +10,7 @@
 
 using Pxl.Ui.CSharp;
 
-var scene = PxlApp.CreateScene(ctx =>
+var scene = (DrawingContext ctx) =>
 {
     ctx.DrawBackground(Colors.Black);
 
@@ -40,6 +40,4 @@ var scene = PxlApp.CreateScene(ctx =>
             radius: 15,
             colors: [Colors.Yellow, Colors.Orange, Colors.Red, Colors.Purple]
         ));
-});
-
-await PxlApp.SimulateAndSendToDevice(scene);
+};

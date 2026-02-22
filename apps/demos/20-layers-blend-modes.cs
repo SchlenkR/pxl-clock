@@ -11,7 +11,7 @@
 using Pxl.Ui.CSharp;
 using SkiaSharp;
 
-var scene = PxlApp.CreateScene(ctx =>
+var scene = (DrawingContext ctx) =>
 {
     // Draw colorful background
     ctx.DrawRectXyWh(0, 0, 12, 24, colorFill: Colors.Red);
@@ -29,6 +29,4 @@ var scene = PxlApp.CreateScene(ctx =>
     // - Difference: Inverts colors
 
     layer.Apply(SKBlendMode.Screen);  // Change this to experiment!
-});
-
-await PxlApp.SimulateAndSendToDevice(scene);
+};

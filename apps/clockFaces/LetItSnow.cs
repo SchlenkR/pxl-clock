@@ -122,7 +122,7 @@ var world = CreateWorld(DateTime.Now);
 var lastMinute = -1;
 var lastHalfSec = -1;
 
-var scene = PxlApp.CreateScene(ctx =>
+var scene = (DrawingContext ctx) =>
 {
     var now = ctx.Now;
     var halfSec = now.Millisecond / 500;
@@ -152,7 +152,7 @@ var scene = PxlApp.CreateScene(ctx =>
         };
     }
     ctx.SetPixels(pixels, BlendMode.Source);
-});
+};
 
 static int GetSnowHeight(int[] world, int col, int row)
 {
@@ -161,5 +161,3 @@ static int GetSnowHeight(int[] world, int col, int row)
         if (world[r * 24 + col] is Lying or Ice) h++;
     return h;
 }
-
-await PxlApp.SimulateAndSendToDevice(scene);

@@ -10,7 +10,7 @@
 
 using Pxl.Ui.CSharp;
 
-var scene = PxlApp.CreateScene(ctx =>
+var scene = (DrawingContext ctx) =>
 {
     ctx.DrawBackground(Colors.DarkBlue);
 
@@ -23,6 +23,4 @@ var scene = PxlApp.CreateScene(ctx =>
     // Smaller 3x5 fonts
     ctx.DrawTextMono3x5("TINY", 0, 14, Colors.Cyan);
     ctx.DrawTextVar3x5("TEXT", 0, 20, Colors.Lime);
-});
-
-await PxlApp.SimulateAndSendToDevice(scene);
+};

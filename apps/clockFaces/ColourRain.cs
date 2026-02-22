@@ -12,7 +12,7 @@ using Pxl.Ui.CSharp;
 
 var offsets = new[] { 10, 4, 17, 7, 12, 1, 13, 19, 9, 14, 1, 7, 18, 9, 5, 17, 8, 4, 9, 19, 2, 6, 13, 17 };
 
-var scene = PxlApp.CreateScene(ctx =>
+var scene = (DrawingContext ctx) =>
 {
     var now = ctx.Now;
     var step = now.Second % 24;
@@ -33,6 +33,4 @@ var scene = PxlApp.CreateScene(ctx =>
         color: Color.FromHsv360(20, 0.5, 1.0).WithAlpha(0.7));
     ctx.DrawTextVar4x5($"{now.Second:D2}", 15, 19,
         color: Color.FromHsv360(100, 0.5, 1.0).WithAlpha(0.7));
-});
-
-await PxlApp.SimulateAndSendToDevice(scene);
+};

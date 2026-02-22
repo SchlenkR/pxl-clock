@@ -16,10 +16,8 @@ var logo = Image.LoadSingleImage("assets/logo.png");
 // Optional: resize to fit the display
 var resized = logo.Resize(32, 24);
 
-var scene = PxlApp.CreateScene(ctx =>
+var scene = (DrawingContext ctx) =>
 {
     ctx.DrawBackground(Colors.Black);
     ctx.DrawImage(resized, 0, 0);
-});
-
-await PxlApp.SimulateAndSendToDevice(scene);
+};

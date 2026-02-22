@@ -85,7 +85,7 @@ static Color CharToColor(char c) => c switch
 Color[]? cachedPixels = null;
 var lastSecond = -1;
 
-var scene = PxlApp.CreateScene(ctx =>
+var scene = (DrawingContext ctx) =>
 {
     var now = ctx.Now;
     var sec = now.Second;
@@ -116,6 +116,4 @@ var scene = PxlApp.CreateScene(ctx =>
     ctx.DrawRectXyWh(0, 2, 24, 9, colorFill: Color.FromArgbByte(80, 0, 0, 0), isAntialias: true);
     ctx.DrawRectXyWh(0, 3, 24, 7, colorFill: Color.FromArgbByte(80, 0, 0, 0), isAntialias: true);
     ctx.DrawTextVar4x5($"{now:HH}:{now:mm}", 1, 4, color: Colors.White);
-});
-
-await PxlApp.SimulateAndSendToDevice(scene);
+};

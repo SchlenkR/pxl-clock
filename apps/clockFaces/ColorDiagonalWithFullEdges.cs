@@ -40,7 +40,7 @@ for (var i = 0; i <= 9; i++) cornersBottomLeft[i] = (0, 24 - i, i, 24);
 var cornersBottomRight = new (int, int, int, int)[10];
 for (var i = 0; i <= 9; i++) cornersBottomRight[i] = (24 - i, 24, 24, 24 - i);
 
-var scene = PxlApp.CreateScene(ctx =>
+var scene = (DrawingContext ctx) =>
 {
     var now = ctx.Now;
     var sec = now.Second;
@@ -92,6 +92,4 @@ var scene = PxlApp.CreateScene(ctx =>
     ctx.DrawRectXyWh(0, 7, 24, 9, colorFill: Color.FromArgbByte(80, 0, 0, 0), isAntialias: true);
     ctx.DrawRectXyWh(0, 8, 24, 7, colorFill: Color.FromArgbByte(80, 0, 0, 0), isAntialias: true);
     ctx.DrawTextVar4x5($"{now:HH}:{now:mm}", 1, 9, color: Colors.White);
-});
-
-await PxlApp.SimulateAndSendToDevice(scene);
+};

@@ -10,7 +10,7 @@
 
 using Pxl.Ui.CSharp;
 
-var scene = PxlApp.CreateScene(ctx =>
+var scene = (DrawingContext ctx) =>
 {
     var time = ctx.Elapsed.TotalSeconds;
 
@@ -42,6 +42,4 @@ var scene = PxlApp.CreateScene(ctx =>
     // Roof (triangle using arcs)
     ctx.DrawLine(2, 12, 7, 7, Colors.DarkRed, strokeWidth: 1);
     ctx.DrawLine(7, 7, 12, 12, Colors.DarkRed, strokeWidth: 1);
-});
-
-await PxlApp.SimulateAndSendToDevice(scene);
+};

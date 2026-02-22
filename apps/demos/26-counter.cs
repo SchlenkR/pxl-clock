@@ -13,7 +13,7 @@ using Pxl.Ui.CSharp;
 int counter = 0;
 double lastSecond = -1;
 
-var scene = PxlApp.CreateScene(ctx =>
+var scene = (DrawingContext ctx) =>
 {
     ctx.DrawBackground(Colors.Black);
 
@@ -39,6 +39,4 @@ var scene = PxlApp.CreateScene(ctx =>
     var progress = ctx.Elapsed.TotalSeconds % 1.0;
     ctx.DrawRectXyWh(2, 20, 20 * progress, 2, colorFill: Colors.DarkGreen);
     ctx.DrawRectXyWh(2, 20, 20, 2, colorStroke: Colors.Green);
-});
-
-await PxlApp.SimulateAndSendToDevice(scene);
+};

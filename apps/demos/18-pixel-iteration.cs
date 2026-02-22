@@ -10,7 +10,7 @@
 
 using Pxl.Ui.CSharp;
 
-var scene = PxlApp.CreateScene(ctx =>
+var scene = (DrawingContext ctx) =>
 {
     var time = ctx.Elapsed.TotalSeconds;
     var pixels = ctx.Pixels;
@@ -33,6 +33,4 @@ var scene = PxlApp.CreateScene(ctx =>
 
         pixels[cell.X, cell.Y] = color;
     }
-});
-
-await PxlApp.SimulateAndSendToDevice(scene);
+};

@@ -10,7 +10,7 @@
 
 using Pxl.Ui.CSharp;
 
-var scene = PxlApp.CreateScene(ctx =>
+var scene = (DrawingContext ctx) =>
 {
     var time = ctx.Elapsed.TotalSeconds;
 
@@ -28,6 +28,4 @@ var scene = PxlApp.CreateScene(ctx =>
     var complementary = Color.FromHsl(complementaryHue, 1.0, 0.5);
 
     ctx.DrawCircle(12, 12, 8, colorFill: complementary);
-});
-
-await PxlApp.SimulateAndSendToDevice(scene);
+};

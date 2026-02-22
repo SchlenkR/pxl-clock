@@ -10,7 +10,7 @@
 
 using Pxl.Ui.CSharp;
 
-var scene = PxlApp.CreateScene(ctx =>
+var scene = (DrawingContext ctx) =>
 {
     ctx.DrawBackground(Colors.Black);
 
@@ -22,6 +22,4 @@ var scene = PxlApp.CreateScene(ctx =>
 
     // Draw a line (x1, y1, x2, y2)
     ctx.DrawLine(2, 14, 22, 20, color: Colors.Blue);
-});
-
-await PxlApp.SimulateAndSendToDevice(scene);
+};

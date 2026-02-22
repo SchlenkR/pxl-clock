@@ -10,7 +10,7 @@
 
 using Pxl.Ui.CSharp;
 
-var scene = PxlApp.CreateScene(ctx =>
+var scene = (DrawingContext ctx) =>
 {
     var time = ctx.Elapsed.TotalSeconds;
 
@@ -35,6 +35,4 @@ var scene = PxlApp.CreateScene(ctx =>
             ctx.DrawCircle(x, y, radius, colorFill: color);
         }
     }
-});
-
-await PxlApp.SimulateAndSendToDevice(scene);
+};

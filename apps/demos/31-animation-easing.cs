@@ -19,7 +19,7 @@ var easeInOut = Anim.EaseInOut(3, 0, 28, repeat: Repeat.Loop);
 // Toggle the label color every 0.8 seconds
 var labelColor = Anim.ToggleValues(0.8, Colors.White, Colors.Gray);
 
-var scene = PxlApp.CreateScene(ctx =>
+var scene = (DrawingContext ctx) =>
 {
     ctx.DrawBackground(Colors.Black);
 
@@ -31,6 +31,4 @@ var scene = PxlApp.CreateScene(ctx =>
 
     // Use the toggled color
     ctx.DrawText("ease", 0, 23, color: labelColor.Eval(ctx), fontSize: 5);
-});
-
-await PxlApp.SimulateAndSendToDevice(scene);
+};

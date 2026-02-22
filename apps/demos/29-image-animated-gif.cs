@@ -14,12 +14,10 @@ using Pxl.Ui.CSharp;
 var animation = Image.LoadAnimatedGif("assets/mario.gif")
     .Resize(32, 24);
 
-var scene = PxlApp.CreateScene(ctx =>
+var scene = (DrawingContext ctx) =>
 {
     ctx.DrawBackground(Colors.Black);
 
     // The frame is automatically selected based on elapsed time
     ctx.DrawImage(animation, 0, 0, repeat: true);
-});
-
-await PxlApp.SimulateAndSendToDevice(scene);
+};

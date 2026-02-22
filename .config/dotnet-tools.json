@@ -6,11 +6,6 @@
       "version": "0.0.18",
       "commands": ["Pxl.Simulator"],
       "rollForward": true
-    },
-    "pxl.tool.cli": {
-      "version": "0.0.20",
-      "commands": ["Pxl.Tool"],
-      "rollForward": true
     }
   }
 }

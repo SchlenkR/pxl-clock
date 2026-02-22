@@ -37,7 +37,7 @@ var points = new List<(double X, double Y)> { (rand.NextDouble() * 24, rand.Next
 var lastTick = -1;
 var lastMinute = -1;
 
-var scene = PxlApp.CreateScene(ctx =>
+var scene = (DrawingContext ctx) =>
 {
     var now = ctx.Now;
     var tick = now.Millisecond / 100;
@@ -85,6 +85,4 @@ var scene = PxlApp.CreateScene(ctx =>
 
     // Centered time
     ctx.DrawTextVar4x5($"{now:HH}:{now:mm}", 1, 9, color: Colors.White);
-});
-
-await PxlApp.SimulateAndSendToDevice(scene);
+};

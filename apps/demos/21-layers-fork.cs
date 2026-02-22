@@ -11,7 +11,7 @@
 using Pxl.Ui.CSharp;
 using SkiaSharp;
 
-var scene = PxlApp.CreateScene(ctx =>
+var scene = (DrawingContext ctx) =>
 {
     // Draw some content
     ctx.DrawBackground(Colors.DarkGray);
@@ -32,6 +32,4 @@ var scene = PxlApp.CreateScene(ctx =>
 
     // Apply with difference blend for interesting effect
     forked.Apply(SKBlendMode.Difference);
-});
-
-await PxlApp.SimulateAndSendToDevice(scene);
+};

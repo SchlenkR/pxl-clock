@@ -10,7 +10,7 @@
 
 using Pxl.Ui.CSharp;
 
-var scene = PxlApp.CreateScene(ctx =>
+var scene = (DrawingContext ctx) =>
 {
     // Background with radial gradient
     ctx.DrawRectXyWh(
@@ -71,6 +71,4 @@ var scene = PxlApp.CreateScene(ctx =>
             (17, 13), 1.5,
             [Colors.Pink, Color.FromRgba(255, 192, 203, 0)]
         ));
-});
-
-await PxlApp.SimulateAndSendToDevice(scene);
+};

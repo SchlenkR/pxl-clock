@@ -10,7 +10,7 @@
 
 using Pxl.Ui.CSharp;
 
-var scene = PxlApp.CreateScene(ctx =>
+var scene = (DrawingContext ctx) =>
 {
     ctx.DrawBackground(Colors.Black);
 
@@ -33,6 +33,4 @@ var scene = PxlApp.CreateScene(ctx =>
         ctx.DrawCircle(trailX, trailY, 2, 
             colorFill: Color.FromRgba(1, 1, 1, alpha));
     }
-});
-
-await PxlApp.SimulateAndSendToDevice(scene);
+};

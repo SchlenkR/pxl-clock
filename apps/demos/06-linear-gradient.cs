@@ -10,7 +10,7 @@
 
 using Pxl.Ui.CSharp;
 
-var scene = PxlApp.CreateScene(ctx =>
+var scene = (DrawingContext ctx) =>
 {
     // Horizontal gradient (left to right)
     ctx.DrawRectXyWh(
@@ -39,6 +39,4 @@ var scene = PxlApp.CreateScene(ctx =>
             colors: [Colors.Red, Colors.Orange, Colors.Yellow, 
                      Colors.Green, Colors.Blue, Colors.Purple]
         ));
-});
-
-await PxlApp.SimulateAndSendToDevice(scene);
+};

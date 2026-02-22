@@ -41,7 +41,7 @@ var lines2 = new (int x1, int y1, int x2, int y2)[30];
     for (var i = 1; i <= 14; i++) lines2[idx++] = (i, 24, 24, i);
 }
 
-var scene = PxlApp.CreateScene(ctx =>
+var scene = (DrawingContext ctx) =>
 {
     var now = ctx.Now;
     var sec = now.Second;
@@ -63,6 +63,4 @@ var scene = PxlApp.CreateScene(ctx =>
 
     // Centered time
     ctx.DrawTextVar4x5($"{now:HH}:{now:mm}", 1, 9, color: Colors.White);
-});
-
-await PxlApp.SimulateAndSendToDevice(scene);
+};

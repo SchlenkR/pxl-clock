@@ -10,7 +10,7 @@
 
 using Pxl.Ui.CSharp;
 
-var scene = PxlApp.CreateScene(ctx =>
+var scene = (DrawingContext ctx) =>
 {
     ctx.DrawBackground(Colors.Black);
 
@@ -34,6 +34,4 @@ var scene = PxlApp.CreateScene(ctx =>
     // Create color from HSL (hue, saturation, lightness)
     var hslColor = Color.FromHsl(0.6, 1.0, 0.5); // Cyan-ish
     ctx.DrawRectXyWh(1, 15, 5, 5, colorFill: hslColor);
-});
-
-await PxlApp.SimulateAndSendToDevice(scene);
+};

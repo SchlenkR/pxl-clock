@@ -10,10 +10,8 @@
 
 using Pxl.Ui.CSharp;
 
-var scene = PxlApp.CreateScene(ctx =>
+var scene = (DrawingContext ctx) =>
 {
     // Draw a single white pixel at position (12, 12)
     ctx.SetPixel(12, 12, Colors.White);
-});
-
-await PxlApp.SimulateAndSendToDevice(scene);
+};

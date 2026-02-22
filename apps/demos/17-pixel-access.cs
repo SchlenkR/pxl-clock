@@ -12,7 +12,7 @@ using Pxl.Ui.CSharp;
 
 var random = new Random(42);
 
-var scene = PxlApp.CreateScene(ctx =>
+var scene = (DrawingContext ctx) =>
 {
     // Draw some background content first
     ctx.DrawBackground(Colors.DarkBlue);
@@ -41,6 +41,4 @@ var scene = PxlApp.CreateScene(ctx =>
             pixels[x, y] = noisy;
         }
     }
-});
-
-await PxlApp.SimulateAndSendToDevice(scene);
+};

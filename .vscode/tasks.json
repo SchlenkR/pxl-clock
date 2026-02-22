@@ -25,15 +25,6 @@
       }
     },
     {
-      "label": "PXL-CLOCK :: PXL Tool",
-      "type": "shell",
-      "command": "./pxl-tool.sh",
-      "problemMatcher": [],
-      "presentation": {
-        "focus": true
-      }
-    },
-    {
       "label": "PXL-CLOCK :: Check Setup",
       "type": "shell",
       "command": "./build/setup-check.sh",

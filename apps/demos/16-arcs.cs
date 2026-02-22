@@ -10,7 +10,7 @@
 
 using Pxl.Ui.CSharp;
 
-var scene = PxlApp.CreateScene(ctx =>
+var scene = (DrawingContext ctx) =>
 {
     ctx.DrawBackground(Colors.Black);
 
@@ -34,6 +34,4 @@ var scene = PxlApp.CreateScene(ctx =>
     ctx.DrawArcCenter(18, 16, 5, -90, 120, colorFill: Colors.Red);
     ctx.DrawArcCenter(18, 16, 5, 30, 90, colorFill: Colors.Blue);
     ctx.DrawArcCenter(18, 16, 5, 120, 150, colorFill: Colors.Yellow);
-});
-
-await PxlApp.SimulateAndSendToDevice(scene);
+};

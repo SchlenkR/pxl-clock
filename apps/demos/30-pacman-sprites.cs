@@ -20,7 +20,7 @@ var pacmanRight = sprites.CreateAnimation((0, 0), (0, 1), (0, 2), (0, 1));
 var ghostRed = sprites.CreateAnimation((4, 0), (4, 1));
 var ghostPink = sprites.CreateAnimation((5, 0), (5, 1));
 
-var scene = PxlApp.CreateScene(ctx =>
+var scene = (DrawingContext ctx) =>
 {
     ctx.DrawBackground(Colors.Black);
 
@@ -30,6 +30,4 @@ var scene = PxlApp.CreateScene(ctx =>
     ctx.DrawImage(pacmanRight, x, 8);
     ctx.DrawImage(ghostRed, x - 20, 8);
     ctx.DrawImage(ghostPink, x - 38, 8);
-});
-
-await PxlApp.SimulateAndSendToDevice(scene);
+};

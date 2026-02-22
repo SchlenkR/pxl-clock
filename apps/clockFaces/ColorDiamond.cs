@@ -21,7 +21,7 @@ var handPos = new (int x, int y)[]
     (2,5),(2,4),(3,4),(3,3),(4,3),(5,2),(6,2),(7,1),(8,1),(9,0)
 };
 
-var scene = PxlApp.CreateScene(ctx =>
+var scene = (DrawingContext ctx) =>
 {
     var now = ctx.Now;
     var hour = now.Hour;
@@ -64,6 +64,4 @@ var scene = PxlApp.CreateScene(ctx =>
 
     // Centered time
     ctx.DrawTextVar4x5($"{now:HH}:{now:mm}", 1, 9, color: Colors.White);
-});
-
-await PxlApp.SimulateAndSendToDevice(scene);
+};

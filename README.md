@@ -113,15 +113,13 @@ using Pxl.Ui.CSharp;
 
 double x = 0;
 
-var scene = PxlApp.CreateScene(ctx =>
+var scene = (DrawingContext ctx) =>
 {
     ctx.DrawBackground(Colors.Black);
     ctx.DrawCircle(x, 12, 3, colorFill: Colors.Red);
     x += 0.2;
     if (x > ctx.Width + 3) x = -3;
-});
-
-await PxlApp.SimulateAndSendToDevice(scene);
+};
 ```
 
 Or display the current time with a blinking colon:
@@ -131,7 +129,7 @@ Or display the current time with a blinking colon:
 
 using Pxl.Ui.CSharp;
 
-var scene = PxlApp.CreateScene(ctx =>
+var scene = (DrawingContext ctx) =>
 {
     ctx.DrawBackground(Colors.DarkBlue);
     ctx.DrawTextMono4x5(ctx.Now.ToString("HH:mm"), 0, 2, Colors.White);
@@ -141,9 +139,7 @@ var scene = PxlApp.CreateScene(ctx =>
         ctx.DrawPoint(12, 18, Colors.White, strokeWidth: 2);
         ctx.DrawPoint(12, 21, Colors.White, strokeWidth: 2);
     }
-});
-
-await PxlApp.SimulateAndSendToDevice(scene);
+};
 ```
 
 Find many more examples in `apps/demos/` (numbered tutorials from basics to advanced) and in `apps/clockFaces/` (the factory clock face Pixograms that ship with every PXL Clock).
@@ -175,38 +171,29 @@ See `apps/demos/28-image-static.cs`, `29-image-animated-gif.cs`, and `30-pacman-
 
 ### Send to Your PXL Clock
 
-To send your Pixogram to a real PXL Clock:
+The simulator UI at `http://localhost:5001` is your central hub for managing devices, configuring targets, and publishing Pixograms. Everything is done right in the browser — no config files or extra tools needed.
 
 1. In the **PXL-App**, go to the **Settings** of your clock and set the mode to **"Development"**. The display will turn black, indicating it's ready to receive from your computer.
 
-2. In your Pixogram script, choose one of the following methods and provide the **IP address or name** of your clock:
+2. In the simulator UI, open the **Config** panel. Use **Scan** to discover your PXL Clock on the network, or add it manually. Activate it by checking the device in the active devices list. You can also toggle the local simulator on/off here.
 
-   ```csharp
-   // Only send to the clock (no local simulator)
-   await PxlApp.SendToDevice(scene, "192.168.1.42");
+3. Save your `.cs` file — the simulator watches for changes and automatically compiles and runs your script. The config determines where frames go: simulator, your PXL Clock, or both.
 
-   // Run in the simulator AND send to the clock simultaneously
-   await PxlApp.SimulateAndSendToDeviceAndSendToDevice(scene, "192.168.1.42");
-
-   // Only run in the local simulator (default, no clock needed)
-   await PxlApp.SimulateAndSendToDevice(scene);
-   ```
-
-3. Start the development environment as usual (see [Quick-Start](#quick-start-development-of-pxl-clock-apps)).
-
+> **Alternatively**, you can edit `pxl-config.json` in the repo root directly:
+> ```json
+> {
+>   "devices": [{ "name": "myClock", "address": "192.168.1.42" }],
+>   "activeDevices": ["myClock"],
+>   "simulator": true
+> }
+> ```
 
 ### Publish Your Pixogram to the PXL Clock
 
 Once you're happy with your Pixogram in the simulator, you can publish it to your PXL Clock so it runs standalone — without your computer connected.
 
 1. Make sure your PXL Clock is in **"Development"** mode (see above).
-2. Run the publish script:
-
-   ```bash
-   ./publish-app.sh
-   ```
-
-   Or use the VS Code task: **PXL-CLOCK :: Publish App to Device**.
+2. In the simulator UI, open the **Scripts** panel, select your Pixogram, choose a target device, and hit **Publish**.
 
 This compiles your Pixogram and installs it on the clock. After publishing, you can switch the clock back to normal mode in the PXL-App — your Pixogram will appear in the Pixogram list.
 
