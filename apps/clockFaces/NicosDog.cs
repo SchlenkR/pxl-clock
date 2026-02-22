@@ -6,7 +6,7 @@
 // description: Pixel art dog scrolling across the screen with time overlay
 // ---
 
-#:package Pxl@0.0.49
+#:package Pxl@0.0.50
 
 using Pxl.Ui.CSharp;
 
