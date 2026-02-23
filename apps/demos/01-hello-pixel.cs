@@ -6,7 +6,7 @@
 // Example 01: Hello Pixel
 // The simplest possible example - draw a single pixel
 
-#:package Pxl@0.0.53
+#:package Pxl@0.0.54
 
 using Pxl.Ui.CSharp;
 

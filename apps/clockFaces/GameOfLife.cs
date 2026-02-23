@@ -6,7 +6,7 @@
 // description: Conway's Game of Life seeded with the current time digits
 // ---
 
-#:package Pxl@0.0.53
+#:package Pxl@0.0.54
 
 using Pxl.Ui.CSharp;
 

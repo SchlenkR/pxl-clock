@@ -6,7 +6,7 @@
 // Example 32: Pacman Sprites
 // Load a sprite sheet, create animations, and draw animated sprites
 
-#:package Pxl@0.0.53
+#:package Pxl@0.0.54
 
 using Pxl.Ui.CSharp;
 

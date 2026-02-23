@@ -6,7 +6,7 @@
 // Example 25: Wave Animation
 // Create an animated sine wave
 
-#:package Pxl@0.0.53
+#:package Pxl@0.0.54
 
 using Pxl.Ui.CSharp;
 

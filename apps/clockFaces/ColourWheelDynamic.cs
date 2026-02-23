@@ -6,7 +6,7 @@
 // description: Dynamic HSV color wheel where all positions are always visible
 // ---
 
-#:package Pxl@0.0.53
+#:package Pxl@0.0.54
 
 using Pxl.Ui.CSharp;
 

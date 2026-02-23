@@ -6,7 +6,7 @@
 // Example 23: Starfield Effect
 // Create a simple animated starfield
 
-#:package Pxl@0.0.53
+#:package Pxl@0.0.54
 
 using Pxl.Ui.CSharp;
 
