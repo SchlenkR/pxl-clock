@@ -22,6 +22,29 @@
       },
       "presentation": {
         "focus": true
+      },
+      "options": {
+        "env": {
+          "PXL_USE_IDE_BROWSER": "1"
+        }
+      },
+      "problemMatcher": {
+        "owner": "pxl-constraints",
+        "fileLocation": ["relative", "${workspaceFolder}/apps"],
+        "source": "pxl",
+        "severity": "error",
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "^\\[watcher\\] Compiling",
+          "endsPattern": "^\\[watcher\\] (Compiled|ERROR|Watching)"
+        },
+        "pattern": {
+          "regexp": "^\\s+\\[(\\w+)\\]\\s+(.+)\\s+\\(([^)]+\\.cs):(\\d+)\\)",
+          "code": 1,
+          "message": 2,
+          "file": 3,
+          "line": 4
+        }
       }
     },
     {
