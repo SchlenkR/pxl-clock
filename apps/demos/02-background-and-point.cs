@@ -6,7 +6,7 @@
 // Example 02: Background and Point
 // Fill the background and draw a point with DrawPoint
 
-#:package Pxl@0.0.54
+#:package Pxl@0.0.55
 
 using Pxl.Ui.CSharp;
 
