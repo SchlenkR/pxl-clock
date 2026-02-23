@@ -48,8 +48,8 @@ if [ "$SIMULATOR_READY" = false ]; then
     echo ""
 fi
 
-# Open browser
-if [ "$SIMULATOR_READY" = true ]; then
+# Open browser (skip when PXL_USE_IDE_BROWSER is set, e.g. from VS Code task)
+if [ "$SIMULATOR_READY" = true ] && [ "$PXL_USE_IDE_BROWSER" != "1" ]; then
     if command -v open &> /dev/null; then
         open http://127.0.0.1:5001
     elif command -v xdg-open &> /dev/null; then
