@@ -14,12 +14,17 @@
   "tasks": [
     {
       "label": "PXL-CLOCK :: Start",
-      "type": "shell",
-      "command": "./start.sh",
+      "dependsOn": ["PXL-CLOCK :: Simulator", "PXL-CLOCK :: Open Browser"],
+      "dependsOrder": "sequence",
       "group": {
         "kind": "build",
         "isDefault": true
-      },
+      }
+    },
+    {
+      "label": "PXL-CLOCK :: Simulator",
+      "type": "shell",
+      "command": "./start.sh",
       "presentation": {
         "focus": true
       },
@@ -48,6 +53,11 @@
       }
     },
     {
+      "label": "PXL-CLOCK :: Open Browser",
+      "command": "${input:openSimpleBrowser}",
+      "problemMatcher": []
+    },
+    {
       "label": "PXL-CLOCK :: Check Setup",
       "type": "shell",
       "command": "./build/setup-check.sh",
@@ -55,6 +65,16 @@
       "presentation": {
         "focus": true
       }
+    }
+  ],
+  "inputs": [
+    {
+      "id": "openSimpleBrowser",
+      "type": "command",
+      "command": "simpleBrowser.show",
+      "args": [
+        "http://127.0.0.1:5001"
+      ]
     }
   ]
 }
