@@ -6,7 +6,7 @@
 // Example 07: Radial Gradients
 // Create circular color transitions
 
-#:package Pxl@0.0.55
+#:package Pxl@0.0.56
 
 using Pxl.Ui.CSharp;
 

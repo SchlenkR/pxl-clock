@@ -6,7 +6,7 @@
 // Example 03: Basic Shapes
 // Draw rectangles, circles, and lines
 
-#:package Pxl@0.0.55
+#:package Pxl@0.0.56
 
 using Pxl.Ui.CSharp;
 

@@ -6,7 +6,7 @@
 // description: Bouncing color worm trail with time overlay
 // ---
 
-#:package Pxl@0.0.55
+#:package Pxl@0.0.56
 
 using Pxl.Ui.CSharp;
 
