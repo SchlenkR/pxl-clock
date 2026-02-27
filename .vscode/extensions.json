@@ -1,8 +1,8 @@
 {
   "recommendations": [
+    "pxlclock.pxl-clock",
     "ms-dotnettools.csdevkit",
-    "ms-dotnettools.csharp",
-    "ionide.ionide-fsharp"
+    "ms-dotnettools.csharp"
   ],
   "unwantedRecommendations": []
 }
