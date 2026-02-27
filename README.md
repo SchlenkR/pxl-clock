@@ -36,50 +36,36 @@ Welcome to the **PXL Clock** repository! This repo serves as a central hub for:
 - **Resources for creating your own custom PXL Clock Pixograms**
 - **Issue tracking** and **idea proposals** (hardware, software, use cases, features)
 
-We’re excited to see what the community will build around the PXL Clock. Below you’ll find everything you need to get started.
+We're excited to see what the community will build around the PXL Clock. Below you'll find everything you need to get started.
 
 ---
 
 ## Quick-Start Development of PXL Clock Pixograms
 
-**Getting Started (3 steps):**
-1. Start the simulator (see below - either by VS Code or terminal)
-2. Open the simulator at `http://localhost:5001`
-3. Edit any `.cs` file in the `apps/` directory and save to see changes
-
-**Starting the development environment:**
-
-- **VS Code (easiest):** Press `Cmd+Shift+B` (macOS) or `Ctrl+Shift+B` (Windows/Linux) to run the preconfigured build task **PXL-CLOCK :: Start**.
-- **Terminal:** Run `./start.sh` (macOS/Linux/WSL). On Windows, use Git Bash or WSL.
-
-**First time?** Don't worry! The start script automatically checks if you have everything installed (.NET SDK 10, VS Code extensions) and provides clear instructions if anything is missing.
+**Getting Started:**
+1. Install the [PXL Clock VS Code extension](https://marketplace.visualstudio.com/items?itemName=pxlclock.pxl-clock)
+2. Open this repo in VS Code
+3. The built-in simulator starts automatically in the background
+4. Click a `.cs` file in the **Pixograms** panel and hit the play button
+5. Watch the preview in the sidebar or open a full-size simulator with `PXL Clock: Open Simulator`
 
 **Examples:** Start with `apps/demos/01-hello-pixel.cs` and work your way up through the numbered demos. Also check out the clock faces in `apps/clockFaces/` for more advanced examples.
-
-> **Windows users:** You need [Git for Windows](https://git-scm.com/download/win) (includes Git Bash) or [WSL](https://learn.microsoft.com/windows/wsl/install) to run the shell scripts.
 
 ---
 
 ## Table of Contents
 
 1. [About PXL Clock](#about-pxl-clock)
-2. [Releases](#releases)
-3. [Filing Issues and Ideas](#filing-issues-and-ideas)
-4. [Developing Your Own Pixograms](#developing-your-own-pixograms)
-5. [Contributing](#contributing)
-6. [License](LICENSE.md)
+2. [Filing Issues and Ideas](#filing-issues-and-ideas)
+3. [Developing Your Own Pixograms](#developing-your-own-pixograms)
+4. [Contributing](#contributing)
+5. [License](LICENSE.md)
 
 ---
 
 ## About PXL Clock
 
 The **PXL Clock** is a device designed to display various fun clocks, animations, short stories, visuals and other creative things - all on a 24x24 pixel display. Whether you want to keep track of the current time in a futuristic manner or develop your own Pixograms to run on the clock, this project provides a flexible platform for creativity.
-
----
-
-## Releases
-
-You’ll find our official firmware and software packages under the [**Releases**](../../releases) section. The PXL Clock updates itself over-the-air, so no manual steps required.
 
 ---
 
@@ -100,14 +86,19 @@ Just head over to the [**Issues**](../../issues) tab and click **New Issue** to 
 [![NuGet](https://img.shields.io/nuget/v/Pxl.svg?style=flat-square&logo=nuget)](https://www.nuget.org/packages/Pxl)
 [![NuGet Downloads](https://img.shields.io/nuget/dt/Pxl.svg?style=flat-square)](https://www.nuget.org/packages/Pxl)
 
-The example Pixograms always use the latest compatible versions of the Pxl NuGet package and tools. Running `./start.sh` automatically restores the correct tool versions.
+### Prerequisites
+
+- [.NET 10 SDK](https://dotnet.microsoft.com/en-us/download/dotnet/10.0)
+- [VS Code](https://code.visualstudio.com/) with the [PXL Clock extension](https://marketplace.visualstudio.com/items?itemName=pxlclock.pxl-clock)
+
+Run `./build/setup-check.sh` to verify your setup.
 
 ### Getting Started with Code
 
 A PXL Clock Pixogram is a simple C# script. Here's a minimal example — a bouncing ball:
 
 ```csharp
-#:package Pxl@0.0.46
+#:package Pxl
 
 using Pxl.Ui.CSharp;
 
@@ -125,7 +116,7 @@ var scene = (DrawingContext ctx) =>
 Or display the current time with a blinking colon:
 
 ```csharp
-#:package Pxl@0.0.46
+#:package Pxl
 
 using Pxl.Ui.CSharp;
 
@@ -167,39 +158,26 @@ ctx.DrawImage(pacman, x, y);
 
 **Important:** Asset paths must be **string literals** (not variables). The compiler embeds the assets into your Pixogram at compile time. Images are automatically scaled — use `.Resize(width, height)` to fit the 24x24 display.
 
-See `apps/demos/28-image-static.cs`, `29-image-animated-gif.cs`, and `30-pacman-sprites.cs` for complete examples.
+See `apps/demos/30-image-static.cs`, `31-image-animated-gif.cs`, and `32-pacman-sprites.cs` for complete examples.
 
-### Send to Your PXL Clock
+### Send to Device (Live Preview)
 
-The simulator UI at `http://localhost:5001` is your central hub for managing devices, configuring targets, and publishing Pixograms. Everything is done right in the browser — no config files or extra tools needed.
+While developing, you can stream your Pixogram live to a real PXL Clock — so you see exactly how it looks on the hardware, not just in the simulator.
 
-1. In the **PXL-App**, go to the **Settings** of your clock and set the mode to **"Development"**. The display will turn black, indicating it's ready to receive from your computer.
+1. In the **PXL-App**, go to your clock's **Settings** and set the mode to **"Development"**.
+2. In the VS Code extension's **Simulator** panel, your PXL Clock will be discovered on the network. You can also manage devices there.
+3. Save your `.cs` file — the running Pixogram is sent to the clock in real time, just like the simulator preview.
 
-2. In the simulator UI, open the **Config** panel. Use **Scan** to discover your PXL Clock on the network, or add it manually. Activate it by checking the device in the active devices list. You can also toggle the local simulator on/off here.
+This is purely for development — the Pixogram runs as long as your computer is connected.
 
-3. Save your `.cs` file — the simulator watches for changes and automatically compiles and runs your script. The config determines where frames go: simulator, your PXL Clock, or both.
+### Publish to PXL Clock
 
-> **Alternatively**, you can edit `pxl-config.json` in the repo root directly:
-> ```json
-> {
->   "devices": [{ "name": "myClock", "address": "192.168.1.42" }],
->   "activeDevices": ["myClock"],
->   "simulator": true
-> }
-> ```
+Once you're happy with your Pixogram, you can **publish** it to the clock so it runs standalone — without your computer.
 
-### Publish Your Pixogram to the PXL Clock
+1. Click the **Publish** button (cloud icon) on any `.cs` file in the editor toolbar or file tree.
+2. Pick the target device from the list — the Pixogram gets compiled and installed on the clock.
 
-Once you're happy with your Pixogram in the simulator, you can publish it to your PXL Clock so it runs standalone — without your computer connected.
-
-1. Make sure your PXL Clock is in **"Development"** mode (see above).
-2. In the simulator UI, open the **Scripts** panel, select your Pixogram, choose a target device, and hit **Publish**.
-
-This compiles your Pixogram and installs it on the clock. After publishing, you can switch the clock back to normal mode in the PXL-App — your Pixogram will appear in the Pixogram list.
-
-### Troubleshooting
-
-Run `./build/setup-check.sh` to verify your setup (requires [.NET 10 SDK](https://dotnet.microsoft.com/en-us/download/dotnet/10.0)).
+After publishing, switch the clock back to normal mode in the PXL-App. Your Pixogram will appear in the Pixogram list alongside the built-in clock faces, controllable via the app.
 
 ---
 
@@ -208,7 +186,7 @@ Run `./build/setup-check.sh` to verify your setup (requires [.NET 10 SDK](https:
 Contributions from the community are highly encouraged. If you want to help make PXL Clock better, you can:
 
 1. **Create an Issue:** File a new issue for suggestions, bug reports, or feature requests.
-2. **Submit a Pull Request:** Fork this repo, make your changes, and submit a pull request. Make sure to include a clear description of what you’ve changed or fixed.
+2. **Submit a Pull Request:** Fork this repo, make your changes, and submit a pull request. Make sure to include a clear description of what you've changed or fixed.
 
 Please be respectful and constructive. Join our [Discord community](https://discord.gg/KDbVdKQh5j) if you have questions or want to discuss ideas.
 
@@ -218,4 +196,4 @@ see: [LICENSE.md](LICENSE.md)
 
 ---
 
-Thank you for your interest in the PXL Clock! We look forward to seeing your ideas and contributions. If you have any questions or suggestions, feel free to open an issue or start a discussion. Let’s make time more fun—together!
+Thank you for your interest in the PXL Clock! We look forward to seeing your ideas and contributions. If you have any questions or suggestions, feel free to open an issue or start a discussion. Let's make time more fun—together!
