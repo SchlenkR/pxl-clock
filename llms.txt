@@ -264,27 +264,28 @@ Paints.PerlinNoiseTurbulence(0.1, 0.1, 4, 42)
 
 ## Animations
 
-### Value Animations (Anim)
+### Value Animations
 
-Create animations outside the scene, call `.Eval(ctx)` inside:
+Create animations outside the scene, call `.Eval(ctx)` inside.
+The `Animate` factory class and `Repeat` enum are in `Pxl.Ui.CSharp`. The returned `Animation`/`ToggleAnimation` types live in `Pxl.Ui.CSharp.Animations` — use `var` and you won't need an extra `using`.
 
 ```csharp
 // Create (outside scene)
-var anim = Anim.Linear(durationSeconds, startValue, endValue,
+var anim = Animate.Linear(durationSeconds, startValue, endValue,
     repeat: Repeat.Once, autoStart: true);
 
 // Available easings
-Anim.Linear(...)
-Anim.EaseIn(...)        // Quadratic: slow start
-Anim.EaseOut(...)       // Quadratic: slow end
-Anim.EaseInOut(...)     // Quadratic: slow start & end
-Anim.EaseInSine(...)
-Anim.EaseOutSine(...)
-Anim.EaseInOutSine(...)
-Anim.EaseInCubic(...)
-Anim.EaseOutCubic(...)
-Anim.EaseInOutCubic(...)
-Anim.Custom(easingFn, ...)  // Custom easing: Func<double, double> (0..1 -> 0..1)
+Animate.Linear(...)
+Animate.EaseIn(...)        // Quadratic: slow start
+Animate.EaseOut(...)       // Quadratic: slow end
+Animate.EaseInOut(...)     // Quadratic: slow start & end
+Animate.EaseInSine(...)
+Animate.EaseOutSine(...)
+Animate.EaseInOutSine(...)
+Animate.EaseInCubic(...)
+Animate.EaseOutCubic(...)
+Animate.EaseInOutCubic(...)
+Animate.Custom(easingFn, ...)  // Custom easing: Func<double, double> (0..1 -> 0..1)
 
 // Use in scene
 var x = anim.Eval(ctx);  // Returns current double value
@@ -314,7 +315,7 @@ anim.Restart();
 Cycles through discrete values at intervals:
 
 ```csharp
-var toggle = Anim.ToggleValues(intervalSeconds, value1, value2, value3, ...);
+var toggle = Animate.ToggleValues(intervalSeconds, value1, value2, value3, ...);
 
 // In scene:
 var current = toggle.Eval(ctx);  // Returns current T value
@@ -467,9 +468,9 @@ var scene = (DrawingContext ctx) =>
 
 using Pxl.Ui.CSharp;
 
-var xAnim = Anim.EaseInOut(2.0, 2, 20, repeat: Repeat.PingPong);
-var yAnim = Anim.EaseInOut(1.5, 2, 20, repeat: Repeat.PingPong);
-var colorToggle = Anim.ToggleValues(0.5, Colors.Red, Colors.Cyan, Colors.Yellow);
+var xAnim = Animate.EaseInOut(2.0, 2, 20, repeat: Repeat.PingPong);
+var yAnim = Animate.EaseInOut(1.5, 2, 20, repeat: Repeat.PingPong);
+var colorToggle = Animate.ToggleValues(0.5, Colors.Red, Colors.Cyan, Colors.Yellow);
 
 var scene = (DrawingContext ctx) =>
 {
@@ -506,7 +507,7 @@ var scene = (DrawingContext ctx) =>
 1. **Always clear the background** — pixels from previous frames persist otherwise
 2. **Use small fonts** — Var3x5, Mono3x5, Var4x5, Mono4x5 work best for the 24x24 display
 3. **State outside, drawing inside** — declare animation objects and state variables outside the scene
-4. **Anim.Eval() is cached** — safe to call multiple times per frame
+4. **Animate.Eval() is cached** — safe to call multiple times per frame
 5. **Image paths are relative** to the script file — place assets in an `assets/` subfolder
 6. **Colors implicitly convert to Paint** — pass colors directly where `Paint` is expected
 7. **`#:package Pxl@<version>`** — use this directive to reference the PXL NuGet package. Use the latest version from https://www.nuget.org/packages/Pxl — or check existing `.cs` files in the project for the current version number

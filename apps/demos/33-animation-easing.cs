@@ -6,18 +6,18 @@
 // Example 33: Easing Animations
 // Compare different easing functions side by side
 
-#:package Pxl@0.0.56
+#:package Pxl@0.0.57
 
 using Pxl.Ui.CSharp;
 
 // Create looping animations with different easings (3 seconds each)
-var linear = Anim.Linear(3, 0, 28, repeat: Repeat.Loop);
-var easeIn = Anim.EaseIn(3, 0, 28, repeat: Repeat.Loop);
-var easeOut = Anim.EaseOut(3, 0, 28, repeat: Repeat.Loop);
-var easeInOut = Anim.EaseInOut(3, 0, 28, repeat: Repeat.Loop);
+var linear = Animate.Linear(3, 0, 28, repeat: Repeat.Loop);
+var easeIn = Animate.EaseIn(3, 0, 28, repeat: Repeat.Loop);
+var easeOut = Animate.EaseOut(3, 0, 28, repeat: Repeat.Loop);
+var easeInOut = Animate.EaseInOut(3, 0, 28, repeat: Repeat.Loop);
 
 // Toggle the label color every 0.8 seconds
-var labelColor = Anim.ToggleValues(0.8, Colors.White, Colors.Gray);
+var labelColor = Animate.ToggleValues(0.8, Colors.White, Colors.Gray);
 
 var scene = (DrawingContext ctx) =>
 {

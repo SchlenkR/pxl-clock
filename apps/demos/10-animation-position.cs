@@ -6,7 +6,7 @@
 // Example 10: Simple Position Animation
 // Animate a shape's position using a variable outside the scene
 
-#:package Pxl@0.0.56
+#:package Pxl@0.0.57
 
 using Pxl.Ui.CSharp;
 

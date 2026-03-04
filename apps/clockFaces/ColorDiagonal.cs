@@ -6,7 +6,7 @@
 // description: Animated diagonal lines that alternate direction each minute
 // ---
 
-#:package Pxl@0.0.56
+#:package Pxl@0.0.57
 
 using Pxl.Ui.CSharp;
 

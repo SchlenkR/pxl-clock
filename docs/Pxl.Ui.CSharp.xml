@@ -16,116 +16,131 @@
         <member name="F:Pxl.Ui.CSharp.Repeat.PingPong">
             <summary>Alternate between forward and reverse (bounce).</summary>
         </member>
-        <member name="T:Pxl.Ui.CSharp.Animation">
-            <summary>
-            A time-based animation that interpolates between two values using an easing function.
-            Create instances using the <see cref="T:Pxl.Ui.CSharp.Anim"/> factory methods.
-            Call <see cref="M:Pxl.Ui.CSharp.Animation.Eval(Pxl.Ui.CSharp.DrawingContext)"/> once per frame (result is cached per CycleNo).
-            </summary>
-        </member>
-        <member name="P:Pxl.Ui.CSharp.Animation.Value">
-            <summary>The current animation value (updated by <see cref="M:Pxl.Ui.CSharp.Animation.Eval(Pxl.Ui.CSharp.DrawingContext)"/>).</summary>
-        </member>
-        <member name="P:Pxl.Ui.CSharp.Animation.ValueInt">
-            <summary>The current animation value as integer.</summary>
-        </member>
-        <member name="P:Pxl.Ui.CSharp.Animation.IsRunning">
-            <summary>Whether the animation is currently running.</summary>
-        </member>
-        <member name="P:Pxl.Ui.CSharp.Animation.IsAtEnd">
-            <summary>Whether the animation has completed (only meaningful for <see cref="F:Pxl.Ui.CSharp.Repeat.Once"/>).</summary>
-        </member>
-        <member name="M:Pxl.Ui.CSharp.Animation.Pause">
-            <summary>Pause the animation. Time stops accumulating.</summary>
-        </member>
-        <member name="M:Pxl.Ui.CSharp.Animation.Resume">
-            <summary>Resume the animation from where it was paused.</summary>
-        </member>
-        <member name="M:Pxl.Ui.CSharp.Animation.Restart">
-            <summary>Restart the animation from the beginning.</summary>
-        </member>
-        <member name="M:Pxl.Ui.CSharp.Animation.Eval(Pxl.Ui.CSharp.DrawingContext)">
-            <summary>
-            Evaluates the animation for the current frame.
-            The result is cached per CycleNo — multiple calls in the same frame return the cached value.
-            </summary>
-        </member>
-        <member name="T:Pxl.Ui.CSharp.ToggleAnimation`1">
-            <summary>
-            Cycles through a list of values at a fixed interval.
-            Create instances using <see cref="M:Pxl.Ui.CSharp.Anim.ToggleValues``1(System.Double,``0[])"/>.
-            Call <see cref="M:Pxl.Ui.CSharp.ToggleAnimation`1.Eval(Pxl.Ui.CSharp.DrawingContext)"/> once per frame (result is cached per CycleNo).
-            </summary>
-        </member>
-        <member name="P:Pxl.Ui.CSharp.ToggleAnimation`1.Value">
-            <summary>The current value.</summary>
-        </member>
-        <member name="P:Pxl.Ui.CSharp.ToggleAnimation`1.CurrentIndex">
-            <summary>The current index in the values array.</summary>
-        </member>
-        <member name="P:Pxl.Ui.CSharp.ToggleAnimation`1.IsRunning">
-            <summary>Whether the toggle animation is currently running.</summary>
-        </member>
-        <member name="M:Pxl.Ui.CSharp.ToggleAnimation`1.Pause">
-            <summary>Pause the toggle animation.</summary>
-        </member>
-        <member name="M:Pxl.Ui.CSharp.ToggleAnimation`1.Resume">
-            <summary>Resume the toggle animation.</summary>
-        </member>
-        <member name="M:Pxl.Ui.CSharp.ToggleAnimation`1.Restart">
-            <summary>Restart from the first value.</summary>
-        </member>
-        <member name="M:Pxl.Ui.CSharp.ToggleAnimation`1.Eval(Pxl.Ui.CSharp.DrawingContext)">
-            <summary>
-            Evaluates the toggle animation for the current frame.
-            The result is cached per CycleNo — multiple calls in the same frame return the cached value.
-            </summary>
-        </member>
-        <member name="T:Pxl.Ui.CSharp.Anim">
+        <member name="T:Pxl.Ui.CSharp.Animate">
             <summary>
             Factory for creating animations with various easing functions.
             See https://easings.net/ for visual references.
             </summary>
         </member>
-        <member name="M:Pxl.Ui.CSharp.Anim.Linear(System.Double,System.Double,System.Double,Pxl.Ui.CSharp.Repeat,System.Boolean)">
+        <member name="M:Pxl.Ui.CSharp.Animate.Linear(System.Double,System.Double,System.Double,Pxl.Ui.CSharp.Repeat,System.Boolean)">
             <summary>Creates a linear animation (constant speed).</summary>
         </member>
-        <member name="M:Pxl.Ui.CSharp.Anim.EaseIn(System.Double,System.Double,System.Double,Pxl.Ui.CSharp.Repeat,System.Boolean)">
+        <member name="M:Pxl.Ui.CSharp.Animate.EaseIn(System.Double,System.Double,System.Double,Pxl.Ui.CSharp.Repeat,System.Boolean)">
             <summary>Creates an ease-in animation (quadratic: slow start, fast end).</summary>
         </member>
-        <member name="M:Pxl.Ui.CSharp.Anim.EaseOut(System.Double,System.Double,System.Double,Pxl.Ui.CSharp.Repeat,System.Boolean)">
+        <member name="M:Pxl.Ui.CSharp.Animate.EaseOut(System.Double,System.Double,System.Double,Pxl.Ui.CSharp.Repeat,System.Boolean)">
             <summary>Creates an ease-out animation (quadratic: fast start, slow end).</summary>
         </member>
-        <member name="M:Pxl.Ui.CSharp.Anim.EaseInOut(System.Double,System.Double,System.Double,Pxl.Ui.CSharp.Repeat,System.Boolean)">
+        <member name="M:Pxl.Ui.CSharp.Animate.EaseInOut(System.Double,System.Double,System.Double,Pxl.Ui.CSharp.Repeat,System.Boolean)">
             <summary>Creates an ease-in-out animation (quadratic: slow start and end).</summary>
         </member>
-        <member name="M:Pxl.Ui.CSharp.Anim.EaseInSine(System.Double,System.Double,System.Double,Pxl.Ui.CSharp.Repeat,System.Boolean)">
+        <member name="M:Pxl.Ui.CSharp.Animate.EaseInSine(System.Double,System.Double,System.Double,Pxl.Ui.CSharp.Repeat,System.Boolean)">
             <summary>Creates an ease-in-sine animation.</summary>
         </member>
-        <member name="M:Pxl.Ui.CSharp.Anim.EaseOutSine(System.Double,System.Double,System.Double,Pxl.Ui.CSharp.Repeat,System.Boolean)">
+        <member name="M:Pxl.Ui.CSharp.Animate.EaseOutSine(System.Double,System.Double,System.Double,Pxl.Ui.CSharp.Repeat,System.Boolean)">
             <summary>Creates an ease-out-sine animation.</summary>
         </member>
-        <member name="M:Pxl.Ui.CSharp.Anim.EaseInOutSine(System.Double,System.Double,System.Double,Pxl.Ui.CSharp.Repeat,System.Boolean)">
+        <member name="M:Pxl.Ui.CSharp.Animate.EaseInOutSine(System.Double,System.Double,System.Double,Pxl.Ui.CSharp.Repeat,System.Boolean)">
             <summary>Creates an ease-in-out-sine animation.</summary>
         </member>
-        <member name="M:Pxl.Ui.CSharp.Anim.EaseInCubic(System.Double,System.Double,System.Double,Pxl.Ui.CSharp.Repeat,System.Boolean)">
+        <member name="M:Pxl.Ui.CSharp.Animate.EaseInCubic(System.Double,System.Double,System.Double,Pxl.Ui.CSharp.Repeat,System.Boolean)">
             <summary>Creates an ease-in-cubic animation.</summary>
         </member>
-        <member name="M:Pxl.Ui.CSharp.Anim.EaseOutCubic(System.Double,System.Double,System.Double,Pxl.Ui.CSharp.Repeat,System.Boolean)">
+        <member name="M:Pxl.Ui.CSharp.Animate.EaseOutCubic(System.Double,System.Double,System.Double,Pxl.Ui.CSharp.Repeat,System.Boolean)">
             <summary>Creates an ease-out-cubic animation.</summary>
         </member>
-        <member name="M:Pxl.Ui.CSharp.Anim.EaseInOutCubic(System.Double,System.Double,System.Double,Pxl.Ui.CSharp.Repeat,System.Boolean)">
+        <member name="M:Pxl.Ui.CSharp.Animate.EaseInOutCubic(System.Double,System.Double,System.Double,Pxl.Ui.CSharp.Repeat,System.Boolean)">
             <summary>Creates an ease-in-out-cubic animation.</summary>
         </member>
-        <member name="M:Pxl.Ui.CSharp.Anim.Custom(System.Func{System.Double,System.Double},System.Double,System.Double,System.Double,Pxl.Ui.CSharp.Repeat,System.Boolean)">
+        <member name="M:Pxl.Ui.CSharp.Animate.Custom(System.Func{System.Double,System.Double},System.Double,System.Double,System.Double,Pxl.Ui.CSharp.Repeat,System.Boolean)">
             <summary>Creates an animation with a custom easing function (input and output: 0..1).</summary>
         </member>
-        <member name="M:Pxl.Ui.CSharp.Anim.ToggleValues``1(System.Double,``0[])">
+        <member name="M:Pxl.Ui.CSharp.Animate.ToggleValues``1(System.Double,``0[])">
             <summary>
             Creates an animation that cycles through a list of values at a fixed interval.
             </summary>
             <param name="intervalSeconds">Time in seconds before switching to the next value.</param>
             <param name="values">The values to cycle through.</param>
+        </member>
+        <member name="T:Pxl.Ui.CSharp.Animations.Animation">
+            <summary>
+            A time-based animation that interpolates between two values using an easing function.
+            Create instances using the <see cref="T:Pxl.Ui.CSharp.Animate"/> factory methods.
+            Call <see cref="M:Pxl.Ui.CSharp.Animations.Animation.Eval(Pxl.Ui.CSharp.DrawingContext)"/> once per frame (result is cached per CycleNo).
+            </summary>
+        </member>
+        <member name="P:Pxl.Ui.CSharp.Animations.Animation.EasingFn">
+            <summary>The easing function (input 0..1, output 0..1). Can be changed at any time.</summary>
+        </member>
+        <member name="P:Pxl.Ui.CSharp.Animations.Animation.DurationSeconds">
+            <summary>The animation duration in seconds. Can be changed at any time.</summary>
+        </member>
+        <member name="P:Pxl.Ui.CSharp.Animations.Animation.StartValue">
+            <summary>The start value of the animation range. Can be changed at any time.</summary>
+        </member>
+        <member name="P:Pxl.Ui.CSharp.Animations.Animation.EndValue">
+            <summary>The end value of the animation range. Can be changed at any time.</summary>
+        </member>
+        <member name="P:Pxl.Ui.CSharp.Animations.Animation.RepeatMode">
+            <summary>The repeat mode (Once, Loop, PingPong). Can be changed at any time.</summary>
+        </member>
+        <member name="P:Pxl.Ui.CSharp.Animations.Animation.Value">
+            <summary>The current animation value (updated by <see cref="M:Pxl.Ui.CSharp.Animations.Animation.Eval(Pxl.Ui.CSharp.DrawingContext)"/>).</summary>
+        </member>
+        <member name="P:Pxl.Ui.CSharp.Animations.Animation.ValueInt">
+            <summary>The current animation value as integer.</summary>
+        </member>
+        <member name="P:Pxl.Ui.CSharp.Animations.Animation.IsRunning">
+            <summary>Whether the animation is currently running.</summary>
+        </member>
+        <member name="P:Pxl.Ui.CSharp.Animations.Animation.IsAtEnd">
+            <summary>Whether the animation has completed (only meaningful for <see cref="F:Pxl.Ui.CSharp.Repeat.Once"/>).</summary>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.Animations.Animation.Pause">
+            <summary>Pause the animation. Time stops accumulating.</summary>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.Animations.Animation.Resume">
+            <summary>Resume the animation from where it was paused.</summary>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.Animations.Animation.Restart">
+            <summary>Restart the animation from the beginning.</summary>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.Animations.Animation.Eval(Pxl.Ui.CSharp.DrawingContext)">
+            <summary>
+            Evaluates the animation for the current frame.
+            The result is cached per CycleNo — multiple calls in the same frame return the cached value.
+            </summary>
+        </member>
+        <member name="T:Pxl.Ui.CSharp.Animations.ToggleAnimation`1">
+            <summary>
+            Cycles through a list of values at a fixed interval.
+            Create instances using <see cref="M:Pxl.Ui.CSharp.Animate.ToggleValues``1(System.Double,``0[])"/>.
+            Call <see cref="M:Pxl.Ui.CSharp.Animations.ToggleAnimation`1.Eval(Pxl.Ui.CSharp.DrawingContext)"/> once per frame (result is cached per CycleNo).
+            </summary>
+        </member>
+        <member name="P:Pxl.Ui.CSharp.Animations.ToggleAnimation`1.Value">
+            <summary>The current value.</summary>
+        </member>
+        <member name="P:Pxl.Ui.CSharp.Animations.ToggleAnimation`1.CurrentIndex">
+            <summary>The current index in the values array.</summary>
+        </member>
+        <member name="P:Pxl.Ui.CSharp.Animations.ToggleAnimation`1.IsRunning">
+            <summary>Whether the toggle animation is currently running.</summary>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.Animations.ToggleAnimation`1.Pause">
+            <summary>Pause the toggle animation.</summary>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.Animations.ToggleAnimation`1.Resume">
+            <summary>Resume the toggle animation.</summary>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.Animations.ToggleAnimation`1.Restart">
+            <summary>Restart from the first value.</summary>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.Animations.ToggleAnimation`1.Eval(Pxl.Ui.CSharp.DrawingContext)">
+            <summary>
+            Evaluates the toggle animation for the current frame.
+            The result is cached per CycleNo — multiple calls in the same frame return the cached value.
+            </summary>
         </member>
         <member name="M:Pxl.Ui.CSharp.ArcExtensions.DrawArc(Pxl.Ui.CSharp.DrawingContext,System.Double,System.Double,System.Double,System.Double,System.Double,System.Double,Pxl.Ui.CSharp.Paint,Pxl.Ui.CSharp.Paint,System.Double,System.Boolean)">
             <summary>

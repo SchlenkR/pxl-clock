@@ -6,10 +6,9 @@
 // description: Three concentric pixel paths show seconds, minutes and hours
 // ---
 
-#:package Pxl@0.0.56
+#:package Pxl@0.0.57
 
 using Pxl.Ui.CSharp;
-using SkiaSharp;
 
 var scene = (DrawingContext ctx) =>
 {
@@ -18,8 +17,7 @@ var scene = (DrawingContext ctx) =>
 
     // Centered time (no leading zero for hour, like the original)
     var timeText = $"{now.Hour}:{now:mm}";
-    using var skFont = new SKFont(Fonts.Var4x5.Typeface, (float)Fonts.Var4x5.DefaultHeight);
-    var textWidth = skFont.MeasureText(timeText);
+    var textWidth = ctx.MeasureTextVar4x5(timeText);
     var marginLeft = (ctx.Width - textWidth) / 2.0;
     var marginTop = (ctx.Height - Fonts.Var4x5.DefaultHeight - 1) / 2.0;
     ctx.DrawTextVar4x5(timeText, marginLeft, marginTop, color: Colors.White);
