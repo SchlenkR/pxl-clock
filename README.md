@@ -18,7 +18,7 @@ PXL Clock is a fun device, made with ❤️ - and it's programmable in an easy a
 Find out more:
 
 - On the [PXL Clock Discord Server](https://discord.gg/KDbVdKQh5j)
-- check out the [PXL Clock Repo on GitHub](https://github.com/CuminAndPotato/PXL-Clock)
+- check out the [PXL Clock Repo on GitHub](https://github.com/SchlenkR/pxl-Clock)
 - Visit the official [PXL Clock Store](https://www.pxlclock.com/?ref=RONALD)
 
 <p align="center">
