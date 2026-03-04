@@ -9,7 +9,6 @@
 #:package Pxl@0.0.57
 
 using Pxl.Ui.CSharp;
-using SkiaSharp;
 
 var scene = (DrawingContext ctx) =>
 {
@@ -18,13 +17,13 @@ var scene = (DrawingContext ctx) =>
     ctx.DrawCircle(8, 12, 6, colorFill: Colors.Red);
 
     // Create a new layer with transparent background
-    var layer = ctx.NewLayer(clearColor: Colors.TransparentBlack);
+    var layer = ctx.NewLayer(clearColor: Colors.Transparent);
 
     // Draw on the layer
     layer.DrawCircle(16, 12, 6, colorFill: Colors.Yellow);
 
     // Apply the layer back to the main context
-    // SourceOver blends using alpha
-    layer.Apply(SKBlendMode.SrcOver);
+    // SourceOver blends using alpha (default)
+    layer.Apply(BlendMode.SourceOver);
 };
 

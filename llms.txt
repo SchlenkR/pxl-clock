@@ -401,33 +401,54 @@ ctx.SetPixels(colorArray, BlendMode.Source);
 ## Layers (Fork / NewLayer)
 
 ```csharp
-using SkiaSharp;
-
-// Fork: copies current canvas state
+// Fork: copies current canvas state into a new layer
 var layer = ctx.Fork();
 layer.DrawCircle(12, 12, 8, colorFill: Colors.Red);
-layer.Apply(SKBlendMode.SrcOver);
+layer.Apply(BlendMode.SourceOver);
 
 // NewLayer: blank canvas
-var layer = ctx.NewLayer(clearColor: Colors.TransparentBlack);
+var layer = ctx.NewLayer(clearColor: Colors.Transparent);
 layer.DrawCircle(12, 12, 8, colorFill: Colors.Yellow);
-layer.Apply(SKBlendMode.Screen);
+layer.Apply(BlendMode.Screen);
 ```
+
+### Layer Transforms
+
+Transforms accumulate on the layer and are applied automatically when calling `Apply()`:
+
+```csharp
+var layer = ctx.NewLayer(clearColor: Colors.Transparent);
+layer.DrawCircle(12, 12, 5, colorFill: Colors.Red);
+
+// Transforms (call order matters — they accumulate)
+layer.Scale(2.0);                    // uniform scale
+layer.Scale(2.0, 1.5);              // non-uniform scale
+layer.Translate(5, 3);              // move
+layer.Rotate(45);                   // rotate around layer center (degrees)
+layer.Rotate(45, 12, 12);           // rotate around specific point
+
+// Apply with blend mode and interpolation
+layer.Apply(
+    BlendMode.SourceOver,                // default: SourceOver
+    Interpolation.NearestNeighbor);      // default: NearestNeighbor (sharp pixels)
+```
+
+**Interpolation modes:**
+- `Interpolation.NearestNeighbor` — sharp, blocky pixels (default, ideal for pixel art)
+- `Interpolation.Linear` — smooth, bilinear interpolation
 
 ### Common Blend Modes
 
 | Mode | Effect |
 |------|--------|
-| `SKBlendMode.SrcOver` | Standard alpha blending (default) |
-| `SKBlendMode.Screen` | Lighten (additive-like) |
-| `SKBlendMode.Multiply` | Darken |
-| `SKBlendMode.Plus` | Add colors (clamp to white) |
-| `SKBlendMode.Src` | Replace destination |
-| `SKBlendMode.SrcIn` | Mask source by destination alpha |
-| `SKBlendMode.SrcOut` | Inverse mask |
-| `SKBlendMode.Xor` | XOR |
-
-For layer `Apply()`, use `SKBlendMode` from SkiaSharp. For `SetPixels()`, use the `BlendMode` enum.
+| `BlendMode.SourceOver` | Standard alpha blending (default) |
+| `BlendMode.Screen` | Lighten (additive-like) |
+| `BlendMode.Multiply` | Darken |
+| `BlendMode.Plus` | Add colors (clamp to white) |
+| `BlendMode.Source` | Replace destination |
+| `BlendMode.SourceIn` | Mask source by destination alpha |
+| `BlendMode.SourceOut` | Inverse mask |
+| `BlendMode.Xor` | XOR |
 
 ## Complete Examples
 

@@ -9,7 +9,6 @@
 #:package Pxl@0.0.57
 
 using Pxl.Ui.CSharp;
-using SkiaSharp;
 
 var scene = (DrawingContext ctx) =>
 {
@@ -18,16 +17,16 @@ var scene = (DrawingContext ctx) =>
     ctx.DrawRectXyWh(12, 0, 12, 24, colorFill: Colors.Blue);
 
     // Create layer with shapes
-    var layer = ctx.NewLayer(clearColor: Colors.TransparentBlack);
+    var layer = ctx.NewLayer(clearColor: Colors.Transparent);
     layer.DrawCircle(12, 8, 6, colorFill: Colors.Yellow);
     layer.DrawCircle(12, 16, 6, colorFill: Colors.Cyan);
 
     // Try different blend modes:
-    // - SrcOver: Normal alpha blending (default)
+    // - SourceOver: Normal alpha blending (default)
     // - Multiply: Darkens (good for shadows)
     // - Screen: Lightens (good for glow)
     // - Difference: Inverts colors
 
-    layer.Apply(SKBlendMode.Screen);  // Change this to experiment!
+    layer.Apply(BlendMode.Screen);  // Change this to experiment!
 };
 

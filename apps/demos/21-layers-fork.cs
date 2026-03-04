@@ -9,7 +9,6 @@
 #:package Pxl@0.0.57
 
 using Pxl.Ui.CSharp;
-using SkiaSharp;
 
 var scene = (DrawingContext ctx) =>
 {
@@ -31,6 +30,6 @@ var scene = (DrawingContext ctx) =>
     }
 
     // Apply with difference blend for interesting effect
-    forked.Apply(SKBlendMode.Difference);
+    forked.Apply(BlendMode.Difference);
 };
 

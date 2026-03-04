@@ -394,6 +394,26 @@
             and to other basic idiomatic PXL functions.
             </summary>
         </member>
+        <member name="M:Pxl.Ui.CSharp.ForkedDrawingContext.Scale(System.Double)">
+            <summary>Scales the layer uniformly.</summary>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.ForkedDrawingContext.Scale(System.Double,System.Double)">
+            <summary>Scales the layer by the given factors.</summary>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.ForkedDrawingContext.Translate(System.Double,System.Double)">
+            <summary>Translates the layer by the given offset.</summary>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.ForkedDrawingContext.Rotate(System.Double)">
+            <summary>Rotates the layer around its center (in degrees).</summary>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.ForkedDrawingContext.Rotate(System.Double,System.Double,System.Double)">
+            <summary>Rotates the layer around the given point (in degrees).</summary>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.ForkedDrawingContext.Apply(Pxl.Ui.CSharp.BlendMode,Pxl.Ui.CSharp.Interpolation)">
+            <summary>
+            Applies the layer onto the parent context with all accumulated transforms.
+            </summary>
+        </member>
         <member name="M:Pxl.Ui.CSharp.RenderCtxPixelsExtensions.Fork(Pxl.Ui.CSharp.DrawingContext)">
             <summary>
             Creates a new RenderCtx initialized with a cropped region from the parent context.
@@ -917,6 +937,21 @@
         </member>
         <member name="F:Pxl.Ui.CSharp.Colors.TransparentWhite">
             <summary>Transparent white (RGBA: 1, 1, 1, 0).</summary>
+        </member>
+        <member name="T:Pxl.Ui.CSharp.Interpolation">
+            <summary>
+            Controls how pixels are sampled when scaling or transforming layers.
+            </summary>
+        </member>
+        <member name="F:Pxl.Ui.CSharp.Interpolation.NearestNeighbor">
+            <summary>
+            Sharp, blocky pixels — ideal for pixel art on small displays.
+            </summary>
+        </member>
+        <member name="F:Pxl.Ui.CSharp.Interpolation.Linear">
+            <summary>
+            Smooth, blended pixels — bilinear interpolation for softer results.
+            </summary>
         </member>
         <member name="T:Pxl.Ui.CSharp.Paint">
             <summary>
