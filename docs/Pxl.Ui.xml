@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<doc>
+<assembly><name>Pxl.Ui</name></assembly>
+<members>
+<member name="M:Pxl.Color.ToHSV">
+<summary>
+ Convert an RGB color (plus alpha) to HSV
+</summary>
+</member>
+<member name="M:Pxl.Color.Hue(System.Double)">
+<summary>
+ Return a new Color by setting (or shifting) this color’s hue.
+</summary>
+</member>
+<member name="M:Pxl.Color.Brightness(System.Double)">
+<summary>
+ Return a new Color by scaling this color’s RGB values by the given factor.
+</summary>
+</member>
+</members>
+</doc>

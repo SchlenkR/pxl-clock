@@ -1,0 +1,1023 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>Pxl.Ui.CSharp</name>
+    </assembly>
+    <members>
+        <member name="T:Pxl.Ui.CSharp.Repeat">
+            <summary>Animation repeat mode.</summary>
+        </member>
+        <member name="F:Pxl.Ui.CSharp.Repeat.Once">
+            <summary>Play once and stop at the end value.</summary>
+        </member>
+        <member name="F:Pxl.Ui.CSharp.Repeat.Loop">
+            <summary>Loop continuously from start to end.</summary>
+        </member>
+        <member name="F:Pxl.Ui.CSharp.Repeat.PingPong">
+            <summary>Alternate between forward and reverse (bounce).</summary>
+        </member>
+        <member name="T:Pxl.Ui.CSharp.Animation">
+            <summary>
+            A time-based animation that interpolates between two values using an easing function.
+            Create instances using the <see cref="T:Pxl.Ui.CSharp.Anim"/> factory methods.
+            Call <see cref="M:Pxl.Ui.CSharp.Animation.Eval(Pxl.Ui.CSharp.DrawingContext)"/> once per frame (result is cached per CycleNo).
+            </summary>
+        </member>
+        <member name="P:Pxl.Ui.CSharp.Animation.Value">
+            <summary>The current animation value (updated by <see cref="M:Pxl.Ui.CSharp.Animation.Eval(Pxl.Ui.CSharp.DrawingContext)"/>).</summary>
+        </member>
+        <member name="P:Pxl.Ui.CSharp.Animation.ValueInt">
+            <summary>The current animation value as integer.</summary>
+        </member>
+        <member name="P:Pxl.Ui.CSharp.Animation.IsRunning">
+            <summary>Whether the animation is currently running.</summary>
+        </member>
+        <member name="P:Pxl.Ui.CSharp.Animation.IsAtEnd">
+            <summary>Whether the animation has completed (only meaningful for <see cref="F:Pxl.Ui.CSharp.Repeat.Once"/>).</summary>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.Animation.Pause">
+            <summary>Pause the animation. Time stops accumulating.</summary>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.Animation.Resume">
+            <summary>Resume the animation from where it was paused.</summary>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.Animation.Restart">
+            <summary>Restart the animation from the beginning.</summary>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.Animation.Eval(Pxl.Ui.CSharp.DrawingContext)">
+            <summary>
+            Evaluates the animation for the current frame.
+            The result is cached per CycleNo — multiple calls in the same frame return the cached value.
+            </summary>
+        </member>
+        <member name="T:Pxl.Ui.CSharp.ToggleAnimation`1">
+            <summary>
+            Cycles through a list of values at a fixed interval.
+            Create instances using <see cref="M:Pxl.Ui.CSharp.Anim.ToggleValues``1(System.Double,``0[])"/>.
+            Call <see cref="M:Pxl.Ui.CSharp.ToggleAnimation`1.Eval(Pxl.Ui.CSharp.DrawingContext)"/> once per frame (result is cached per CycleNo).
+            </summary>
+        </member>
+        <member name="P:Pxl.Ui.CSharp.ToggleAnimation`1.Value">
+            <summary>The current value.</summary>
+        </member>
+        <member name="P:Pxl.Ui.CSharp.ToggleAnimation`1.CurrentIndex">
+            <summary>The current index in the values array.</summary>
+        </member>
+        <member name="P:Pxl.Ui.CSharp.ToggleAnimation`1.IsRunning">
+            <summary>Whether the toggle animation is currently running.</summary>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.ToggleAnimation`1.Pause">
+            <summary>Pause the toggle animation.</summary>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.ToggleAnimation`1.Resume">
+            <summary>Resume the toggle animation.</summary>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.ToggleAnimation`1.Restart">
+            <summary>Restart from the first value.</summary>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.ToggleAnimation`1.Eval(Pxl.Ui.CSharp.DrawingContext)">
+            <summary>
+            Evaluates the toggle animation for the current frame.
+            The result is cached per CycleNo — multiple calls in the same frame return the cached value.
+            </summary>
+        </member>
+        <member name="T:Pxl.Ui.CSharp.Anim">
+            <summary>
+            Factory for creating animations with various easing functions.
+            See https://easings.net/ for visual references.
+            </summary>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.Anim.Linear(System.Double,System.Double,System.Double,Pxl.Ui.CSharp.Repeat,System.Boolean)">
+            <summary>Creates a linear animation (constant speed).</summary>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.Anim.EaseIn(System.Double,System.Double,System.Double,Pxl.Ui.CSharp.Repeat,System.Boolean)">
+            <summary>Creates an ease-in animation (quadratic: slow start, fast end).</summary>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.Anim.EaseOut(System.Double,System.Double,System.Double,Pxl.Ui.CSharp.Repeat,System.Boolean)">
+            <summary>Creates an ease-out animation (quadratic: fast start, slow end).</summary>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.Anim.EaseInOut(System.Double,System.Double,System.Double,Pxl.Ui.CSharp.Repeat,System.Boolean)">
+            <summary>Creates an ease-in-out animation (quadratic: slow start and end).</summary>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.Anim.EaseInSine(System.Double,System.Double,System.Double,Pxl.Ui.CSharp.Repeat,System.Boolean)">
+            <summary>Creates an ease-in-sine animation.</summary>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.Anim.EaseOutSine(System.Double,System.Double,System.Double,Pxl.Ui.CSharp.Repeat,System.Boolean)">
+            <summary>Creates an ease-out-sine animation.</summary>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.Anim.EaseInOutSine(System.Double,System.Double,System.Double,Pxl.Ui.CSharp.Repeat,System.Boolean)">
+            <summary>Creates an ease-in-out-sine animation.</summary>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.Anim.EaseInCubic(System.Double,System.Double,System.Double,Pxl.Ui.CSharp.Repeat,System.Boolean)">
+            <summary>Creates an ease-in-cubic animation.</summary>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.Anim.EaseOutCubic(System.Double,System.Double,System.Double,Pxl.Ui.CSharp.Repeat,System.Boolean)">
+            <summary>Creates an ease-out-cubic animation.</summary>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.Anim.EaseInOutCubic(System.Double,System.Double,System.Double,Pxl.Ui.CSharp.Repeat,System.Boolean)">
+            <summary>Creates an ease-in-out-cubic animation.</summary>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.Anim.Custom(System.Func{System.Double,System.Double},System.Double,System.Double,System.Double,Pxl.Ui.CSharp.Repeat,System.Boolean)">
+            <summary>Creates an animation with a custom easing function (input and output: 0..1).</summary>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.Anim.ToggleValues``1(System.Double,``0[])">
+            <summary>
+            Creates an animation that cycles through a list of values at a fixed interval.
+            </summary>
+            <param name="intervalSeconds">Time in seconds before switching to the next value.</param>
+            <param name="values">The values to cycle through.</param>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.ArcExtensions.DrawArc(Pxl.Ui.CSharp.DrawingContext,System.Double,System.Double,System.Double,System.Double,System.Double,System.Double,Pxl.Ui.CSharp.Paint,Pxl.Ui.CSharp.Paint,System.Double,System.Boolean)">
+            <summary>
+            Draws an arc (pie slice) within the specified bounding rectangle.
+            </summary>
+            <param name="ctx">The drawing context.</param>
+            <param name="x">The x-coordinate of the bounding rectangle's top-left corner.</param>
+            <param name="y">The y-coordinate of the bounding rectangle's top-left corner.</param>
+            <param name="width">The width of the bounding rectangle.</param>
+            <param name="height">The height of the bounding rectangle.</param>
+            <param name="startAngle">The starting angle in degrees (0 = right, 90 = down).</param>
+            <param name="sweepAngle">The sweep angle in degrees (positive = clockwise).</param>
+            <param name="colorFill">The fill paint (solid color, gradient, etc.). If null, no fill is drawn.</param>
+            <param name="colorStroke">The stroke paint (solid color, gradient, etc.). If null, no stroke is drawn.</param>
+            <param name="strokeWidth">The width of the stroke.</param>
+            <param name="isAntialias">Whether to use anti-aliasing.</param>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.ArcExtensions.DrawArcCenter(Pxl.Ui.CSharp.DrawingContext,System.Double,System.Double,System.Double,System.Double,System.Double,Pxl.Ui.CSharp.Paint,Pxl.Ui.CSharp.Paint,System.Double,System.Boolean)">
+            <summary>
+            Draws an arc (pie slice) centered at the specified point.
+            </summary>
+            <param name="ctx">The drawing context.</param>
+            <param name="centerX">The x-coordinate of the arc's center.</param>
+            <param name="centerY">The y-coordinate of the arc's center.</param>
+            <param name="radius">The radius of the arc.</param>
+            <param name="startAngle">The starting angle in degrees (0 = right, 90 = down).</param>
+            <param name="sweepAngle">The sweep angle in degrees (positive = clockwise).</param>
+            <param name="colorFill">The fill paint (solid color, gradient, etc.). If null, no fill is drawn.</param>
+            <param name="colorStroke">The stroke paint (solid color, gradient, etc.). If null, no stroke is drawn.</param>
+            <param name="strokeWidth">The width of the stroke.</param>
+            <param name="isAntialias">Whether to use anti-aliasing.</param>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.BackgroundExtensions.DrawBackground(Pxl.Ui.CSharp.DrawingContext,Pxl.Ui.CSharp.Paint,System.Boolean)">
+            <summary>
+            Fills the entire canvas with the specified paint.
+            </summary>
+            <param name="ctx">The drawing context.</param>
+            <param name="color">The fill paint (solid color, gradient, etc.).</param>
+            <param name="isAntialias">Whether to use anti-aliasing.</param>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.CircleExtensions.DrawCircle(Pxl.Ui.CSharp.DrawingContext,System.Double,System.Double,System.Double,Pxl.Ui.CSharp.Paint,Pxl.Ui.CSharp.Paint,System.Double,System.Boolean)">
+            <summary>
+            Draws a circle at the specified center point.
+            </summary>
+            <param name="ctx">The drawing context.</param>
+            <param name="centerX">The x-coordinate of the circle's center.</param>
+            <param name="centerY">The y-coordinate of the circle's center.</param>
+            <param name="radius">The radius of the circle.</param>
+            <param name="colorFill">The fill paint (solid color, gradient, etc.). If null and colorStroke is also null, defaults to Lime.</param>
+            <param name="colorStroke">The stroke paint (solid color, gradient, etc.). If null, no stroke is drawn.</param>
+            <param name="strokeWidth">The width of the stroke.</param>
+            <param name="isAntialias">Whether to use anti-aliasing.</param>
+        </member>
+        <member name="T:Pxl.Ui.CSharp.Image">
+            <summary>
+            Factory for loading images.
+            </summary>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.Image.LoadSingleImage(System.IO.Stream)">
+            <summary>Loads a single image from a stream. For animated formats, only the first frame is used.</summary>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.Image.LoadSingleImage(System.Byte[])">
+            <summary>Loads a single image from a byte array.</summary>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.Image.LoadSingleImage(System.String,System.String)">
+            <summary>Loads a single image from a file path. Relative paths are resolved relative to the calling source file.</summary>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.Image.LoadAnimatedGif(System.IO.Stream)">
+            <summary>
+            Loads an animated image from a stream.
+            Works with both animated GIFs (multiple frames) and static images (single frame).
+            </summary>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.Image.LoadAnimatedGif(System.Byte[])">
+            <summary>Loads an animated image from a byte array.</summary>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.Image.LoadAnimatedGif(System.String,System.String)">
+            <summary>Loads an animated image from a file path. Relative paths are resolved relative to the calling source file.</summary>
+        </member>
+        <member name="T:Pxl.Ui.CSharp.SingleImage">
+            <summary>
+            Represents a single static image (PNG, JPEG, or single frame from any image format).
+            All transformation methods return new instances (immutable).
+            </summary>
+        </member>
+        <member name="P:Pxl.Ui.CSharp.SingleImage.Width">
+            <summary>The width of the image in pixels.</summary>
+        </member>
+        <member name="P:Pxl.Ui.CSharp.SingleImage.Height">
+            <summary>The height of the image in pixels.</summary>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.SingleImage.Resize(System.Int32,System.Int32,System.Boolean)">
+            <summary>Returns a resized copy of this image.</summary>
+            <param name="width">Target width in pixels.</param>
+            <param name="height">Target height in pixels.</param>
+            <param name="useAntiAlias">If true, uses high-quality filtering. If false, uses nearest-neighbor.</param>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.SingleImage.Crop(System.Int32,System.Int32,System.Int32,System.Int32)">
+            <summary>
+            Returns a cropped copy by removing pixels from each edge.
+            </summary>
+            <param name="left">Pixels to remove from the left edge.</param>
+            <param name="top">Pixels to remove from the top edge.</param>
+            <param name="right">Pixels to remove from the right edge.</param>
+            <param name="bottom">Pixels to remove from the bottom edge.</param>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.SingleImage.CropRegion(System.Int32,System.Int32,System.Int32,System.Int32)">
+            <summary>
+            Returns a cropped copy by specifying a region (position and size).
+            </summary>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.SingleImage.ToSpriteMap(System.Int32,System.Int32,System.Double,System.Int32,System.Int32,System.Int32,System.Int32)">
+            <summary>
+            Splits this image into a grid of cells to create a sprite map.
+            </summary>
+            <param name="cellWidth">Width of each sprite cell in pixels.</param>
+            <param name="cellHeight">Height of each sprite cell in pixels.</param>
+            <param name="frameDurationMs">Default frame duration in milliseconds when used in animations.</param>
+            <param name="marginLeft">Left margin to skip within each cell.</param>
+            <param name="marginTop">Top margin to skip within each cell.</param>
+            <param name="marginRight">Right margin to skip within each cell.</param>
+            <param name="marginBottom">Bottom margin to skip within each cell.</param>
+        </member>
+        <member name="T:Pxl.Ui.CSharp.AnimatedGifFrame">
+            <summary>
+            Represents a single frame within an animated image.
+            </summary>
+        </member>
+        <member name="P:Pxl.Ui.CSharp.AnimatedGifFrame.Duration">
+            <summary>The display duration of this frame.</summary>
+        </member>
+        <member name="P:Pxl.Ui.CSharp.AnimatedGifFrame.Width">
+            <summary>The width of this frame in pixels.</summary>
+        </member>
+        <member name="P:Pxl.Ui.CSharp.AnimatedGifFrame.Height">
+            <summary>The height of this frame in pixels.</summary>
+        </member>
+        <member name="T:Pxl.Ui.CSharp.AnimatedGif">
+            <summary>
+            Represents an animated image (animated GIF or any multi-frame image).
+            Also works with single-frame images (e.g. a static PNG loaded as AnimatedGif).
+            All transformation methods return new instances (immutable).
+            </summary>
+        </member>
+        <member name="P:Pxl.Ui.CSharp.AnimatedGif.Frames">
+            <summary>The frames of this animation.</summary>
+        </member>
+        <member name="P:Pxl.Ui.CSharp.AnimatedGif.FrameCount">
+            <summary>The number of frames.</summary>
+        </member>
+        <member name="P:Pxl.Ui.CSharp.AnimatedGif.Width">
+            <summary>The width of the animation (from the first frame).</summary>
+        </member>
+        <member name="P:Pxl.Ui.CSharp.AnimatedGif.Height">
+            <summary>The height of the animation (from the first frame).</summary>
+        </member>
+        <member name="P:Pxl.Ui.CSharp.AnimatedGif.TotalDuration">
+            <summary>The total duration of all frames combined.</summary>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.AnimatedGif.Resize(System.Int32,System.Int32,System.Boolean)">
+            <summary>Returns a resized copy of this animation (all frames).</summary>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.AnimatedGif.Crop(System.Int32,System.Int32,System.Int32,System.Int32)">
+            <summary>
+            Returns a cropped copy of this animation by removing pixels from each edge.
+            </summary>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.AnimatedGif.CropRegion(System.Int32,System.Int32,System.Int32,System.Int32)">
+            <summary>
+            Returns a cropped copy of this animation by specifying a region.
+            </summary>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.AnimatedGif.WithFrameDuration(System.Double)">
+            <summary>
+            Returns a copy of this animation with all frame durations set to the specified value.
+            </summary>
+        </member>
+        <member name="T:Pxl.Ui.CSharp.SpriteMap">
+            <summary>
+            A grid of sprite cells extracted from a sprite sheet image.
+            Use <see cref="M:Pxl.Ui.CSharp.SingleImage.ToSpriteMap(System.Int32,System.Int32,System.Double,System.Int32,System.Int32,System.Int32,System.Int32)"/> to create a SpriteMap.
+            </summary>
+        </member>
+        <member name="P:Pxl.Ui.CSharp.SpriteMap.Rows">
+            <summary>The number of rows in the sprite grid.</summary>
+        </member>
+        <member name="P:Pxl.Ui.CSharp.SpriteMap.Columns">
+            <summary>The number of columns in the sprite grid.</summary>
+        </member>
+        <member name="P:Pxl.Ui.CSharp.SpriteMap.CellWidth">
+            <summary>The width of each cell in pixels.</summary>
+        </member>
+        <member name="P:Pxl.Ui.CSharp.SpriteMap.CellHeight">
+            <summary>The height of each cell in pixels.</summary>
+        </member>
+        <member name="P:Pxl.Ui.CSharp.SpriteMap.Item(System.Int32,System.Int32)">
+            <summary>Gets the sprite cell at the specified row and column as a SingleImage.</summary>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.SpriteMap.CreateAnimation(System.ValueTuple{System.Int32,System.Int32}[])">
+            <summary>
+            Creates an animation from a sequence of sprite cells.
+            Each frame uses the duration specified when the sprite map was created.
+            </summary>
+            <param name="cells">The (Row, Col) coordinates of the cells to include, in order.</param>
+        </member>
+        <member name="T:Pxl.Ui.CSharp.ImageExtensions">
+            <summary>
+            Extension methods for drawing images on a <see cref="T:Pxl.Ui.CSharp.DrawingContext"/>.
+            </summary>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.ImageExtensions.DrawImage(Pxl.Ui.CSharp.DrawingContext,Pxl.Ui.CSharp.SingleImage,System.Double,System.Double)">
+            <summary>Draws a static image at the specified position.</summary>
+            <param name="ctx">The drawing context.</param>
+            <param name="image">The image to draw.</param>
+            <param name="x">The x-coordinate of the top-left corner.</param>
+            <param name="y">The y-coordinate of the top-left corner.</param>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.ImageExtensions.DrawImage(Pxl.Ui.CSharp.DrawingContext,Pxl.Ui.CSharp.AnimatedGif,System.Double,System.Double,System.Boolean)">
+            <summary>
+            Draws an animated image at the specified position.
+            The displayed frame is selected based on the elapsed time of the scene.
+            </summary>
+            <param name="ctx">The drawing context.</param>
+            <param name="gif">The animated image to draw.</param>
+            <param name="x">The x-coordinate of the top-left corner.</param>
+            <param name="y">The y-coordinate of the top-left corner.</param>
+            <param name="repeat">If true, the animation loops. If false, it stops on the last frame.</param>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.LineExtensions.DrawLine(Pxl.Ui.CSharp.DrawingContext,System.Double,System.Double,System.Double,System.Double,Pxl.Ui.CSharp.Paint,System.Double,System.Boolean)">
+            <summary>
+            Draws a line between two points.
+            </summary>
+            <param name="ctx">The drawing context.</param>
+            <param name="x1">The x-coordinate of the start point.</param>
+            <param name="y1">The y-coordinate of the start point.</param>
+            <param name="x2">The x-coordinate of the end point.</param>
+            <param name="y2">The y-coordinate of the end point.</param>
+            <param name="color">The stroke paint (solid color, gradient, etc.). Defaults to Lime if null.</param>
+            <param name="strokeWidth">The width of the line.</param>
+            <param name="isAntialias">Whether to use anti-aliasing.</param>
+        </member>
+        <member name="T:Pxl.Ui.CSharp.DrawingContext">
+            <summary>
+            This class is intended to be "using static"-ed to provide easy access to the current RenderCtx
+            and to other basic idiomatic PXL functions.
+            </summary>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.DrawingContext.#ctor(Pxl.RenderCtx)">
+            <summary>
+            This class is intended to be "using static"-ed to provide easy access to the current RenderCtx
+            and to other basic idiomatic PXL functions.
+            </summary>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.RenderCtxPixelsExtensions.Fork(Pxl.Ui.CSharp.DrawingContext)">
+            <summary>
+            Creates a new RenderCtx initialized with a cropped region from the parent context.
+            If x, y, width, or height is null, defaults are used (0, 0, ctx.Width, ctx.Height).
+            The forked context has to be applied back to the parent context manually using Apply().
+            </summary>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.RenderCtxPixelsExtensions.NewLayer(Pxl.Ui.CSharp.DrawingContext,System.Nullable{Pxl.Ui.CSharp.Color})">
+            <summary>
+            Creates a new black RenderCtx.
+            If width or height is null, the current context's dimension is used.
+            The forked context has to be applied back to the parent context manually using Apply().
+            </summary>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.RenderCtxPixelsExtensions.SetPixels(Pxl.Ui.CSharp.DrawingContext,Pxl.Ui.CSharp.Color[],Pxl.Ui.CSharp.BlendMode)">
+            <summary>
+            Draws the given pixel array onto the canvas.
+            The array length must match Width * Height of the context.
+            </summary>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.PointExtensions.DrawPoint(Pxl.Ui.CSharp.DrawingContext,System.Double,System.Double,Pxl.Ui.CSharp.Paint,System.Double,System.Boolean)">
+            <summary>
+            Draws a single point (pixel) at the specified location.
+            </summary>
+            <param name="ctx">The drawing context.</param>
+            <param name="x">The x-coordinate of the point.</param>
+            <param name="y">The y-coordinate of the point.</param>
+            <param name="color">The paint (solid color, gradient, etc.). Defaults to Lime if null.</param>
+            <param name="strokeWidth">The size of the point.</param>
+            <param name="isAntialias">Whether to use anti-aliasing.</param>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.RectExtensions.DrawRectXyWh(Pxl.Ui.CSharp.DrawingContext,System.Double,System.Double,System.Double,System.Double,Pxl.Ui.CSharp.Paint,Pxl.Ui.CSharp.Paint,System.Double,System.Boolean)">
+            <summary>
+            Draws a rectangle specified by position and size.
+            </summary>
+            <param name="ctx">The drawing context.</param>
+            <param name="x">The x-coordinate of the top-left corner.</param>
+            <param name="y">The y-coordinate of the top-left corner.</param>
+            <param name="width">The width of the rectangle.</param>
+            <param name="height">The height of the rectangle.</param>
+            <param name="colorFill">The fill paint (solid color, gradient, etc.). If null, no fill is drawn.</param>
+            <param name="colorStroke">The stroke paint (solid color, gradient, etc.). If null, no stroke is drawn.</param>
+            <param name="strokeWidth">The width of the stroke.</param>
+            <param name="isAntialias">Whether to use anti-aliasing.</param>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.RectExtensions.DrawRectXyXy(Pxl.Ui.CSharp.DrawingContext,System.Double,System.Double,System.Double,System.Double,Pxl.Ui.CSharp.Paint,Pxl.Ui.CSharp.Paint,System.Double,System.Boolean)">
+            <summary>
+            Draws a rectangle specified by two corner points.
+            </summary>
+            <param name="ctx">The drawing context.</param>
+            <param name="x1">The x-coordinate of the first corner.</param>
+            <param name="y1">The y-coordinate of the first corner.</param>
+            <param name="x2">The x-coordinate of the opposite corner.</param>
+            <param name="y2">The y-coordinate of the opposite corner.</param>
+            <param name="colorFill">The fill paint (solid color, gradient, etc.). If null, no fill is drawn.</param>
+            <param name="colorStroke">The stroke paint (solid color, gradient, etc.). If null, no stroke is drawn.</param>
+            <param name="strokeWidth">The width of the stroke.</param>
+            <param name="isAntialias">Whether to use anti-aliasing.</param>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.TextExtensions.DrawText(Pxl.Ui.CSharp.DrawingContext,System.String,System.Double,System.Double,Pxl.Ui.CSharp.FontInfo,Pxl.Ui.CSharp.Paint,System.Nullable{System.Double},SkiaSharp.SKFontEdging,SkiaSharp.SKFontHinting,System.Double,System.Double,System.Boolean,System.Boolean,System.Boolean,System.Boolean,System.Boolean)">
+            <summary>
+            Draws text at the specified position.
+            </summary>
+            <param name="ctx">The drawing context.</param>
+            <param name="text">The text string to draw.</param>
+            <param name="x">The x-coordinate of the text's left edge.</param>
+            <param name="y">The y-coordinate of the text's top edge.</param>
+            <param name="font">The font to use. Defaults to Var4x5 if null.</param>
+            <param name="color">The text paint (solid color, gradient, etc.). Defaults to White if null.</param>
+            <param name="fontSize">The font size. Defaults to the font's default height if null.</param>
+            <param name="edging">The font edging mode.</param>
+            <param name="hinting">The font hinting mode.</param>
+            <param name="scaleX">Horizontal scale factor.</param>
+            <param name="skewX">Horizontal skew factor for italic effect.</param>
+            <param name="embolden">Whether to embolden the text.</param>
+            <param name="baselineSnap">Whether to snap glyphs to the baseline.</param>
+            <param name="linearMetrics">Whether to use linear metrics.</param>
+            <param name="subpixel">Whether to use subpixel positioning.</param>
+            <param name="isAntialias">Whether to use anti-aliasing.</param>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.TextExtensions.DrawTextVar3x5(Pxl.Ui.CSharp.DrawingContext,System.String,System.Double,System.Double,Pxl.Ui.CSharp.Paint,System.Nullable{System.Double},SkiaSharp.SKFontEdging,SkiaSharp.SKFontHinting,System.Double,System.Double,System.Boolean,System.Boolean,System.Boolean,System.Boolean,System.Boolean)">
+            <summary>
+            Draws text using the Var3x5 proportional font (3 pixels wide, 5 pixels tall).
+            </summary>
+            <inheritdoc cref="M:Pxl.Ui.CSharp.TextExtensions.DrawText(Pxl.Ui.CSharp.DrawingContext,System.String,System.Double,System.Double,Pxl.Ui.CSharp.FontInfo,Pxl.Ui.CSharp.Paint,System.Nullable{System.Double},SkiaSharp.SKFontEdging,SkiaSharp.SKFontHinting,System.Double,System.Double,System.Boolean,System.Boolean,System.Boolean,System.Boolean,System.Boolean)"/>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.TextExtensions.DrawTextMono3x5(Pxl.Ui.CSharp.DrawingContext,System.String,System.Double,System.Double,Pxl.Ui.CSharp.Paint,System.Nullable{System.Double},SkiaSharp.SKFontEdging,SkiaSharp.SKFontHinting,System.Double,System.Double,System.Boolean,System.Boolean,System.Boolean,System.Boolean,System.Boolean)">
+            <summary>
+            Draws text using the Mono3x5 monospace font (3 pixels wide, 5 pixels tall).
+            </summary>
+            <inheritdoc cref="M:Pxl.Ui.CSharp.TextExtensions.DrawText(Pxl.Ui.CSharp.DrawingContext,System.String,System.Double,System.Double,Pxl.Ui.CSharp.FontInfo,Pxl.Ui.CSharp.Paint,System.Nullable{System.Double},SkiaSharp.SKFontEdging,SkiaSharp.SKFontHinting,System.Double,System.Double,System.Boolean,System.Boolean,System.Boolean,System.Boolean,System.Boolean)"/>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.TextExtensions.DrawTextVar4x5(Pxl.Ui.CSharp.DrawingContext,System.String,System.Double,System.Double,Pxl.Ui.CSharp.Paint,System.Nullable{System.Double},SkiaSharp.SKFontEdging,SkiaSharp.SKFontHinting,System.Double,System.Double,System.Boolean,System.Boolean,System.Boolean,System.Boolean,System.Boolean)">
+            <summary>
+            Draws text using the Var4x5 proportional font (4 pixels wide, 5 pixels tall).
+            </summary>
+            <inheritdoc cref="M:Pxl.Ui.CSharp.TextExtensions.DrawText(Pxl.Ui.CSharp.DrawingContext,System.String,System.Double,System.Double,Pxl.Ui.CSharp.FontInfo,Pxl.Ui.CSharp.Paint,System.Nullable{System.Double},SkiaSharp.SKFontEdging,SkiaSharp.SKFontHinting,System.Double,System.Double,System.Boolean,System.Boolean,System.Boolean,System.Boolean,System.Boolean)"/>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.TextExtensions.DrawTextMono4x5(Pxl.Ui.CSharp.DrawingContext,System.String,System.Double,System.Double,Pxl.Ui.CSharp.Paint,System.Nullable{System.Double},SkiaSharp.SKFontEdging,SkiaSharp.SKFontHinting,System.Double,System.Double,System.Boolean,System.Boolean,System.Boolean,System.Boolean,System.Boolean)">
+            <summary>
+            Draws text using the Mono4x5 monospace font (4 pixels wide, 5 pixels tall).
+            </summary>
+            <inheritdoc cref="M:Pxl.Ui.CSharp.TextExtensions.DrawText(Pxl.Ui.CSharp.DrawingContext,System.String,System.Double,System.Double,Pxl.Ui.CSharp.FontInfo,Pxl.Ui.CSharp.Paint,System.Nullable{System.Double},SkiaSharp.SKFontEdging,SkiaSharp.SKFontHinting,System.Double,System.Double,System.Boolean,System.Boolean,System.Boolean,System.Boolean,System.Boolean)"/>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.TextExtensions.DrawTextMono6x6(Pxl.Ui.CSharp.DrawingContext,System.String,System.Double,System.Double,Pxl.Ui.CSharp.Paint,System.Nullable{System.Double},SkiaSharp.SKFontEdging,SkiaSharp.SKFontHinting,System.Double,System.Double,System.Boolean,System.Boolean,System.Boolean,System.Boolean,System.Boolean)">
+            <summary>
+            Draws text using the Mono6x6 monospace font (6 pixels wide, 6 pixels tall).
+            </summary>
+            <inheritdoc cref="M:Pxl.Ui.CSharp.TextExtensions.DrawText(Pxl.Ui.CSharp.DrawingContext,System.String,System.Double,System.Double,Pxl.Ui.CSharp.FontInfo,Pxl.Ui.CSharp.Paint,System.Nullable{System.Double},SkiaSharp.SKFontEdging,SkiaSharp.SKFontHinting,System.Double,System.Double,System.Boolean,System.Boolean,System.Boolean,System.Boolean,System.Boolean)"/>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.TextExtensions.DrawTextMono7x10(Pxl.Ui.CSharp.DrawingContext,System.String,System.Double,System.Double,Pxl.Ui.CSharp.Paint,System.Nullable{System.Double},SkiaSharp.SKFontEdging,SkiaSharp.SKFontHinting,System.Double,System.Double,System.Boolean,System.Boolean,System.Boolean,System.Boolean,System.Boolean)">
+            <summary>
+            Draws text using the Mono7x10 monospace font (7 pixels wide, 10 pixels tall).
+            </summary>
+            <inheritdoc cref="M:Pxl.Ui.CSharp.TextExtensions.DrawText(Pxl.Ui.CSharp.DrawingContext,System.String,System.Double,System.Double,Pxl.Ui.CSharp.FontInfo,Pxl.Ui.CSharp.Paint,System.Nullable{System.Double},SkiaSharp.SKFontEdging,SkiaSharp.SKFontHinting,System.Double,System.Double,System.Boolean,System.Boolean,System.Boolean,System.Boolean,System.Boolean)"/>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.TextExtensions.DrawTextVar10x10(Pxl.Ui.CSharp.DrawingContext,System.String,System.Double,System.Double,Pxl.Ui.CSharp.Paint,System.Nullable{System.Double},SkiaSharp.SKFontEdging,SkiaSharp.SKFontHinting,System.Double,System.Double,System.Boolean,System.Boolean,System.Boolean,System.Boolean,System.Boolean)">
+            <summary>
+            Draws text using the Var10x10 proportional font (10 pixels wide, 10 pixels tall).
+            </summary>
+            <inheritdoc cref="M:Pxl.Ui.CSharp.TextExtensions.DrawText(Pxl.Ui.CSharp.DrawingContext,System.String,System.Double,System.Double,Pxl.Ui.CSharp.FontInfo,Pxl.Ui.CSharp.Paint,System.Nullable{System.Double},SkiaSharp.SKFontEdging,SkiaSharp.SKFontHinting,System.Double,System.Double,System.Boolean,System.Boolean,System.Boolean,System.Boolean,System.Boolean)"/>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.TextExtensions.DrawTextMono10x10(Pxl.Ui.CSharp.DrawingContext,System.String,System.Double,System.Double,Pxl.Ui.CSharp.Paint,System.Nullable{System.Double},SkiaSharp.SKFontEdging,SkiaSharp.SKFontHinting,System.Double,System.Double,System.Boolean,System.Boolean,System.Boolean,System.Boolean,System.Boolean)">
+            <summary>
+            Draws text using the Mono10x10 monospace font (10 pixels wide, 10 pixels tall).
+            </summary>
+            <inheritdoc cref="M:Pxl.Ui.CSharp.TextExtensions.DrawText(Pxl.Ui.CSharp.DrawingContext,System.String,System.Double,System.Double,Pxl.Ui.CSharp.FontInfo,Pxl.Ui.CSharp.Paint,System.Nullable{System.Double},SkiaSharp.SKFontEdging,SkiaSharp.SKFontHinting,System.Double,System.Double,System.Boolean,System.Boolean,System.Boolean,System.Boolean,System.Boolean)"/>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.TextExtensions.DrawTextMono16x16(Pxl.Ui.CSharp.DrawingContext,System.String,System.Double,System.Double,Pxl.Ui.CSharp.Paint,System.Nullable{System.Double},SkiaSharp.SKFontEdging,SkiaSharp.SKFontHinting,System.Double,System.Double,System.Boolean,System.Boolean,System.Boolean,System.Boolean,System.Boolean)">
+            <summary>
+            Draws text using the Mono16x16 monospace font (16 pixels wide, 16 pixels tall).
+            </summary>
+            <inheritdoc cref="M:Pxl.Ui.CSharp.TextExtensions.DrawText(Pxl.Ui.CSharp.DrawingContext,System.String,System.Double,System.Double,Pxl.Ui.CSharp.FontInfo,Pxl.Ui.CSharp.Paint,System.Nullable{System.Double},SkiaSharp.SKFontEdging,SkiaSharp.SKFontHinting,System.Double,System.Double,System.Boolean,System.Boolean,System.Boolean,System.Boolean,System.Boolean)"/>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.TextExtensions.MeasureText(Pxl.Ui.CSharp.DrawingContext,System.String,Pxl.Ui.CSharp.FontInfo,System.Nullable{System.Double})">
+            <summary>
+            Measures the width of the given text string using the specified font.
+            </summary>
+            <param name="ctx">The drawing context.</param>
+            <param name="text">The text string to measure.</param>
+            <param name="font">The font to use. Defaults to Var4x5 if null.</param>
+            <param name="fontSize">The font size. Defaults to the font's default height if null.</param>
+            <returns>The width of the text in pixels.</returns>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.TextExtensions.MeasureTextVar3x5(Pxl.Ui.CSharp.DrawingContext,System.String,System.Nullable{System.Double})">
+            <inheritdoc cref="M:Pxl.Ui.CSharp.TextExtensions.MeasureText(Pxl.Ui.CSharp.DrawingContext,System.String,Pxl.Ui.CSharp.FontInfo,System.Nullable{System.Double})"/>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.TextExtensions.MeasureTextMono3x5(Pxl.Ui.CSharp.DrawingContext,System.String,System.Nullable{System.Double})">
+            <inheritdoc cref="M:Pxl.Ui.CSharp.TextExtensions.MeasureText(Pxl.Ui.CSharp.DrawingContext,System.String,Pxl.Ui.CSharp.FontInfo,System.Nullable{System.Double})"/>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.TextExtensions.MeasureTextVar4x5(Pxl.Ui.CSharp.DrawingContext,System.String,System.Nullable{System.Double})">
+            <inheritdoc cref="M:Pxl.Ui.CSharp.TextExtensions.MeasureText(Pxl.Ui.CSharp.DrawingContext,System.String,Pxl.Ui.CSharp.FontInfo,System.Nullable{System.Double})"/>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.TextExtensions.MeasureTextMono4x5(Pxl.Ui.CSharp.DrawingContext,System.String,System.Nullable{System.Double})">
+            <inheritdoc cref="M:Pxl.Ui.CSharp.TextExtensions.MeasureText(Pxl.Ui.CSharp.DrawingContext,System.String,Pxl.Ui.CSharp.FontInfo,System.Nullable{System.Double})"/>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.TextExtensions.MeasureTextMono6x6(Pxl.Ui.CSharp.DrawingContext,System.String,System.Nullable{System.Double})">
+            <inheritdoc cref="M:Pxl.Ui.CSharp.TextExtensions.MeasureText(Pxl.Ui.CSharp.DrawingContext,System.String,Pxl.Ui.CSharp.FontInfo,System.Nullable{System.Double})"/>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.TextExtensions.MeasureTextMono7x10(Pxl.Ui.CSharp.DrawingContext,System.String,System.Nullable{System.Double})">
+            <inheritdoc cref="M:Pxl.Ui.CSharp.TextExtensions.MeasureText(Pxl.Ui.CSharp.DrawingContext,System.String,Pxl.Ui.CSharp.FontInfo,System.Nullable{System.Double})"/>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.TextExtensions.MeasureTextVar10x10(Pxl.Ui.CSharp.DrawingContext,System.String,System.Nullable{System.Double})">
+            <inheritdoc cref="M:Pxl.Ui.CSharp.TextExtensions.MeasureText(Pxl.Ui.CSharp.DrawingContext,System.String,Pxl.Ui.CSharp.FontInfo,System.Nullable{System.Double})"/>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.TextExtensions.MeasureTextMono10x10(Pxl.Ui.CSharp.DrawingContext,System.String,System.Nullable{System.Double})">
+            <inheritdoc cref="M:Pxl.Ui.CSharp.TextExtensions.MeasureText(Pxl.Ui.CSharp.DrawingContext,System.String,Pxl.Ui.CSharp.FontInfo,System.Nullable{System.Double})"/>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.TextExtensions.MeasureTextMono16x16(Pxl.Ui.CSharp.DrawingContext,System.String,System.Nullable{System.Double})">
+            <inheritdoc cref="M:Pxl.Ui.CSharp.TextExtensions.MeasureText(Pxl.Ui.CSharp.DrawingContext,System.String,Pxl.Ui.CSharp.FontInfo,System.Nullable{System.Double})"/>
+        </member>
+        <member name="T:Pxl.Ui.CSharp.BlendMode">
+            <summary>
+            Blend modes control how colors are combined when drawing on top of existing content.
+            </summary>
+        </member>
+        <member name="F:Pxl.Ui.CSharp.BlendMode.Clear">
+            <summary>
+            Clear destination (replace with transparent).
+            </summary>
+        </member>
+        <member name="F:Pxl.Ui.CSharp.BlendMode.Source">
+            <summary>
+            Replace destination with source.
+            </summary>
+        </member>
+        <member name="F:Pxl.Ui.CSharp.BlendMode.Destination">
+            <summary>
+            Keep destination, ignore source.
+            </summary>
+        </member>
+        <member name="F:Pxl.Ui.CSharp.BlendMode.SourceOver">
+            <summary>
+            Source over destination (default alpha blending).
+            </summary>
+        </member>
+        <member name="F:Pxl.Ui.CSharp.BlendMode.DestinationOver">
+            <summary>
+            Destination over source.
+            </summary>
+        </member>
+        <member name="F:Pxl.Ui.CSharp.BlendMode.SourceIn">
+            <summary>
+            Source inside destination (mask source by destination alpha).
+            </summary>
+        </member>
+        <member name="F:Pxl.Ui.CSharp.BlendMode.DestinationIn">
+            <summary>
+            Destination inside source (mask destination by source alpha).
+            </summary>
+        </member>
+        <member name="F:Pxl.Ui.CSharp.BlendMode.SourceOut">
+            <summary>
+            Source outside destination (inverse mask).
+            </summary>
+        </member>
+        <member name="F:Pxl.Ui.CSharp.BlendMode.DestinationOut">
+            <summary>
+            Destination outside source (inverse mask).
+            </summary>
+        </member>
+        <member name="F:Pxl.Ui.CSharp.BlendMode.SourceAtop">
+            <summary>
+            Source atop destination (source where destination is opaque).
+            </summary>
+        </member>
+        <member name="F:Pxl.Ui.CSharp.BlendMode.DestinationAtop">
+            <summary>
+            Destination atop source (destination where source is opaque).
+            </summary>
+        </member>
+        <member name="F:Pxl.Ui.CSharp.BlendMode.Xor">
+            <summary>
+            Exclusive OR (source XOR destination).
+            </summary>
+        </member>
+        <member name="F:Pxl.Ui.CSharp.BlendMode.Plus">
+            <summary>
+            Add source and destination (clamps to 1.0).
+            </summary>
+        </member>
+        <member name="F:Pxl.Ui.CSharp.BlendMode.Modulate">
+            <summary>
+            Multiply source and destination (darkens).
+            </summary>
+        </member>
+        <member name="F:Pxl.Ui.CSharp.BlendMode.Screen">
+            <summary>
+            Screen blend mode (inverted multiply, lightens).
+            </summary>
+        </member>
+        <member name="F:Pxl.Ui.CSharp.BlendMode.Overlay">
+            <summary>
+            Overlay blend mode (combination of multiply and screen).
+            </summary>
+        </member>
+        <member name="F:Pxl.Ui.CSharp.BlendMode.Darken">
+            <summary>
+            Darken: keeps the darker of source and destination.
+            </summary>
+        </member>
+        <member name="F:Pxl.Ui.CSharp.BlendMode.Lighten">
+            <summary>
+            Lighten: keeps the lighter of source and destination.
+            </summary>
+        </member>
+        <member name="F:Pxl.Ui.CSharp.BlendMode.ColorDodge">
+            <summary>
+            Color dodge (brightens destination based on source).
+            </summary>
+        </member>
+        <member name="F:Pxl.Ui.CSharp.BlendMode.ColorBurn">
+            <summary>
+            Color burn (darkens destination based on source).
+            </summary>
+        </member>
+        <member name="F:Pxl.Ui.CSharp.BlendMode.HardLight">
+            <summary>
+            Hard light (harsh version of overlay).
+            </summary>
+        </member>
+        <member name="F:Pxl.Ui.CSharp.BlendMode.SoftLight">
+            <summary>
+            Soft light (gentle version of overlay).
+            </summary>
+        </member>
+        <member name="F:Pxl.Ui.CSharp.BlendMode.Difference">
+            <summary>
+            Difference (absolute difference between source and destination).
+            </summary>
+        </member>
+        <member name="F:Pxl.Ui.CSharp.BlendMode.Exclusion">
+            <summary>
+            Exclusion (similar to difference but lower contrast).
+            </summary>
+        </member>
+        <member name="F:Pxl.Ui.CSharp.BlendMode.Multiply">
+            <summary>
+            Multiply (darkens by multiplying colors).
+            </summary>
+        </member>
+        <member name="F:Pxl.Ui.CSharp.BlendMode.Hue">
+            <summary>
+            Hue blend mode (use source hue with destination saturation and luminosity).
+            </summary>
+        </member>
+        <member name="F:Pxl.Ui.CSharp.BlendMode.Saturation">
+            <summary>
+            Saturation blend mode (use source saturation with destination hue and luminosity).
+            </summary>
+        </member>
+        <member name="F:Pxl.Ui.CSharp.BlendMode.Color">
+            <summary>
+            Color blend mode (use source hue and saturation with destination luminosity).
+            </summary>
+        </member>
+        <member name="F:Pxl.Ui.CSharp.BlendMode.Luminosity">
+            <summary>
+            Luminosity blend mode (use source luminosity with destination hue and saturation).
+            </summary>
+        </member>
+        <member name="T:Pxl.Ui.CSharp.BlendModeExtensions">
+            <summary>
+            Extension methods for converting between BlendMode and SKBlendMode.
+            </summary>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.BlendModeExtensions.ToSkia(Pxl.Ui.CSharp.BlendMode)">
+            <summary>
+            Converts a BlendMode to SKBlendMode.
+            </summary>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.BlendModeExtensions.FromSkia(SkiaSharp.SKBlendMode)">
+            <summary>
+            Converts an SKBlendMode to BlendMode.
+            </summary>
+        </member>
+        <member name="T:Pxl.Ui.CSharp.Color">
+            <summary>
+            Represents a color with RGBA components.
+            <para>
+            The Color struct provides a double-based public API (0.0 to 1.0 range) while internally
+            storing the color as a single <c>uint</c> in ARGB format, matching <see cref="T:SkiaSharp.SKColor"/>'s
+            representation for zero-cost conversion.
+            </para>
+            <para>
+            Factory methods and properties with "Byte" suffix work with byte values (0-255),
+            while methods without suffix work with double values (0.0-1.0).
+            </para>
+            </summary>
+            <remarks>
+            <list type="table">
+            <listheader><term>Property</term><description>Description</description></listheader>
+            <item><term><see cref="P:Pxl.Ui.CSharp.Color.R"/>, <see cref="P:Pxl.Ui.CSharp.Color.G"/>, <see cref="P:Pxl.Ui.CSharp.Color.B"/>, <see cref="P:Pxl.Ui.CSharp.Color.A"/></term><description>Color components as double (0.0-1.0)</description></item>
+            <item><term><see cref="P:Pxl.Ui.CSharp.Color.RedByte"/>, <see cref="P:Pxl.Ui.CSharp.Color.GreenByte"/>, <see cref="P:Pxl.Ui.CSharp.Color.BlueByte"/>, <see cref="P:Pxl.Ui.CSharp.Color.AlphaByte"/></term><description>Color components as byte (0-255)</description></item>
+            </list>
+            </remarks>
+        </member>
+        <member name="P:Pxl.Ui.CSharp.Color.R">
+            <summary>Gets the red component as a value from 0.0 to 1.0.</summary>
+        </member>
+        <member name="P:Pxl.Ui.CSharp.Color.G">
+            <summary>Gets the green component as a value from 0.0 to 1.0.</summary>
+        </member>
+        <member name="P:Pxl.Ui.CSharp.Color.B">
+            <summary>Gets the blue component as a value from 0.0 to 1.0.</summary>
+        </member>
+        <member name="P:Pxl.Ui.CSharp.Color.A">
+            <summary>Gets the alpha (opacity) component as a value from 0.0 (transparent) to 1.0 (opaque).</summary>
+        </member>
+        <member name="P:Pxl.Ui.CSharp.Color.RedByte">
+            <summary>Gets the red component as a byte value from 0 to 255.</summary>
+        </member>
+        <member name="P:Pxl.Ui.CSharp.Color.GreenByte">
+            <summary>Gets the green component as a byte value from 0 to 255.</summary>
+        </member>
+        <member name="P:Pxl.Ui.CSharp.Color.BlueByte">
+            <summary>Gets the blue component as a byte value from 0 to 255.</summary>
+        </member>
+        <member name="P:Pxl.Ui.CSharp.Color.AlphaByte">
+            <summary>Gets the alpha (opacity) component as a byte value from 0 (transparent) to 255 (opaque).</summary>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.Color.#ctor(System.Double,System.Double,System.Double,System.Double)">
+            <summary>
+            Creates a color from RGBA double values in the range 0.0 to 1.0.
+            </summary>
+            <param name="r">Red component (0.0-1.0).</param>
+            <param name="g">Green component (0.0-1.0).</param>
+            <param name="b">Blue component (0.0-1.0).</param>
+            <param name="a">Alpha component (0.0-1.0). Defaults to 1.0 (fully opaque).</param>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.Color.#ctor(System.Byte,System.Byte,System.Byte,System.Byte)">
+            <summary>
+            Creates a color from RGBA byte values (0-255).
+            </summary>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.Color.#ctor(System.UInt32)">
+            <summary>
+            Creates a color from the raw uint value (same format as SKColor).
+            </summary>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.Color.FromArgb(System.Double,System.Double,System.Double,System.Double)">
+            <summary>Creates a color from ARGB double values (0.0-1.0).</summary>
+            <param name="alpha">Alpha component (0.0-1.0).</param>
+            <param name="red">Red component (0.0-1.0).</param>
+            <param name="green">Green component (0.0-1.0).</param>
+            <param name="blue">Blue component (0.0-1.0).</param>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.Color.FromRgba(System.Double,System.Double,System.Double,System.Double)">
+            <summary>Creates a color from RGBA double values (0.0-1.0).</summary>
+            <param name="red">Red component (0.0-1.0).</param>
+            <param name="green">Green component (0.0-1.0).</param>
+            <param name="blue">Blue component (0.0-1.0).</param>
+            <param name="alpha">Alpha component (0.0-1.0).</param>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.Color.FromRgb(System.Double,System.Double,System.Double)">
+            <summary>Creates a color from RGB double values (0.0-1.0) with full opacity.</summary>
+            <param name="red">Red component (0.0-1.0).</param>
+            <param name="green">Green component (0.0-1.0).</param>
+            <param name="blue">Blue component (0.0-1.0).</param>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.Color.FromArgbByte(System.Byte,System.Byte,System.Byte,System.Byte)">
+            <summary>Creates a color from ARGB byte values (0-255).</summary>
+            <param name="alpha">Alpha component (0-255).</param>
+            <param name="red">Red component (0-255).</param>
+            <param name="green">Green component (0-255).</param>
+            <param name="blue">Blue component (0-255).</param>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.Color.FromRgbaByte(System.Byte,System.Byte,System.Byte,System.Byte)">
+            <summary>Creates a color from RGBA byte values (0-255).</summary>
+            <param name="red">Red component (0-255).</param>
+            <param name="green">Green component (0-255).</param>
+            <param name="blue">Blue component (0-255).</param>
+            <param name="alpha">Alpha component (0-255).</param>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.Color.FromRgbByte(System.Byte,System.Byte,System.Byte)">
+            <summary>Creates a color from RGB byte values (0-255) with full opacity.</summary>
+            <param name="red">Red component (0-255).</param>
+            <param name="green">Green component (0-255).</param>
+            <param name="blue">Blue component (0-255).</param>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.Color.FromHsl(System.Double,System.Double,System.Double)">
+            <summary>Creates a color from HSL values where all components are in the range 0.0-1.0.</summary>
+            <param name="hue">Hue component (0.0-1.0, maps to 0°-360°).</param>
+            <param name="saturation">Saturation component (0.0-1.0).</param>
+            <param name="lightness">Lightness component (0.0-1.0).</param>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.Color.FromHsl360(System.Double,System.Double,System.Double)">
+            <summary>Creates a color from HSL values where hue is 0-360 and saturation/lightness are 0.0-1.0.</summary>
+            <param name="hue">Hue component in degrees (0-360).</param>
+            <param name="saturation">Saturation component (0.0-1.0).</param>
+            <param name="lightness">Lightness component (0.0-1.0).</param>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.Color.FromHsv(System.Double,System.Double,System.Double)">
+            <summary>Creates a color from HSV values where all components are in the range 0.0-1.0.</summary>
+            <param name="hue">Hue component (0.0-1.0, maps to 0°-360°).</param>
+            <param name="saturation">Saturation component (0.0-1.0).</param>
+            <param name="value">Value/brightness component (0.0-1.0).</param>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.Color.FromHsv360(System.Double,System.Double,System.Double)">
+            <summary>Creates a color from HSV values where hue is 0-360 and saturation/value are 0.0-1.0.</summary>
+            <param name="hue">Hue component in degrees (0-360).</param>
+            <param name="saturation">Saturation component (0.0-1.0).</param>
+            <param name="value">Value/brightness component (0.0-1.0).</param>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.Color.WithAlpha(System.Double)">
+            <summary>Returns a new Color with the specified alpha value (0.0-1.0).</summary>
+            <param name="alpha">The new alpha value (0.0 = transparent, 1.0 = opaque).</param>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.Color.WithAlphaByte(System.Byte)">
+            <summary>Returns a new Color with the specified alpha byte value (0-255).</summary>
+            <param name="alpha">The new alpha value (0 = transparent, 255 = opaque).</param>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.Color.FromSKColor(SkiaSharp.SKColor)">
+            <summary>Creates a Color from an <see cref="T:SkiaSharp.SKColor"/>.</summary>
+            <param name="skColor">The SKColor to convert.</param>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.Color.ToSKColor">
+            <summary>Converts this Color to an <see cref="T:SkiaSharp.SKColor"/>.</summary>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.Color.op_Implicit(Pxl.Ui.CSharp.Color)~SkiaSharp.SKColor">
+            <summary>Implicit conversion from Color to <see cref="T:SkiaSharp.SKColor"/>.</summary>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.Color.op_Implicit(SkiaSharp.SKColor)~Pxl.Ui.CSharp.Color">
+            <summary>Implicit conversion from <see cref="T:SkiaSharp.SKColor"/> to Color.</summary>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.Color.Equals(Pxl.Ui.CSharp.Color)">
+            <inheritdoc/>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.Color.Equals(System.Object)">
+            <inheritdoc/>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.Color.GetHashCode">
+            <inheritdoc/>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.Color.op_Equality(Pxl.Ui.CSharp.Color,Pxl.Ui.CSharp.Color)">
+            <summary>Determines whether two Color values are equal.</summary>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.Color.op_Inequality(Pxl.Ui.CSharp.Color,Pxl.Ui.CSharp.Color)">
+            <summary>Determines whether two Color values are not equal.</summary>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.Color.ToString">
+            <inheritdoc/>
+        </member>
+        <member name="T:Pxl.Ui.CSharp.ColorExtensions">
+            <summary>
+            Extension methods for <see cref="T:Pxl.Ui.CSharp.Color"/>.
+            </summary>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.ColorExtensions.WithAlpha01(Pxl.Ui.CSharp.Color,System.Double)">
+            <summary>Returns a new Color with the specified alpha value in the range 0.0 to 1.0.</summary>
+            <param name="color">The source color.</param>
+            <param name="alpha">The new alpha value (0.0 = transparent, 1.0 = opaque).</param>
+        </member>
+        <member name="T:Pxl.Ui.CSharp.Colors">
+            <summary>
+            Provides a set of predefined named colors.
+            </summary>
+        </member>
+        <member name="F:Pxl.Ui.CSharp.Colors.TransparentBlack">
+            <summary>Transparent black (RGBA: 0, 0, 0, 0).</summary>
+        </member>
+        <member name="F:Pxl.Ui.CSharp.Colors.TransparentWhite">
+            <summary>Transparent white (RGBA: 1, 1, 1, 0).</summary>
+        </member>
+        <member name="T:Pxl.Ui.CSharp.Paint">
+            <summary>
+            Represents a paint that can be used for filling or stroking shapes.
+            Can be a solid color, gradient, pattern, or custom shader.
+            </summary>
+        </member>
+        <member name="T:Pxl.Ui.CSharp.SolidPaint">
+            <summary>
+            A solid color paint.
+            </summary>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.SolidPaint.#ctor(Pxl.Ui.CSharp.Color)">
+            <summary>
+            A solid color paint.
+            </summary>
+        </member>
+        <member name="T:Pxl.Ui.CSharp.LinearGradientPaint">
+            <summary>
+            A linear gradient paint.
+            </summary>
+        </member>
+        <member name="T:Pxl.Ui.CSharp.RadialGradientPaint">
+            <summary>
+            A radial gradient paint.
+            </summary>
+        </member>
+        <member name="T:Pxl.Ui.CSharp.TwoPointConicalGradientPaint">
+            <summary>
+            A two-point conical gradient paint (cone gradient between two circles).
+            </summary>
+        </member>
+        <member name="T:Pxl.Ui.CSharp.SweepGradientPaint">
+            <summary>
+            A sweep (angular) gradient paint.
+            </summary>
+        </member>
+        <member name="T:Pxl.Ui.CSharp.PerlinNoiseFractalPaint">
+            <summary>
+            A Perlin noise fractal pattern paint.
+            </summary>
+        </member>
+        <member name="T:Pxl.Ui.CSharp.PerlinNoiseTurbulencePaint">
+            <summary>
+            A Perlin noise turbulence pattern paint.
+            </summary>
+        </member>
+        <member name="T:Pxl.Ui.CSharp.ImagePatternPaint">
+            <summary>
+            An image-based pattern/texture paint.
+            </summary>
+        </member>
+        <member name="T:Pxl.Ui.CSharp.ShaderPaint">
+            <summary>
+            A custom shader paint.
+            </summary>
+        </member>
+        <member name="T:Pxl.Ui.CSharp.Paints">
+            <summary>
+            Factory methods for creating paints.
+            </summary>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.Paints.Solid(Pxl.Ui.CSharp.Color)">
+            <summary>
+            Creates a solid color paint.
+            </summary>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.Paints.LinearGradient(System.ValueTuple{System.Double,System.Double},System.ValueTuple{System.Double,System.Double},Pxl.Ui.CSharp.Color[],System.Double[],SkiaSharp.SKShaderTileMode)">
+            <summary>
+            Creates a linear gradient paint.
+            </summary>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.Paints.VerticalGradient(System.Double,Pxl.Ui.CSharp.Color[])">
+            <summary>
+            Creates a vertical gradient paint (top to bottom).
+            </summary>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.Paints.HorizontalGradient(System.Double,Pxl.Ui.CSharp.Color[])">
+            <summary>
+            Creates a horizontal gradient paint (left to right).
+            </summary>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.Paints.RadialGradient(System.ValueTuple{System.Double,System.Double},System.Double,Pxl.Ui.CSharp.Color[],System.Double[],SkiaSharp.SKShaderTileMode)">
+            <summary>
+            Creates a radial gradient paint.
+            </summary>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.Paints.TwoPointConicalGradient(System.ValueTuple{System.Double,System.Double},System.Double,System.ValueTuple{System.Double,System.Double},System.Double,Pxl.Ui.CSharp.Color[],System.Double[],SkiaSharp.SKShaderTileMode)">
+            <summary>
+            Creates a two-point conical gradient paint.
+            </summary>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.Paints.SweepGradient(System.ValueTuple{System.Double,System.Double},Pxl.Ui.CSharp.Color[],System.Double[],System.Nullable{SkiaSharp.SKMatrix})">
+            <summary>
+            Creates a sweep (angular) gradient paint.
+            </summary>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.Paints.PerlinNoiseFractal(System.Double,System.Double,System.Int32,System.Double)">
+            <summary>
+            Creates a Perlin noise fractal pattern paint.
+            </summary>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.Paints.PerlinNoiseTurbulence(System.Double,System.Double,System.Int32,System.Double)">
+            <summary>
+            Creates a Perlin noise turbulence pattern paint.
+            </summary>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.Paints.ImagePattern(SkiaSharp.SKImage,SkiaSharp.SKShaderTileMode,SkiaSharp.SKShaderTileMode,System.Nullable{SkiaSharp.SKMatrix})">
+            <summary>
+            Creates an image-based pattern/texture paint.
+            </summary>
+        </member>
+        <member name="M:Pxl.Ui.CSharp.Paints.Shader(SkiaSharp.SKShader)">
+            <summary>
+            Creates a custom shader paint.
+            </summary>
+        </member>
+    </members>
+</doc>
