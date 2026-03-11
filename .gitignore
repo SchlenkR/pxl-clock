@@ -10,6 +10,8 @@ publish/
 pxl-config.json
 .venv
 
+apps/tests
+
 # defaults for node projects in the workspace
 dist
 out
