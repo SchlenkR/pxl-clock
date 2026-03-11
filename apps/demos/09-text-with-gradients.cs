@@ -6,7 +6,7 @@
 // Example 09: Text with Gradients
 // Combine text with gradient paints
 
-#:package Pxl@0.0.57
+#:package Pxl@0.0.58
 
 using Pxl.Ui.CSharp;
 

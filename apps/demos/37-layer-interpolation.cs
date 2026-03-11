@@ -6,7 +6,7 @@
 // Example 37: Interpolation Comparison
 // Compare NearestNeighbor (sharp) vs Linear (smooth) side by side
 
-#:package Pxl@0.0.57
+#:package Pxl@0.0.58
 
 using Pxl.Ui.CSharp;
 
