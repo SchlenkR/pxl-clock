@@ -6,7 +6,7 @@
 // description: Nested colored rectangles with a seconds hand around the border
 // ---
 
-#:package Pxl@0.0.58
+#:package Pxl@0.0.59
 
 using Pxl.Ui.CSharp;
 

@@ -6,7 +6,7 @@
 // Example 34: Layer Scaling
 // Draw small, scale up — great for zoom effects
 
-#:package Pxl@0.0.58
+#:package Pxl@0.0.59
 
 using Pxl.Ui.CSharp;
 

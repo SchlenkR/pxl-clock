@@ -6,7 +6,7 @@
 // Example 36: Combined Layer Transforms
 // Scale, rotate, and translate together for a spinning orbiting square
 
-#:package Pxl@0.0.58
+#:package Pxl@0.0.59
 
 using Pxl.Ui.CSharp;
 

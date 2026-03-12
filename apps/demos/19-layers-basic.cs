@@ -6,7 +6,7 @@
 // Example 19: Layers - Basic
 // Create a separate layer and apply it back
 
-#:package Pxl@0.0.58
+#:package Pxl@0.0.59
 
 using Pxl.Ui.CSharp;
 
