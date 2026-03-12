@@ -6,7 +6,7 @@
 // Example 22: Multiple Shapes - Scene Composition
 // Combine everything to create a complete scene
 
-#:package Pxl@0.0.59
+#:package Pxl@0.0.61
 
 using Pxl.Ui.CSharp;
 

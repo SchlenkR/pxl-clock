@@ -6,7 +6,7 @@
 // Example 20: Layers with Blend Modes
 // Different blend modes create different visual effects
 
-#:package Pxl@0.0.59
+#:package Pxl@0.0.61
 
 using Pxl.Ui.CSharp;
 

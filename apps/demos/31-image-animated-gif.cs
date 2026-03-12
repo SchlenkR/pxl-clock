@@ -6,7 +6,7 @@
 // Example 31: Animated GIF
 // Load and draw an animated GIF with automatic frame cycling
 
-#:package Pxl@0.0.59
+#:package Pxl@0.0.61
 
 using Pxl.Ui.CSharp;
 

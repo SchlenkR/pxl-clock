@@ -6,7 +6,7 @@
 // Example 17: Direct Pixel Access
 // Read and write individual pixels
 
-#:package Pxl@0.0.59
+#:package Pxl@0.0.61
 
 using Pxl.Ui.CSharp;
 
