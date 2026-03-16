@@ -120,16 +120,16 @@ var scene = (DrawingContext ctx) =>
 
 ### 4. Render the final clockface first
 
-Before rendering the individual steps, render the **original clockface** as a GIF. This will be shown at the top of the tutorial as the goal.
+Before rendering the individual steps, render the **original clockface** as a 2-minute animation. This will be shown at the top of the tutorial as the goal.
 
 ```bash
 cd /Users/ronald/repos/github.pxl/pxl-software
 dotnet tool run Pxl.Render <absolute-path-to-original-clockface.cs> \
-  -f gif -s 15 -d 10 -m clock --fps 20 --gap 0.1 \
+  -f gif -s 15 -d 120 -m clock --fps 20 --gap 0.1 \
   -o <output-dir>/final.gif
 ```
 
-### 5. Render each step as animated GIF
+### 5. Render each step as animated WebP
 
 Use the `Pxl.Render` dotnet tool to render each step. Do **not** install it — use it ad-hoc from the existing tool manifest in the pxl-software repo:
 
@@ -142,20 +142,23 @@ dotnet tool run Pxl.Render <absolute-path-to-step.cs> \
 
 If `dotnet tool run` says the tool is not available, run `dotnet tool restore` once first (restores from the existing manifest — does not install anything new).
 
-**Parameters (same for all steps):**
-| Parameter | Value | Meaning |
-|-----------|-------|---------|
-| `-f gif` | gif | Animated GIF output |
-| `-s 15` | 15 | Scale factor → 360x360px |
-| `-d 10` | 10 | **10 seconds** of animation |
-| `-m clock` | clock | PXL Clock look (rounded LED pixels) |
-| `--fps 20` | 20 | 20 frames per second |
-| `--gap 0.1` | 0.2 | Gap between pixels as fraction of cell size |
+**Render parameters:**
+
+| | Steps | Final |
+|---|---|---|
+| `-f` | **gif** | **gif** |
+| `-s` | 15 (→ 360x360px) | 15 (→ 360x360px) |
+| `-d` | **10** (10 seconds) | **120** (2 minutes) |
+| `-m` | clock | clock |
+| `--fps` | 20 | 20 |
+| `--gap` | 0.1 | 0.1 |
+
+We use **animated GIF** format. The files are larger than WebP but universally compatible — every tool, browser, and social media platform supports them, and `ffmpeg` can read them directly without conversion.
 
 **IMPORTANT — Rendering checklist:**
-- Every GIF must be a **10-second animated GIF** (200 frames at 20fps). The `-d 10` parameter controls this. If a rendered GIF is static (single frame) or very short, something is wrong — check that `-d 10` and `--fps 20` are both present in the command.
+- Every step must be a **10-second animated WebP** (200 frames at 20fps). The final must be **2 minutes** (2400 frames). If a render produces a static image or very short animation, check that `-d` and `--fps 20` are both present.
 - The `--gap 0.1` parameter controls the spacing between LED pixels. The default (0.05) makes the gap nearly invisible, while larger values like 0.2 make the gap too dominant. `0.1` gives about 1.5px spacing at scale 15 — a subtle but visible gap between the rounded LED pixels.
-- Do **not** change `-s 15` — this produces 360x360px GIFs which are a good balance between quality and file size.
+- Do **not** change `-s 15` — 360x360px is a good balance between quality and file size.
 
 If rendering fails (compilation error), fix the `.cs` file and retry (up to 3 attempts per step).
 
