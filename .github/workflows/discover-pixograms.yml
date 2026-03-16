@@ -1,0 +1,132 @@
+name: Discover Community Pixograms
+
+on:
+  schedule:
+    # Runs daily at 06:00 UTC
+    - cron: '0 6 * * *'
+  workflow_dispatch: # Allow manual trigger
+
+permissions:
+  issues: write
+
+jobs:
+  search:
+    name: Search for Pixograms
+    runs-on: ubuntu-latest
+    outputs:
+      results: ${{ steps.search.outputs.results }}
+    permissions:
+      contents: read
+    steps:
+      - name: Search GitHub for Pxl package references
+        id: search
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Search for C# files containing the Pxl package directive
+          # Exclude our own repo from results
+          QUERY='"%23:package Pxl@" language:csharp -repo:${{ github.repository }}'
+
+          RESPONSE=$(gh api search/code \
+            --method GET \
+            -f "q=${QUERY}" \
+            -f "per_page=100" \
+            --jq '{
+              total_count: .total_count,
+              items: [.items[] | {
+                repo: .repository.full_name,
+                repo_url: .repository.html_url,
+                file: .name,
+                file_url: .html_url,
+                repo_description: .repository.description
+              }]
+            }' 2>&1) || true
+
+          # Deduplicate by repo
+          REPOS=$(echo "$RESPONSE" | jq -c '{
+            total_count: .total_count,
+            repos: [.items | group_by(.repo)[] | {
+              name: .[0].repo,
+              url: .[0].repo_url,
+              description: .[0].repo_description,
+              files: [.[] | {name: .file, url: .file_url}]
+            }]
+          }')
+
+          echo "results<<RESULTS_EOF" >> "$GITHUB_OUTPUT"
+          echo "$REPOS" >> "$GITHUB_OUTPUT"
+          echo "RESULTS_EOF" >> "$GITHUB_OUTPUT"
+
+  update-issue:
+    name: Update Tracking Issue
+    runs-on: ubuntu-latest
+    needs: search
+    permissions:
+      issues: write
+    steps:
+      - name: Create or update issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RESULTS: ${{ needs.search.outputs.results }}
+        run: |
+          REPO_COUNT=$(echo "$RESULTS" | jq '.repos | length')
+          TOTAL_FILES=$(echo "$RESULTS" | jq '.total_count')
+          TODAY=$(date -u +%Y-%m-%d)
+
+          # Build issue body
+          BODY="## Community Pixograms Discovery Report"
+          BODY="${BODY}\n\n**Last scan:** ${TODAY}"
+          BODY="${BODY}\n**Repos found:** ${REPO_COUNT}"
+          BODY="${BODY}\n**Total files:** ${TOTAL_FILES}"
+          BODY="${BODY}\n\n---\n"
+
+          if [ "$REPO_COUNT" -eq 0 ]; then
+            BODY="${BODY}\nNo community pixograms found yet."
+          else
+            BODY="${BODY}\n### Found Repositories\n"
+
+            # Iterate over repos
+            echo "$RESULTS" | jq -c '.repos[]' | while read -r repo; do
+              REPO_NAME=$(echo "$repo" | jq -r '.name')
+              REPO_URL=$(echo "$repo" | jq -r '.url')
+              REPO_DESC=$(echo "$repo" | jq -r '.description // "No description"')
+
+              BODY="${BODY}\n#### [${REPO_NAME}](${REPO_URL})"
+              BODY="${BODY}\n> ${REPO_DESC}\n"
+              BODY="${BODY}\n| File | Link |"
+              BODY="${BODY}\n|------|------|"
+
+              echo "$repo" | jq -c '.files[]' | while read -r file; do
+                FILE_NAME=$(echo "$file" | jq -r '.name')
+                FILE_URL=$(echo "$file" | jq -r '.url')
+                BODY="${BODY}\n| ${FILE_NAME} | [View](${FILE_URL}) |"
+              done
+
+              BODY="${BODY}\n"
+            done
+          fi
+
+          BODY="${BODY}\n\n---\n*This issue is automatically updated daily by the [Discover Pixograms workflow](https://github.com/${{ github.repository }}/actions/workflows/discover-pixograms.yml).*"
+
+          ISSUE_TITLE="Community Pixograms Tracker"
+
+          # Find existing issue by title
+          EXISTING_ISSUE=$(gh issue list \
+            --repo "${{ github.repository }}" \
+            --search "in:title ${ISSUE_TITLE}" \
+            --state open \
+            --json number,title \
+            --jq "[.[] | select(.title == \"${ISSUE_TITLE}\")] | .[0].number // empty")
+
+          if [ -n "$EXISTING_ISSUE" ]; then
+            echo -e "$BODY" | gh issue edit "$EXISTING_ISSUE" \
+              --repo "${{ github.repository }}" \
+              --body-file -
+            echo "Updated issue #${EXISTING_ISSUE}"
+          else
+            echo -e "$BODY" | gh issue create \
+              --repo "${{ github.repository }}" \
+              --title "${ISSUE_TITLE}" \
+              --body-file -
+            echo "Created new tracking issue"
+          fi
