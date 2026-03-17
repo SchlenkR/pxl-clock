@@ -40,9 +40,24 @@ We're excited to see what the community will build around the PXL Clock. Below y
 
 ---
 
-## Quick-Start Development of PXL Clock Pixograms
+## PXL Clock VS Code Extension
 
-**Getting Started:**
+The **fastest way** to develop Pixograms is with the official [**PXL Clock VS Code Extension**](https://marketplace.visualstudio.com/items?itemName=pxlclock.pxl-clock). It gives you everything you need in one package:
+
+<p align="center">
+  <a href="https://marketplace.visualstudio.com/items?itemName=pxlclock.pxl-clock">
+    <img src="docs/images/vscode-extension-preview.png" alt="PXL Clock VS Code Extension — Code editor with live simulator preview" width="800" />
+  </a>
+</p>
+
+- **Built-in Simulator** — starts automatically, no setup required. Live preview of your Pixogram right in VS Code.
+- **Live Hot Reload** — save your `.cs` file and see changes instantly in the simulator and on connected devices.
+- **Run, Stop, Restart** — one-click controls in the editor toolbar for any `.cs` Pixogram.
+- **Publish to Device** — compile and deploy your Pixogram to a real PXL Clock with one click (cloud icon).
+- **Device Discovery** — automatically finds PXL Clocks on your local network.
+- **IntelliSense & Error Checking** — C# completions, diagnostics, and signature help powered by Roslyn.
+
+**Quick Start:**
 1. Install the [PXL Clock VS Code extension](https://marketplace.visualstudio.com/items?itemName=pxlclock.pxl-clock)
 2. Open this repo in VS Code
 3. The built-in simulator starts automatically in the background
@@ -55,11 +70,13 @@ We're excited to see what the community will build around the PXL Clock. Below y
 
 ## Table of Contents
 
-1. [About PXL Clock](#about-pxl-clock)
-2. [Filing Issues and Ideas](#filing-issues-and-ideas)
-3. [Developing Your Own Pixograms](#developing-your-own-pixograms)
-4. [Contributing](#contributing)
-5. [License](LICENSE.md)
+1. [PXL Clock VS Code Extension](#pxl-clock-vs-code-extension)
+2. [About PXL Clock](#about-pxl-clock)
+3. [Filing Issues and Ideas](#filing-issues-and-ideas)
+4. [Developing Your Own Pixograms](#developing-your-own-pixograms)
+5. [Rendering Pixograms (Pxl.Render)](#rendering-pixograms-pxlrender)
+6. [Contributing](#contributing)
+7. [License](LICENSE.md)
 
 ---
 
@@ -178,6 +195,66 @@ Once you're happy with your Pixogram, you can **publish** it to the clock so it 
 2. Pick the target device from the list — the Pixogram gets compiled and installed on the clock.
 
 After publishing, switch the clock back to normal mode in the PXL-App. Your Pixogram will appear in the Pixogram list alongside the built-in clock faces, controllable via the app.
+
+---
+
+## Rendering Pixograms (Pxl.Render)
+
+[![NuGet](https://img.shields.io/nuget/v/Pxl.Render.svg?style=flat-square&logo=nuget)](https://www.nuget.org/packages/Pxl.Render)
+
+**Pxl.Render** is a command-line tool that renders your Pixograms to animated images or video — perfect for creating previews, thumbnails, social media posts, or documentation assets. No PXL Clock device needed.
+
+### Installation
+
+```bash
+dotnet tool install --global Pxl.Render
+```
+
+### Basic Usage
+
+```bash
+# Render a 10-second GIF preview
+pxl-render MyClock.cs -o preview.gif -d 10
+
+# Render with the "clock" look (LED glow effect), scaled up 10x
+pxl-render MyClock.cs -o preview.gif -s 10 -m clock
+
+# Render with flat style (visible gaps between LEDs)
+pxl-render MyClock.cs -o preview.gif -s 10 -m flat
+
+# Animated PNG (full 24-bit color, no dithering artifacts)
+pxl-render MyClock.cs -f apng -o preview.png
+
+# Animated WebP (smaller file size than GIF)
+pxl-render MyClock.cs -f webp -o preview.webp
+
+# Export individual PNG frames
+pxl-render MyClock.cs -f png -o frames/ -d 3
+
+# Pipe raw RGB to ffmpeg for video encoding
+pxl-render MyClock.cs -f stdout -s 10 | ffmpeg -f rawvideo -pix_fmt rgb24 -s 240x240 -r 40 -i - output.mp4
+```
+
+### Options
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `-o, --output <path>` | Output file or directory | `output.gif` |
+| `-f, --format <fmt>` | `gif`, `apng`, `webp`, `png`, `pxl`, `stdout` | `gif` |
+| `-d, --duration <secs>` | Duration to render (seconds) | `5.0` |
+| `--fps <int>` | Frames per second | `40` |
+| `-s, --scale <int>` | Scale factor (e.g., `10` = 240x240 output) | `1` |
+| `-m, --mode <mode>` | Render mode: `raw`, `flat`, `clock` | `raw` |
+| `--gap <float>` | Pixel gap (fraction of cell size) | auto |
+| `-t, --timelapse <int>` | Keep every Nth frame (speeds up output) | `1` |
+| `--start-time <datetime>` | Virtual start time (for clock faces) | current UTC |
+| `--stdin` | Read script from stdin | — |
+
+### Render Modes
+
+- **`raw`** — Direct pixel output, 1:1 with the display. No gaps between pixels.
+- **`flat`** — Adds small gaps between pixels, giving a grid/matrix look.
+- **`clock`** — Simulates the LED glow effect of a real PXL Clock with radial dimming and hotspots. Closest to how it looks on the actual device.
 
 ---
 
