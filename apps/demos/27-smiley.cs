@@ -6,7 +6,7 @@
 // Example 27: Smiley Face
 // Put it all together - gradients, shapes, and composition
 
-#:package Pxl@0.0.61
+#:package Pxl@*
 
 using Pxl.Ui.CSharp;
 

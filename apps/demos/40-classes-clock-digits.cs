@@ -5,7 +5,7 @@
 // ---
 // Example 40: Using classes — a clock with animated digit tiles
 
-#:package Pxl@0.0.61
+#:package Pxl@*
 
 using Pxl.Ui.CSharp;
 

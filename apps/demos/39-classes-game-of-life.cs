@@ -5,7 +5,7 @@
 // ---
 // Example 39: Using classes — Conway's Game of Life with a Grid helper class
 
-#:package Pxl@0.0.61
+#:package Pxl@*
 
 using Pxl.Ui.CSharp;
 
