@@ -86,7 +86,7 @@ pxl-render MyClock.cs --start-time "2025-12-31T23:59:50" -d 20 -o nye.gif
 // description: Brief description of what this pixogram does
 // ---
 
-#:package Pxl@0.0.58
+#:package Pxl@*
 
 using Pxl.Ui.CSharp;
 
@@ -116,7 +116,7 @@ var scene = (DrawingContext ctx) =>
 4. **Animate.Eval() is cached** — safe to call multiple times per frame
 5. **Image paths are relative** to the script file — place assets in an `assets/` subfolder
 6. **Colors implicitly convert to Paint** — pass colors directly where `Paint` is expected
-7. **`#:package Pxl@<version>`** — use this directive to reference the PXL NuGet package. Use the latest version from https://www.nuget.org/packages/Pxl — or check existing `.cs` files in the project for the current version number
+7. **`#:package Pxl@*`** — use this directive to reference the PXL NuGet package. The wildcard `*` automatically resolves to the latest version
 8. **Metadata header** — use `// ---` blocks for app name, type, author, description
 9. **appType values**: `ClockFace` (shows time) or `Scene` (decorative animation)
 10. **Performance** — prefer `SetPixel`/`GetPixel` for per-pixel work over drawing shapes for each pixel
@@ -135,7 +135,7 @@ var scene = (DrawingContext ctx) =>
 // description: Minimal digital clock
 // ---
 
-#:package Pxl@0.0.58
+#:package Pxl@*
 
 using Pxl.Ui.CSharp;
 
@@ -164,7 +164,7 @@ var scene = (DrawingContext ctx) =>
 // author: Example
 // ---
 
-#:package Pxl@0.0.58
+#:package Pxl@*
 
 using Pxl.Ui.CSharp;
 
@@ -191,7 +191,7 @@ var scene = (DrawingContext ctx) =>
 // author: Example
 // ---
 
-#:package Pxl@0.0.58
+#:package Pxl@*
 
 using Pxl.Ui.CSharp;
 
@@ -237,7 +237,7 @@ Your code runs **inside the daemon process** on the PXL Clock device. The constr
 // duration: 15.0          <- optional: default display duration in seconds
 // ---
 
-#:package Pxl@0.0.58
+#:package Pxl@*
 
 using Pxl.Ui.CSharp;
 
