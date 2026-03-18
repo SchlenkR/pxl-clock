@@ -23,9 +23,10 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Search for C# files containing the Pxl package directive
-          # Exclude our own repo from results
-          QUERY='"%23:package Pxl@" language:csharp -repo:${{ github.repository }}'
+          # Search for C# files using the Pxl.Ui.CSharp API (the PXL Clock drawing namespace)
+          # Exclude our own repos from results
+          # Include forks (fork:true) since community members may fork pxl-clock
+          QUERY='"Pxl.Ui.CSharp" language:csharp fork:true -repo:${{ github.repository }} -repo:SchlenkR/pxl-software -repo:SchlenkR/pxl-vscode-extension'
 
           RESPONSE=$(gh api search/code \
             --method GET \
@@ -73,40 +74,56 @@ jobs:
           TOTAL_FILES=$(echo "$RESULTS" | jq '.total_count')
           TODAY=$(date -u +%Y-%m-%d)
 
-          # Build issue body
-          BODY="## Community Pixograms Discovery Report"
-          BODY="${BODY}\n\n**Last scan:** ${TODAY}"
-          BODY="${BODY}\n**Repos found:** ${REPO_COUNT}"
-          BODY="${BODY}\n**Total files:** ${TOTAL_FILES}"
-          BODY="${BODY}\n\n---\n"
+          # Build issue body using a temp file to avoid subshell variable scoping issues
+          BODY_FILE=$(mktemp)
+
+          cat >> "$BODY_FILE" <<HEADER
+          ## Community Pixograms Discovery Report
+
+          **Last scan:** ${TODAY}
+          **Repos found:** ${REPO_COUNT}
+          **Total files:** ${TOTAL_FILES}
+
+          ---
+          HEADER
+
+          # Remove leading whitespace from heredoc
+          sed -i 's/^          //' "$BODY_FILE"
 
           if [ "$REPO_COUNT" -eq 0 ]; then
-            BODY="${BODY}\nNo community pixograms found yet."
+            echo "" >> "$BODY_FILE"
+            echo "No community pixograms found yet. When someone creates a pixogram using the [Pxl NuGet package](https://www.nuget.org/packages/Pxl), it will appear here automatically." >> "$BODY_FILE"
           else
-            BODY="${BODY}\n### Found Repositories\n"
+            echo "" >> "$BODY_FILE"
+            echo "### Found Repositories" >> "$BODY_FILE"
+            echo "" >> "$BODY_FILE"
 
-            # Iterate over repos
-            echo "$RESULTS" | jq -c '.repos[]' | while read -r repo; do
+            # Use process substitution instead of pipe to avoid subshell
+            while read -r repo; do
               REPO_NAME=$(echo "$repo" | jq -r '.name')
               REPO_URL=$(echo "$repo" | jq -r '.url')
               REPO_DESC=$(echo "$repo" | jq -r '.description // "No description"')
+              FILE_COUNT=$(echo "$repo" | jq '.files | length')
 
-              BODY="${BODY}\n#### [${REPO_NAME}](${REPO_URL})"
-              BODY="${BODY}\n> ${REPO_DESC}\n"
-              BODY="${BODY}\n| File | Link |"
-              BODY="${BODY}\n|------|------|"
+              echo "#### [${REPO_NAME}](${REPO_URL})" >> "$BODY_FILE"
+              echo "> ${REPO_DESC}" >> "$BODY_FILE"
+              echo "" >> "$BODY_FILE"
+              echo "| File | Link |" >> "$BODY_FILE"
+              echo "|------|------|" >> "$BODY_FILE"
 
-              echo "$repo" | jq -c '.files[]' | while read -r file; do
+              while read -r file; do
                 FILE_NAME=$(echo "$file" | jq -r '.name')
                 FILE_URL=$(echo "$file" | jq -r '.url')
-                BODY="${BODY}\n| ${FILE_NAME} | [View](${FILE_URL}) |"
-              done
+                echo "| ${FILE_NAME} | [View](${FILE_URL}) |" >> "$BODY_FILE"
+              done < <(echo "$repo" | jq -c '.files[]')
 
-              BODY="${BODY}\n"
-            done
+              echo "" >> "$BODY_FILE"
+            done < <(echo "$RESULTS" | jq -c '.repos[]')
           fi
 
-          BODY="${BODY}\n\n---\n*This issue is automatically updated daily by the [Discover Pixograms workflow](https://github.com/${{ github.repository }}/actions/workflows/discover-pixograms.yml).*"
+          echo "" >> "$BODY_FILE"
+          echo "---" >> "$BODY_FILE"
+          echo "*This issue is automatically updated daily by the [Discover Pixograms workflow](https://github.com/${{ github.repository }}/actions/workflows/discover-pixograms.yml).*" >> "$BODY_FILE"
 
           ISSUE_TITLE="Community Pixograms Tracker"
 
@@ -119,14 +136,16 @@ jobs:
             --jq "[.[] | select(.title == \"${ISSUE_TITLE}\")] | .[0].number // empty")
 
           if [ -n "$EXISTING_ISSUE" ]; then
-            echo -e "$BODY" | gh issue edit "$EXISTING_ISSUE" \
+            gh issue edit "$EXISTING_ISSUE" \
               --repo "${{ github.repository }}" \
-              --body-file -
+              --body-file "$BODY_FILE"
             echo "Updated issue #${EXISTING_ISSUE}"
           else
-            echo -e "$BODY" | gh issue create \
+            gh issue create \
               --repo "${{ github.repository }}" \
               --title "${ISSUE_TITLE}" \
-              --body-file -
+              --body-file "$BODY_FILE"
             echo "Created new tracking issue"
           fi
+
+          rm -f "$BODY_FILE"
