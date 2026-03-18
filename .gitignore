@@ -11,6 +11,7 @@ pxl-config.json
 .venv
 
 apps/tests
+tutorials
 
 # defaults for node projects in the workspace
 dist

@@ -13,7 +13,7 @@ You are given an existing PXL Clock clockface. Your task is to decompose it into
 The PXL Clock is a 24x24 RGB-LED pixel display. Clockfaces are C# scripts that render animations on this 24x24 canvas. Each script defines a `scene` lambda that runs every frame (~40 fps):
 
 ```csharp
-#:package Pxl@0.0.61
+#:package Pxl@*
 
 using Pxl.Ui.CSharp;
 
@@ -26,7 +26,7 @@ var scene = (DrawingContext ctx) =>
 
 Key facts:
 - Canvas is 24x24 pixels (576 total)
-- `#:package Pxl@0.0.61` imports the Pxl NuGet package (required in every script)
+- `#:package Pxl@*` imports the Pxl NuGet package (required in every script)
 - `var scene = (DrawingContext ctx) => { ... };` is the entry point — called every frame
 - Variables declared **before** the scene lambda persist across frames (state)
 - `ctx.Now` gives the current time, `ctx.Elapsed` the time since start
@@ -91,7 +91,7 @@ Design **5 to 12 steps** that progressively build toward the final clockface. Ea
 
 Write all output into:
 ```
-apps/stepByStep/<ClockfaceName>/
+tutorials/<ClockfaceName>/
 ```
 
 For each step, create a `.cs` file:
@@ -100,7 +100,7 @@ For each step, create a `.cs` file:
 // Step N: <Short title>
 // <One-line description of what this step adds>
 
-#:package Pxl@0.0.61
+#:package Pxl@*
 
 using Pxl.Ui.CSharp;
 
@@ -113,7 +113,7 @@ var scene = (DrawingContext ctx) =>
 ```
 
 **Conventions:**
-- Always use `#:package Pxl@0.0.61` (NOT `#:project`)
+- Always use `#:package Pxl@*` (NOT `#:project`)
 - The `var scene` lambda is the only entry point
 - State variables go **before** the scene lambda
 - Keep the code clean and well-commented — these are learning materials
@@ -264,7 +264,7 @@ Report to the user: how many steps were created, with a one-line summary of each
 ## Output Structure
 
 ```
-apps/stepByStep/<ClockfaceName>/
+tutorials/<ClockfaceName>/
 ├── final.gif           # The complete clockface (rendered from original)
 ├── step-01.cs
 ├── step-01.gif
