@@ -8,6 +8,7 @@ publish/
 .tmp/
 
 pxl-config.json
+tools/reel-maker/src/preview-config.json
 .venv
 
 apps/tests
