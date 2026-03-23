@@ -2,7 +2,7 @@
 
 **Support my Work**
 
-Buy a **PXL Clock** and help me create more videos like this!
+Buy a **PXL Clock** :)
 Use code **RONALD** for a **25€ discount**:
 
 [https://www.pxlclock.com/?ref=RONALD](https://www.pxlclock.com/?ref=RONALD)
