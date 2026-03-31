@@ -6,7 +6,7 @@
 // description: HSV color wheel cycling through the full spectrum
 // ---
 
-#:package Pxl@*
+#:package Pxl@0.0.64
 
 using Pxl.Ui.CSharp;
 

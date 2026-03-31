@@ -6,7 +6,7 @@
 // description: Three concentric pixel paths show seconds, minutes and hours
 // ---
 
-#:package Pxl@*
+#:package Pxl@0.0.64
 
 using Pxl.Ui.CSharp;
 

@@ -6,7 +6,7 @@
 // description: Mountain silhouette with dynamic sky gradient
 // ---
 
-#:package Pxl@*
+#:package Pxl@0.0.64
 
 using Pxl.Ui.CSharp;
 

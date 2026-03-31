@@ -6,7 +6,7 @@
 // description: Diagonal lines with corner fills that change based on time
 // ---
 
-#:package Pxl@*
+#:package Pxl@0.0.64
 
 using Pxl.Ui.CSharp;
 

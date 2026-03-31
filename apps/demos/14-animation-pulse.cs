@@ -6,7 +6,7 @@
 // Example 14: Pulsing Animation
 // Animate size and opacity for a pulsing effect
 
-#:package Pxl@*
+#:package Pxl@0.0.64
 
 using Pxl.Ui.CSharp;
 

@@ -6,7 +6,7 @@
 // description: Brief description of what this pixogram does
 // ---
 
-#:package Pxl@*
+#:package Pxl@0.0.64
 
 using Pxl.Ui.CSharp;
 
