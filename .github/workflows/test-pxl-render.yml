@@ -7,7 +7,7 @@ jobs:
   test:
     runs-on: macos-latest
     steps:
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '10.0.x'
 
@@ -43,7 +43,7 @@ jobs:
           echo "GIF size: $(stat -f%z /tmp/test.gif) bytes"
 
       - name: Upload GIF
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: test-render
           path: /tmp/test.gif

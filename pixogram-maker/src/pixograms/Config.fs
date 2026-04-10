@@ -5,28 +5,32 @@ open AiBase.Agent
 open AiBase.AgentSelection
 
 // ---------------------------------------------------------------------------
-// Settings
+// Settings (all from environment variables, no fallbacks)
 // ---------------------------------------------------------------------------
 
+let private envRequired (name: string) =
+    match Environment.GetEnvironmentVariable name with
+    | null | "" -> failwith $"Required environment variable '{name}' is not set."
+    | v -> v
+
+let private envRequiredInt (name: string) =
+    let v = envRequired name
+    match Int32.TryParse v with
+    | true, n -> n
+    | _ -> failwith $"Environment variable '{name}' must be an integer, got '{v}'."
+
 let maintainers =
-    let envValue =
-        Environment.GetEnvironmentVariable "MAINTAINERS"
-        |> Option.ofObj
-        |> Option.defaultValue ""
-    if String.IsNullOrWhiteSpace envValue then
-        [ "SchlenkR"; "nojaf"; "ursenzler" ]
-    else
-        envValue.Split([| ','; ';'; ' ' |], StringSplitOptions.RemoveEmptyEntries)
-        |> Array.toList
+    (envRequired "MAINTAINERS").Split([| ','; ';'; ' ' |], StringSplitOptions.RemoveEmptyEntries)
+    |> Array.toList
 
 let isMaintainer (user: string) =
     maintainers |> List.exists (fun m -> String.Equals(m, user, StringComparison.OrdinalIgnoreCase))
 
-let defaultIterations = 1
-let maxImplementorRetries = 3
-let aiTimeoutMs = 600_000
-let gifDurationSeconds = 30
-let gifScale = 6
+let defaultIterations = envRequiredInt "DEFAULT_ITERATIONS"
+let maxImplementorRetries = envRequiredInt "MAX_IMPLEMENTOR_RETRIES"
+let aiTimeoutMs = envRequiredInt "AI_TIMEOUT_MS"
+let gifDurationSeconds = envRequiredInt "GIF_DURATION_SECONDS"
+let gifScale = envRequiredInt "GIF_SCALE"
 
 // ---------------------------------------------------------------------------
 // Known Copilot models
@@ -110,6 +114,14 @@ let applyConfigSet (cs: ConfigSet) =
     Backends.directorMaverick <- cs.DirectorMaverick
     Backends.implementor <- cs.Implementor
     printfn $"  Config: {cs.Name}"
+
+let applyConfigSetFromEnv () =
+    match Environment.GetEnvironmentVariable "CONFIG_SET" with
+    | null | "" -> ()
+    | name ->
+        match configSets |> List.tryFind (fun cs -> cs.Name.Contains(name, StringComparison.OrdinalIgnoreCase)) with
+        | Some cs -> applyConfigSet cs
+        | None -> printfn $"  ⚠ Unknown CONFIG_SET '{name}', using defaults"
 
 // ---------------------------------------------------------------------------
 // AI call helper

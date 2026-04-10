@@ -40,6 +40,8 @@ let doWorkflow (issues: Issue list) =
 
 let args = Environment.GetCommandLineArgs() |> Array.skip 1
 
+applyConfigSetFromEnv ()
+
 match args with
 | [| "workflow"; issueNum |] ->
     let n = int issueNum
