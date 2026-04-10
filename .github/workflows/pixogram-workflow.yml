@@ -18,13 +18,10 @@ permissions:
 
 jobs:
   workflow:
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
-
-      - name: Install native dependencies for Pxl.Render (SkiaSharp)
-        run: sudo apt-get update && sudo apt-get install -y libfontconfig1 libfreetype6
 
       - uses: actions/setup-dotnet@v4
         with:
@@ -57,9 +54,9 @@ jobs:
           Pxl.Render /tmp/test-render.cs --stdout --duration 0.1 | od -A x -t x1 -N 72 | head -5
           echo "=== GIF render test ==="
           Pxl.Render /tmp/test-render.cs --output /tmp/test-render.gif --duration 1 --scale 10 --mode clock
-          echo "GIF size: $(stat --printf='%s' /tmp/test-render.gif) bytes"
+          echo "GIF size: $(stat -f%z /tmp/test-render.gif) bytes"
           Pxl.Render /tmp/test-render.cs --output /tmp/test-render-raw.gif --duration 1 --scale 1 --mode raw
-          echo "RAW GIF size: $(stat --printf='%s' /tmp/test-render-raw.gif) bytes"
+          echo "RAW GIF size: $(stat -f%z /tmp/test-render-raw.gif) bytes"
 
       - name: Run workflow
         env:
