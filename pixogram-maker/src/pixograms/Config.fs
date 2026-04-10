@@ -25,8 +25,8 @@ let isMaintainer (user: string) =
 let defaultIterations = 1
 let maxImplementorRetries = 3
 let aiTimeoutMs = 600_000
-let gifDurationSeconds = 120
-let gifScale = 10
+let gifDurationSeconds = 30
+let gifScale = 6
 
 // ---------------------------------------------------------------------------
 // Known Copilot models
