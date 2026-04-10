@@ -348,9 +348,16 @@ let run (issue: Issue) =
             printfn "  ─── Fetching issue state... ───"
             let current = fetchIssueWithComments issue
             let conversation = buildConversation current
+            let implCount = countImplementorComments conversation
             printfn $"  Issue #{current.Number}: {current.Title}"
-            printfn $"  Comments: {current.Comments.Length}"
+            printfn $"  Comments: {current.Comments.Length}, Implementor iterations: {implCount}/{maxIterations}"
             printfn ""
+
+            if implCount >= maxIterations then
+                printfn $"  Max iterations reached ({implCount}/{maxIterations}) — stopping."
+                log protocol "Workflow" $"Max iterations reached ({implCount}/{maxIterations})"
+                running <- false
+            else
 
             let action = determineNextAction maxIterations current.Author conversation
             log protocol "Triage" $"{action}"
