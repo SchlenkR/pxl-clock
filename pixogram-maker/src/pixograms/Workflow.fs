@@ -278,25 +278,22 @@ let private runApprovalGate (protocol: ProtocolLog) (issue: Issue) : bool =
     if hasLabel issue.Number labelApproved then
         printfn $"  ✓ Issue #{issue.Number} already approved."
         true
-    elif String.Equals(issue.Author, adminUser, StringComparison.OrdinalIgnoreCase) then
-        printfn $"  ✓ Issue #{issue.Number} auto-approved (author is admin)."
+    elif isMaintainer issue.Author then
+        printfn $"  ✓ Issue #{issue.Number} auto-approved (author {issue.Author} is maintainer)."
         addLabel issue.Number labelApproved
-        log protocol "Approval" "Auto-approved (admin is author)"
+        log protocol "Approval" $"Auto-approved ({issue.Author} is maintainer)"
         true
     else
-        printfn $"  ✗ Issue #{issue.Number} needs approval from @{adminUser}."
-        postComment issue.Number $"@{adminUser} Bitte gib dieses Issue frei (Label `{labelApproved}` setzen)."
-        log protocol "Approval" "Waiting for admin approval"
+        let names = String.Join(", ", maintainers |> List.map (fun m -> $"@{m}"))
+        printfn $"  ✗ Issue #{issue.Number} needs approval from a maintainer."
+        postComment issue.Number $"{names} Bitte gebt dieses Issue frei (Label `{labelApproved}` setzen)."
+        log protocol "Approval" "Waiting for maintainer approval"
         false
 
 let private runSafetyGate (protocol: ProtocolLog) (issue: Issue) : bool =
     if hasLabel issue.Number labelIgnore then
         printfn $"  ✗ Issue #{issue.Number} has '{labelIgnore}' label — skipping."
         log protocol "Safety" "Skipped: marked as ignore."
-        false
-    elif hasLabel issue.Number labelTriageFailed then
-        printfn $"  ✗ Issue #{issue.Number} has '{labelTriageFailed}' label — skipping."
-        log protocol "Safety" "Skipped: already marked as failed."
         false
     elif hasLabel issue.Number labelTriagePassed then
         printfn $"  ✓ Issue #{issue.Number} already has '{labelTriagePassed}' label."
@@ -310,15 +307,10 @@ let private runSafetyGate (protocol: ProtocolLog) (issue: Issue) : bool =
             addLabel issue.Number labelTriagePassed
             addLabel issue.Number labelPixogramIdea
             true
-        | NotAPixogram reason ->
-            printfn $"  ✗ Not a pixogram request: {reason}"
-            log protocol "Safety" $"NOT A PIXOGRAM: {reason}"
-            addLabel issue.Number labelIgnore
-            false
         | Failed reason ->
             printfn $"  ✗ Safety check failed: {reason}"
             log protocol "Safety" $"FAILED: {reason}"
-            addLabel issue.Number labelTriageFailed
+            addLabel issue.Number labelIgnore
             false
 
 let triageOnly (issue: Issue) =

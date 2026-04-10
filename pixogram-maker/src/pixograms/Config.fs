@@ -8,10 +8,19 @@ open AiBase.AgentSelection
 // Settings
 // ---------------------------------------------------------------------------
 
-let adminUser =
-    Environment.GetEnvironmentVariable "ADMIN"
-    |> Option.ofObj
-    |> Option.defaultValue "SchlenkR"
+let maintainers =
+    let envValue =
+        Environment.GetEnvironmentVariable "MAINTAINERS"
+        |> Option.ofObj
+        |> Option.defaultValue ""
+    if String.IsNullOrWhiteSpace envValue then
+        [ "SchlenkR"; "nojaf"; "ursenzler" ]
+    else
+        envValue.Split([| ','; ';'; ' ' |], StringSplitOptions.RemoveEmptyEntries)
+        |> Array.toList
+
+let isMaintainer (user: string) =
+    maintainers |> List.exists (fun m -> String.Equals(m, user, StringComparison.OrdinalIgnoreCase))
 
 let defaultIterations = 1
 let maxImplementorRetries = 3

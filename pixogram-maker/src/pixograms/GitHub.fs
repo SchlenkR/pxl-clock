@@ -126,7 +126,7 @@ let listEligibleIssues () =
     listIssues () |> List.filter (not << isIgnored)
 
 let listUntriagedIssues () =
-    let triageLabels = set [ "pixogram-triage-passed"; "pixogram-triage-failed"; "pixogram-approved" ]
+    let triageLabels = set [ "pixogram-triage-passed"; "pixogram-approved" ]
     listEligibleIssues ()
     |> List.filter (fun issue ->
         issue.Labels |> List.exists (fun l -> triageLabels.Contains l) |> not)
