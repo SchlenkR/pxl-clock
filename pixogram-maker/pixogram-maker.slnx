@@ -1,0 +1,6 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/AiBase/AiBase.fsproj" />
+    <Project Path="src/pixograms/pixograms.fsproj" />
+  </Folder>
+</Solution>

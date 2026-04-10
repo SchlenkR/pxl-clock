@@ -1,0 +1,373 @@
+module PixogramRequests.Workflow
+
+open System
+open System.Diagnostics
+open System.IO
+open System.Text
+open AiBase.AgentSelection
+open PixogramRequests.Config
+open PixogramRequests.GitHub
+open PixogramRequests.Triage
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+let private ghRepo = $"{owner}/{repoName}"
+
+let private runProcess cmd (args: string list) (env: (string * string) list) =
+    let psi = ProcessStartInfo(cmd)
+    for a in args do psi.ArgumentList.Add a
+    for key, value in env do psi.Environment.[key] <- value
+    psi.RedirectStandardOutput <- true
+    psi.RedirectStandardError <- true
+    psi.UseShellExecute <- false
+    psi.CreateNoWindow <- true
+    use p = Process.Start psi
+    let output = p.StandardOutput.ReadToEnd().Trim()
+    p.WaitForExit 30_000 |> ignore
+    if p.ExitCode = 0 then Some output else None
+
+let private ghEnv =
+    match Environment.GetEnvironmentVariable "GITHUB_REPO_PAT" with
+    | null | "" -> []
+    | pat -> [ "GH_TOKEN", pat ]
+
+let private runGh (args: string list) =
+    runProcess "gh" (args @ [ "--repo"; ghRepo ]) ghEnv
+
+// ---------------------------------------------------------------------------
+// Issue → conversation string
+// ---------------------------------------------------------------------------
+
+let buildConversation (issue: Issue) =
+    let sb = StringBuilder()
+    sb.AppendLine $"## Issue #{issue.Number}: {issue.Title}" |> ignore
+    sb.AppendLine $"Author: {issue.Author}" |> ignore
+    let labels = String.Join(", ", issue.Labels)
+    sb.AppendLine $"Labels: {labels}" |> ignore
+    sb.AppendLine() |> ignore
+    sb.AppendLine "### Description" |> ignore
+    sb.AppendLine issue.Body |> ignore
+    for c in issue.Comments do
+        sb.AppendLine() |> ignore
+        sb.AppendLine $"---\n**@{c.Author}** ({c.CreatedAt}):" |> ignore
+        sb.AppendLine c.Body |> ignore
+    sb.ToString()
+
+// ---------------------------------------------------------------------------
+// Protocol logging
+// ---------------------------------------------------------------------------
+
+let private outputDir = Path.Combine(projectDir, "output")
+
+type private ProtocolLog =
+    {
+        Writer: StreamWriter
+        Dir: string
+    }
+
+let private startProtocol (issueNumber: int) =
+    let issueDir = Path.Combine(outputDir, $"issue-{issueNumber}")
+    Directory.CreateDirectory issueDir |> ignore
+    let timestamp = DateTime.Now.ToString "yyyy-MM-dd_HH-mm-ss"
+    let logPath = Path.Combine(issueDir, $"{timestamp}.log")
+    let writer = new StreamWriter(logPath, append = false)
+    writer.AutoFlush <- true
+    writer.WriteLine $"# Workflow Protocol — Issue #{issueNumber}"
+    let now = DateTime.Now.ToString "O"
+    writer.WriteLine $"# Started: {now}"
+    writer.WriteLine()
+    {
+        Writer = writer
+        Dir = issueDir
+    }
+
+let private log (protocol: ProtocolLog) (role: string) (text: string) =
+    let ts = DateTime.Now.ToString "HH:mm:ss"
+    protocol.Writer.WriteLine $"[{ts}] [{role}]"
+    protocol.Writer.WriteLine text
+    protocol.Writer.WriteLine()
+
+// ---------------------------------------------------------------------------
+// Code extraction & rendering
+// ---------------------------------------------------------------------------
+
+let private renderPixogram (csPath: string) (gifPath: string) : Result<string, string> =
+    printfn $"  Rendering: {Path.GetFileName csPath} → {Path.GetFileName gifPath}"
+    let psi = ProcessStartInfo "Pxl.Render"
+    for a in [ csPath; "--output"; gifPath; "--duration"; string gifDurationSeconds; "--scale"; string gifScale; "--mode"; "clock" ] do
+        psi.ArgumentList.Add a
+    psi.RedirectStandardOutput <- true
+    psi.RedirectStandardError <- true
+    psi.UseShellExecute <- false
+    psi.CreateNoWindow <- true
+    try
+        use proc = Process.Start psi
+        let stdout = proc.StandardOutput.ReadToEnd()
+        let stderr = proc.StandardError.ReadToEnd()
+        proc.WaitForExit(120_000) |> ignore
+        if proc.ExitCode = 0 then
+            let fileSize = FileInfo(gifPath).Length / 1024L
+            printfn $"  Render OK ({fileSize} KB)"
+            Ok gifPath
+        else
+            let output = (stdout + "\n" + stderr).Trim()
+            printfn $"  Render FAILED (exit {proc.ExitCode})"
+            Error output
+    with ex ->
+        Error ex.Message
+
+let private releaseTag (issueNumber: int) = $"pixogram-issue-{issueNumber}"
+
+let private ensureRelease (issueNumber: int) =
+    let tag = releaseTag issueNumber
+    match runGh [ "release"; "view"; tag ] with
+    | Some _ -> ()
+    | None ->
+        printfn $"    Creating release '{tag}'..."
+        runGh [ "release"; "create"; tag; "--title"; $"Pixogram Issue #{issueNumber}"; "--notes"; $"Rendered GIFs for issue #{issueNumber}"; "--latest=false" ] |> ignore
+
+let private uploadGif (gifPath: string) (issueNumber: int) : string option =
+    ensureRelease issueNumber
+    let tag = releaseTag issueNumber
+    let assetName = Path.GetFileName gifPath
+    printfn $"    Uploading {assetName} to release '{tag}'..."
+    runGh [ "release"; "upload"; tag; gifPath; "--clobber" ] |> ignore
+    let repoUrl = runGh [ "repo"; "view"; "--json"; "url"; "-q"; ".url" ]
+    repoUrl |> Option.map (fun url -> $"{url}/releases/download/{tag}/{assetName}")
+
+// ---------------------------------------------------------------------------
+// Step execution
+// ---------------------------------------------------------------------------
+
+let private executeDirector (protocol: ProtocolLog) (backend: SelectedBackend) (promptFile: string) (label: string) (conversation: string) (issueNumber: int) =
+    printfn $"  ▶ Running {label} ({backendDisplayName backend})..."
+    printfn $"    Prompt: {promptFile}"
+    match callAgent backend promptFile conversation with
+    | Error err ->
+        printfn $"  ✗ {label} failed: {err}"
+        log protocol label $"FAILED: {err}"
+    | Ok response ->
+        log protocol label response
+        printfn $"    Posting comment..."
+        postComment issueNumber response
+        printfn $"  ✓ {label} posted."
+
+let private executeCraftsman (protocol: ProtocolLog) (conversation: string) : string option =
+    printfn $"  ▶ Running Craftsman ({backendDisplayName Backends.craftsman})..."
+    printfn $"    Prompt: director-craftsman.md"
+    match callAgent Backends.craftsman "director-craftsman.md" conversation with
+    | Error err ->
+        printfn $"  ✗ Craftsman failed: {err}"
+        log protocol "Craftsman" $"FAILED: {err}"
+        None
+    | Ok response ->
+        log protocol "Craftsman" response
+        printfn $"  ✓ Craftsman done (not posting, will embed in Implementor comment)."
+        Some response
+
+let private countImplementorComments (conversation: string) =
+    let tag = roleTag Role.Implementor
+    let mutable count = 0
+    let mutable idx = 0
+    while idx >= 0 do
+        idx <- conversation.IndexOf(tag, idx)
+        if idx >= 0 then
+            count <- count + 1
+            idx <- idx + tag.Length
+    count
+
+let private generateSummary (conversation: string) =
+    printfn "    Generating summary..."
+    match askAI Backends.triage (renderPrompt "summary.md" [ "conversation", conversation ]) with
+    | Ok summary -> summary.Trim()
+    | Error err ->
+        printfn $"    ✗ Summary failed: {err}"
+        ""
+
+let private executeImplementor (protocol: ProtocolLog) (conversation: string) (craftsmanText: string option) (issueNumber: int) =
+    printfn $"  ▶ Running Implementor ({backendDisplayName Backends.implementor})..."
+    printfn "    Prompt: implementor.md"
+
+    let iterationNumber = countImplementorComments conversation + 1
+    printfn $"    Iteration: #{iterationNumber}"
+
+    let prompt = renderPrompt "implementor.md" [ "conversation", conversation ]
+
+    use agent = createAgent Backends.implementor
+    printfn $"    [impl] Agent created, sending initial prompt..."
+
+    // Step 1: Get initial code
+    match sendToAgent agent prompt with
+    | Error err ->
+        printfn $"  ✗ Implementor AI failed: {err}"
+        log protocol "Implementor" $"FAILED: {err}"
+    | Ok initialCode ->
+
+    let mutable code = initialCode
+    let mutable attempt = 1
+    let mutable success = false
+
+    while not success && attempt <= maxImplementorRetries do
+        printfn $"    [impl] Render attempt {attempt}/{maxImplementorRetries}..."
+        log protocol "Implementor" $"ATTEMPT {attempt}:\n{code}"
+
+        let timestamp = DateTime.Now.ToString "yyyy-MM-dd_HH-mm-ss"
+        let csPath = Path.Combine(protocol.Dir, $"{timestamp}.cs")
+        let gifPath = Path.Combine(protocol.Dir, $"{timestamp}.gif")
+        File.WriteAllText(csPath, code)
+        printfn $"    Code saved: {csPath}"
+
+        match renderPixogram csPath gifPath with
+        | Ok _ ->
+            printfn $"    Render OK"
+            log protocol "Render" $"OK: {gifPath}"
+            let gifUrl = uploadGif gifPath issueNumber
+            let gifMarkdown =
+                gifUrl
+                |> Option.map (fun url -> $"\n\n![preview]({url})")
+                |> Option.defaultValue ""
+            let summary = generateSummary conversation
+            let summaryLine = if summary <> "" then $"\n\n{summary}" else ""
+            let craftsmanBlock =
+                match craftsmanText with
+                | Some ct ->
+                    $"\n\n<details>\n<summary>Craftsman Specification</summary>\n\n" +
+                    $"{ct}\n\n</details>"
+                | None -> ""
+            let comment =
+                $"{roleTag Role.Implementor} — Iteration #{iterationNumber}" +
+                summaryLine +
+                gifMarkdown +
+                craftsmanBlock +
+                $"\n\n<details>\n<summary>Code anzeigen</summary>\n\n" +
+                $"```csharp\n{code}\n```\n\n</details>"
+            postComment issueNumber comment
+            printfn $"  ✓ Implementor posted — iteration #{iterationNumber} (attempt {attempt})."
+            success <- true
+
+        | Error err ->
+            printfn $"    Render failed (attempt {attempt}): {err}"
+            log protocol "Render" $"ATTEMPT {attempt} FAILED: {err}"
+
+            if attempt < maxImplementorRetries then
+                let feedback =
+                    "The code failed to compile/render. Here is the error:\n\n" +
+                    $"```\n{err}\n```\n\n" +
+                    "Please fix the code and output ONLY the corrected raw C# code. No markdown, no explanations."
+                printfn $"    [impl] Sending error feedback to same session..."
+                match sendToAgent agent feedback with
+                | Error aiErr ->
+                    printfn $"  ✗ Implementor retry AI failed: {aiErr}"
+                    log protocol "Implementor" $"RETRY AI FAILED: {aiErr}"
+                    attempt <- maxImplementorRetries // bail out
+                | Ok fixedCode ->
+                    code <- fixedCode
+
+        attempt <- attempt + 1
+
+    if not success then
+        printfn $"  ✗ Implementor failed after {attempt - 1} attempts, not posting to GitHub."
+        log protocol "Implementor" $"GAVE UP after {attempt - 1} attempts"
+
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
+
+let triage (issue: Issue) =
+    let conversation = buildConversation issue
+    let maxIter = extractIterationCount issue.Body
+    determineNextAction maxIter issue.Author conversation
+
+let private runApprovalGate (protocol: ProtocolLog) (issue: Issue) : bool =
+    if hasLabel issue.Number labelApproved then
+        printfn $"  ✓ Issue #{issue.Number} already approved."
+        true
+    elif String.Equals(issue.Author, adminUser, StringComparison.OrdinalIgnoreCase) then
+        printfn $"  ✓ Issue #{issue.Number} auto-approved (author is admin)."
+        addLabel issue.Number labelApproved
+        log protocol "Approval" "Auto-approved (admin is author)"
+        true
+    else
+        printfn $"  ✗ Issue #{issue.Number} needs approval from @{adminUser}."
+        postComment issue.Number $"@{adminUser} Bitte gib dieses Issue frei (Label `{labelApproved}` setzen)."
+        log protocol "Approval" "Waiting for admin approval"
+        false
+
+let private runSafetyGate (protocol: ProtocolLog) (issue: Issue) : bool =
+    if hasLabel issue.Number labelTriageFailed then
+        printfn $"  ✗ Issue #{issue.Number} has '{labelTriageFailed}' label — skipping."
+        log protocol "Safety" "Skipped: already marked as failed."
+        false
+    elif hasLabel issue.Number labelTriagePassed then
+        printfn $"  ✓ Issue #{issue.Number} already has '{labelTriagePassed}' label."
+        true
+    else
+        printfn $"  Running safety check for issue #{issue.Number}..."
+        match runSafetyCheck issue with
+        | Passed ->
+            printfn $"  ✓ Safety check passed."
+            log protocol "Safety" "PASSED"
+            addLabel issue.Number labelTriagePassed
+            true
+        | Failed reason ->
+            printfn $"  ✗ Safety check failed: {reason}"
+            log protocol "Safety" $"FAILED: {reason}"
+            addLabel issue.Number labelTriageFailed
+            false
+
+let run (issue: Issue) =
+    let protocol = startProtocol issue.Number
+
+    try
+        if not (runApprovalGate protocol issue) then
+            printfn "  ─── Workflow aborted (not approved) ───"
+        elif not (runSafetyGate protocol issue) then
+            printfn "  ─── Workflow aborted (safety check failed) ───"
+        else
+
+        let maxIterations = extractIterationCount issue.Body
+        printfn $"  Max iterations: {maxIterations}"
+
+        let mutable running = true
+        while running do
+            printfn ""
+            printfn "  ─── Fetching issue state... ───"
+            let current = fetchIssueWithComments issue
+            let conversation = buildConversation current
+            printfn $"  Issue #{current.Number}: {current.Title}"
+            printfn $"  Comments: {current.Comments.Length}"
+            printfn ""
+
+            let action = determineNextAction maxIterations current.Author conversation
+            log protocol "Triage" $"{action}"
+            printfn ""
+
+            match action with
+            | RunVisionary ->
+                executeDirector protocol Backends.directorVisionary "director-visionary.md" "Director/Visionary" conversation current.Number
+            | RunMaverick ->
+                executeDirector protocol Backends.directorMaverick "director-maverick.md" "Director/Maverick" conversation current.Number
+            | RunCraftsman ->
+                match executeCraftsman protocol conversation with
+                | None -> ()
+                | Some craftsmanResponse ->
+                    let extendedConversation =
+                        conversation + "\n\n---\n**[Craftsman]**\n" + craftsmanResponse
+                    executeImplementor protocol extendedConversation (Some craftsmanResponse) current.Number
+            | RunImplementor ->
+                executeImplementor protocol conversation None current.Number
+            | Done reason ->
+                printfn $"  Done: {reason}"
+                running <- false
+
+            printfn ""
+
+        printfn "  ─── Workflow complete ───"
+        printfn ""
+        log protocol "Workflow" "Finished."
+    finally
+        let endTime = DateTime.Now.ToString "O"
+        protocol.Writer.WriteLine $"# Ended: {endTime}"
+        protocol.Writer.Dispose()

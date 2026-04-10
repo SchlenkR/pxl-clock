@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="DotEnv.fs" />
+    <Compile Include="Agent.fs" />
+    <Compile Include="OllamaAgent.fs" />
+    <Compile Include="CopilotAgent.fs" />
+    <Compile Include="CopilotSdkAgent.fs" />
+    <Compile Include="AnthropicAgent.fs" />
+    <Compile Include="ConsoleOutput.fs" />
+    <Compile Include="AgentSelection.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="GitHub.Copilot.SDK" Version="0.2.1" />
+    <PackageReference Include="Spectre.Console" Version="0.55.0" />
+  </ItemGroup>
+
+</Project>
