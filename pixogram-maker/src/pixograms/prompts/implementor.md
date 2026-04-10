@@ -191,9 +191,9 @@ Color.FromRgba(r, g, b, a)                    // 0.0–1.0
 Color.FromRgbByte(r, g, b)                    // 0–255
 Color.FromRgbaByte(r, g, b, a)                // 0–255
 Color.FromHsl(hue, saturation, lightness)      // all 0.0–1.0
-Color.FromHsl360(hue, saturation, lightness)   // H: 0–360, S/L: 0–100
+Color.FromHsl360(hue, saturation, lightness)   // H: 0–360, S/L: 0.0–1.0
 Color.FromHsv(hue, saturation, value)          // all 0.0–1.0
-Color.FromHsv360(hue, saturation, value)       // H: 0–360, S/V: 0–100
+Color.FromHsv360(hue, saturation, value)       // H: 0–360, S/V: 0.0–1.0
 color.WithAlpha(0.5)                           // modify alpha (0.0–1.0)
 ```
 

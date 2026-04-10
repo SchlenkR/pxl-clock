@@ -1,4 +1,25 @@
-{
+^{
   "version": "2.0.0",
-  "tasks": []
+  "tasks": [
+    {
+      "label": "PXL :: Pixogram Maker (interaktiv)",
+      "type": "process",
+      "command": "dotnet",
+      "args": ["run", "--project", "src/pixograms"],
+      "options": {
+        "cwd": "${workspaceFolder}/pixogram-maker",
+        "envFile": "${workspaceFolder}/pixogram-maker/.env"
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "presentation": {
+        "reveal": "always",
+        "focus": true,
+        "panel": "dedicated"
+      },
+      "problemMatcher": "$msCompile"
+    }
+  ]
 }

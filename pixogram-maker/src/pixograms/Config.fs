@@ -116,12 +116,12 @@ let applyConfigSet (cs: ConfigSet) =
     printfn $"  Config: {cs.Name}"
 
 let applyConfigSetFromEnv () =
-    match Environment.GetEnvironmentVariable "CONFIG_SET" with
-    | null | "" -> ()
-    | name ->
-        match configSets |> List.tryFind (fun cs -> cs.Name.Contains(name, StringComparison.OrdinalIgnoreCase)) with
-        | Some cs -> applyConfigSet cs
-        | None -> printfn $"  ⚠ Unknown CONFIG_SET '{name}', using defaults"
+    let name = envRequired "CONFIG_SET"
+    match configSets |> List.tryFind (fun cs -> cs.Name.Contains(name, StringComparison.OrdinalIgnoreCase)) with
+    | Some cs -> applyConfigSet cs
+    | None ->
+        let available = configSets |> List.map (fun cs -> cs.Name) |> String.concat ", "
+        failwith $"Unknown CONFIG_SET '{name}'. Available: {available}"
 
 // ---------------------------------------------------------------------------
 // AI call helper
