@@ -62,9 +62,11 @@ let labelTriagePassed = "pixogram-triage-passed"
 let labelTriageFailed = "pixogram-triage-failed"
 let labelApproved = "pixogram-approved"
 let labelPixogramIdea = "pixogram-idea"
+let labelIgnore = "pixogram-ignore"
 
 type SafetyResult =
     | Passed
+    | NotAPixogram of reason: string
     | Failed of reason: string
 
 let runSafetyCheck (issue: GitHub.Issue) : SafetyResult =
@@ -83,7 +85,10 @@ let runSafetyCheck (issue: GitHub.Issue) : SafetyResult =
         | Some line ->
             printfn $"  → {line}"
             if line.StartsWith "TRIAGE-PASSED" then Passed
-            elif line.StartsWith "TRIAGE-FAILED" then Failed (line.Replace("TRIAGE-FAILED:", "").Trim())
+            elif line.StartsWith "TRIAGE-FAILED" then
+                let reason = line.Replace("TRIAGE-FAILED:", "").Trim()
+                if response.Contains "not_a_pixogram" then NotAPixogram reason
+                else Failed reason
             else Failed $"Unexpected response: {line}"
         | None ->
             printfn $"  ✗ No TRIAGE- line found in response"

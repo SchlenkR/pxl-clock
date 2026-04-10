@@ -119,8 +119,14 @@ let hasLabel issueNumber (label: string) =
     let labels = fetchLabels issueNumber
     labels |> List.exists (fun l -> String.Equals(l, label, StringComparison.OrdinalIgnoreCase))
 
+let private isIgnored (issue: Issue) =
+    issue.Labels |> List.exists (fun l -> String.Equals(l, "pixogram-ignore", StringComparison.OrdinalIgnoreCase))
+
+let listEligibleIssues () =
+    listIssues () |> List.filter (not << isIgnored)
+
 let listUntriagedIssues () =
     let triageLabels = set [ "pixogram-triage-passed"; "pixogram-triage-failed"; "pixogram-approved" ]
-    listIssues ()
+    listEligibleIssues ()
     |> List.filter (fun issue ->
         issue.Labels |> List.exists (fun l -> triageLabels.Contains l) |> not)

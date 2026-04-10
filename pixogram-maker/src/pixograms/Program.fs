@@ -44,7 +44,7 @@ match args with
 | [| "workflow"; issueNum |] ->
     let n = int issueNum
     printfn $"Running workflow on issue #{n}..."
-    let issues = listIssues ()
+    let issues = listEligibleIssues ()
     match issues |> List.tryFind (fun i -> i.Number = n) with
     | None -> printfn $"Issue #{n} not found."
     | Some issue ->
@@ -54,7 +54,7 @@ match args with
 | [| "triage"; issueNum |] ->
     let n = int issueNum
     printfn $"Triaging issue #{n}..."
-    let issues = listIssues ()
+    let issues = listEligibleIssues ()
     match issues |> List.tryFind (fun i -> i.Number = n) with
     | None -> printfn $"Issue #{n} not found."
     | Some issue ->
@@ -75,7 +75,7 @@ match args with
 
 | [| "workflow-all" |] ->
     printfn $"Scanning for open issues in {owner}/{repoName}..."
-    let issues = listIssues ()
+    let issues = listEligibleIssues ()
     if issues.IsEmpty then
         printfn "No open issues found."
     else
@@ -103,7 +103,7 @@ match args with
 
     let issues =
         AnsiConsole.Status()
-            .Start("Fetching issues...", fun _ -> listIssues ())
+            .Start("Fetching issues...", fun _ -> listEligibleIssues ())
 
     if issues.IsEmpty then
         AnsiConsole.MarkupLine "[yellow]No open issues found.[/]"

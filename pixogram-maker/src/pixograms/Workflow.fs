@@ -291,7 +291,11 @@ let private runApprovalGate (protocol: ProtocolLog) (issue: Issue) : bool =
         false
 
 let private runSafetyGate (protocol: ProtocolLog) (issue: Issue) : bool =
-    if hasLabel issue.Number labelTriageFailed then
+    if hasLabel issue.Number labelIgnore then
+        printfn $"  ✗ Issue #{issue.Number} has '{labelIgnore}' label — skipping."
+        log protocol "Safety" "Skipped: marked as ignore."
+        false
+    elif hasLabel issue.Number labelTriageFailed then
         printfn $"  ✗ Issue #{issue.Number} has '{labelTriageFailed}' label — skipping."
         log protocol "Safety" "Skipped: already marked as failed."
         false
@@ -307,6 +311,11 @@ let private runSafetyGate (protocol: ProtocolLog) (issue: Issue) : bool =
             addLabel issue.Number labelTriagePassed
             addLabel issue.Number labelPixogramIdea
             true
+        | NotAPixogram reason ->
+            printfn $"  ✗ Not a pixogram request: {reason}"
+            log protocol "Safety" $"NOT A PIXOGRAM: {reason}"
+            addLabel issue.Number labelIgnore
+            false
         | Failed reason ->
             printfn $"  ✗ Safety check failed: {reason}"
             log protocol "Safety" $"FAILED: {reason}"
