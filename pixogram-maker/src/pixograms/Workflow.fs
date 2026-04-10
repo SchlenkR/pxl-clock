@@ -134,8 +134,7 @@ let private uploadGif (gifPath: string) (issueNumber: int) : string option =
     let assetName = Path.GetFileName gifPath
     printfn $"    Uploading {assetName} to release '{tag}'..."
     runGh [ "release"; "upload"; tag; gifPath; "--clobber" ] |> ignore
-    let repoUrl = runGh [ "repo"; "view"; "--json"; "url"; "-q"; ".url" ]
-    repoUrl |> Option.map (fun url -> $"{url}/releases/download/{tag}/{assetName}")
+    Some $"https://github.com/{owner}/{repoName}/releases/download/{tag}/{assetName}"
 
 // ---------------------------------------------------------------------------
 // Step execution
