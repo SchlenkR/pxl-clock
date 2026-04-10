@@ -61,6 +61,7 @@ type NextAction =
 let labelTriagePassed = "triage-passed"
 let labelTriageFailed = "triage-failed"
 let labelApproved = "approved"
+let labelPixogramIdea = "pixogram-idea"
 
 type SafetyResult =
     | Passed

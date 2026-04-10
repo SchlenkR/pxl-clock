@@ -275,11 +275,6 @@ let private executeImplementor (protocol: ProtocolLog) (conversation: string) (c
 // Public API
 // ---------------------------------------------------------------------------
 
-let triage (issue: Issue) =
-    let conversation = buildConversation issue
-    let maxIter = extractIterationCount issue.Body
-    determineNextAction maxIter issue.Author conversation
-
 let private runApprovalGate (protocol: ProtocolLog) (issue: Issue) : bool =
     if hasLabel issue.Number labelApproved then
         printfn $"  ✓ Issue #{issue.Number} already approved."
@@ -310,12 +305,21 @@ let private runSafetyGate (protocol: ProtocolLog) (issue: Issue) : bool =
             printfn $"  ✓ Safety check passed."
             log protocol "Safety" "PASSED"
             addLabel issue.Number labelTriagePassed
+            addLabel issue.Number labelPixogramIdea
             true
         | Failed reason ->
             printfn $"  ✗ Safety check failed: {reason}"
             log protocol "Safety" $"FAILED: {reason}"
             addLabel issue.Number labelTriageFailed
             false
+
+let triageOnly (issue: Issue) =
+    let protocol = startProtocol issue.Number
+    try
+        if runApprovalGate protocol issue then
+            runSafetyGate protocol issue |> ignore
+    finally
+        protocol.Writer.Dispose()
 
 let run (issue: Issue) =
     let protocol = startProtocol issue.Number

@@ -1,7 +1,6 @@
 open System
 open Spectre.Console
 open PixogramRequests.GitHub
-open PixogramRequests.Triage
 open PixogramRequests.Config
 
 AiBase.DotEnv.load()
@@ -29,13 +28,7 @@ let withIssue (issues: Issue list) (action: Issue -> unit) =
 
 let doTriage (issues: Issue list) =
     withIssue issues (fun issue ->
-        let action = PixogramRequests.Workflow.triage issue
-        match action with
-        | RunVisionary -> AnsiConsole.MarkupLine "[blue]  → Visionary should act next[/]"
-        | RunMaverick -> AnsiConsole.MarkupLine "[blue]  → Maverick should act next[/]"
-        | RunCraftsman -> AnsiConsole.MarkupLine "[green]  → Craftsman should act next[/]"
-        | RunImplementor -> AnsiConsole.MarkupLine "[cyan]  → Implementor should act next[/]"
-        | Done reason -> AnsiConsole.MarkupLine $"[grey]  → Done: {reason}[/]"
+        PixogramRequests.Workflow.triageOnly issue
         AnsiConsole.WriteLine())
 
 let doWorkflow (issues: Issue list) =
@@ -66,13 +59,7 @@ match args with
     | None -> printfn $"Issue #{n} not found."
     | Some issue ->
         let full = fetchIssueWithComments issue
-        let action = PixogramRequests.Workflow.triage full
-        match action with
-        | RunVisionary -> printfn "  → Visionary should act next"
-        | RunMaverick -> printfn "  → Maverick should act next"
-        | RunCraftsman -> printfn "  → Craftsman should act next"
-        | RunImplementor -> printfn "  → Implementor should act next"
-        | Done reason -> printfn $"  → Done: {reason}"
+        PixogramRequests.Workflow.triageOnly full
 
 | [| "triage-all" |] ->
     printfn $"Scanning for untriaged issues in {owner}/{repoName}..."
@@ -84,13 +71,7 @@ match args with
         for issue in issues do
             printfn $"\n  === #{issue.Number}: {issue.Title} ==="
             let full = fetchIssueWithComments issue
-            let action = PixogramRequests.Workflow.triage full
-            match action with
-            | RunVisionary -> printfn "  → Visionary should act next"
-            | RunMaverick -> printfn "  → Maverick should act next"
-            | RunCraftsman -> printfn "  → Craftsman should act next"
-            | RunImplementor -> printfn "  → Implementor should act next"
-            | Done reason -> printfn $"  → Done: {reason}"
+            PixogramRequests.Workflow.triageOnly full
 
 | _ ->
     // Interactive mode
