@@ -58,9 +58,9 @@ type NextAction =
     | RunImplementor
     | Done of reason: string
 
-let labelTriagePassed = "triage-passed"
-let labelTriageFailed = "triage-failed"
-let labelApproved = "approved"
+let labelTriagePassed = "pixogram-triage-passed"
+let labelTriageFailed = "pixogram-triage-failed"
+let labelApproved = "pixogram-approved"
 let labelPixogramIdea = "pixogram-idea"
 
 type SafetyResult =

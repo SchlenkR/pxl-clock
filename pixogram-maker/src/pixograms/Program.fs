@@ -73,6 +73,18 @@ match args with
             let full = fetchIssueWithComments issue
             PixogramRequests.Workflow.triageOnly full
 
+| [| "workflow-all" |] ->
+    printfn $"Scanning for open issues in {owner}/{repoName}..."
+    let issues = listIssues ()
+    if issues.IsEmpty then
+        printfn "No open issues found."
+    else
+        printfn $"Found {issues.Length} open issue(s)."
+        for issue in issues do
+            printfn $"\n  === #{issue.Number}: {issue.Title} ==="
+            let full = fetchIssueWithComments issue
+            PixogramRequests.Workflow.run full
+
 | _ ->
     // Interactive mode
     AnsiConsole.MarkupLine "[bold blue]Pixogram Requests[/]"

@@ -1,10 +1,6 @@
-name: Pixogram Triage
+name: Pixogram Triage (disabled — replaced by pixogram-workflow.yml)
 
 on:
-  push:
-    branches: [main]
-  issues:
-    types: [opened]
   workflow_dispatch:
 
 jobs:

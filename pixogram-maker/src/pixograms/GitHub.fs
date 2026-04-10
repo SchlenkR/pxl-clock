@@ -120,7 +120,7 @@ let hasLabel issueNumber (label: string) =
     labels |> List.exists (fun l -> String.Equals(l, label, StringComparison.OrdinalIgnoreCase))
 
 let listUntriagedIssues () =
-    let triageLabels = set [ "triage-passed"; "triage-failed"; "approved" ]
+    let triageLabels = set [ "pixogram-triage-passed"; "pixogram-triage-failed"; "pixogram-approved" ]
     listIssues ()
     |> List.filter (fun issue ->
         issue.Labels |> List.exists (fun l -> triageLabels.Contains l) |> not)
