@@ -13,7 +13,7 @@ let adminUser =
     |> Option.ofObj
     |> Option.defaultValue "SchlenkR"
 
-let defaultIterations = 4
+let defaultIterations = 1
 let maxImplementorRetries = 3
 let aiTimeoutMs = 600_000
 let gifDurationSeconds = 120

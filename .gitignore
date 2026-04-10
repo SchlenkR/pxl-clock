@@ -6,6 +6,7 @@
 .publish/
 publish/
 .tmp/
+.DS_Store
 
 pxl-config.json
 tools/reel-maker/src/preview-config.json
