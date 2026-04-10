@@ -1,0 +1,49 @@
+name: Test Pxl.Render
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Install Pxl.Render
+        run: dotnet tool install --global Pxl.Render
+
+      - name: Render test pixogram
+        run: |
+          cat > /tmp/test.cs << 'EOF'
+          // ---
+          // app: Test
+          // displayName: Test
+          // author: Test
+          // ---
+          #:package Pxl@*
+          using Pxl.Ui.CSharp;
+          var scene = (DrawingContext ctx) =>
+          {
+              ctx.DrawBackground(Colors.Black);
+              var t = (float)ctx.Elapsed.TotalSeconds;
+              for (var x = 0; x < 24; x++)
+                  for (var y = 0; y < 24; y++)
+                  {
+                      var hue = (x / 24.0 + y / 24.0 + t * 0.2) % 1.0;
+                      ctx.SetPixel(x, y, Color.FromHsl(hue, 1.0, 0.5));
+                  }
+          };
+          EOF
+          echo "=== Raw stdout (first 72 bytes = 24 pixels RGB) ==="
+          Pxl.Render /tmp/test.cs --stdout --duration 0.1 | od -A x -t x1 -N 72
+          echo "=== GIF render ==="
+          Pxl.Render /tmp/test.cs --output /tmp/test.gif --duration 2 --scale 10 --mode clock
+          echo "GIF size: $(stat -f%z /tmp/test.gif) bytes"
+
+      - name: Upload GIF
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-render
+          path: /tmp/test.gif
