@@ -1,6 +1,8 @@
 name: Pixogram Triage
 
 on:
+  push:
+    branches: [main]
   issues:
     types: [opened]
   workflow_dispatch:
