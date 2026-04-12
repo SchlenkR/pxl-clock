@@ -262,7 +262,8 @@ type CopilotAgent(config: CopilotConfig) =
 
     // -- Parse ACP session/update events --
 
-    let processUpdate (update: JsonElement) (fullText: StringBuilder) (onEvent: AgentEvent -> unit) =
+    /// Returns true if a fatal error occurred and the loop should stop.
+    let processUpdate (update: JsonElement) (fullText: StringBuilder) (onEvent: AgentEvent -> unit) : bool =
         let updateType = Json.tryProp "sessionUpdate" update |> Option.bind Json.str
         match updateType with
         | Some "agent_message_chunk" ->
@@ -281,10 +282,12 @@ type CopilotAgent(config: CopilotConfig) =
                     if text <> "" then onEvent (Thinking text)
                 | _ -> ()
             | None -> ()
+            false
         | Some "tool_call" ->
             let title = Json.tryProp "title" update |> Option.bind Json.str |> Option.defaultValue "?"
             let toolId = Json.tryProp "toolCallId" update |> Option.bind Json.str |> Option.defaultValue ""
             onEvent (ToolUse(title, toolId))
+            false
         | Some "tool_call_update" ->
             let status = Json.tryProp "status" update |> Option.bind Json.str
             if status = Some "completed" then
@@ -300,7 +303,15 @@ type CopilotAgent(config: CopilotConfig) =
                         |> Option.defaultValue ""
                     | _ -> ""
                 if resultText <> "" then onEvent (ToolResult resultText)
-        | _ -> ()
+            false
+        | Some unknown ->
+            log $"Fatal session update: {unknown}"
+            onEvent (Error $"Copilot session error: {unknown}")
+            true
+        | None ->
+            let raw = update.GetRawText()
+            log $"Session update without type: {raw}"
+            false
 
     interface IAgent with
         member _.Send(prompt, onEvent) =
@@ -393,9 +404,12 @@ type CopilotAgent(config: CopilotConfig) =
                                 let method = Json.tryProp "method" root |> Option.bind Json.str
                                 match method with
                                 | Some "session/update" ->
-                                    Json.tryProp "params" root
-                                    |> Option.bind (Json.tryProp "update")
-                                    |> Option.iter (fun u -> processUpdate u fullText onEvent)
+                                    let fatal =
+                                        Json.tryProp "params" root
+                                        |> Option.bind (Json.tryProp "update")
+                                        |> Option.map (fun u -> processUpdate u fullText onEvent)
+                                        |> Option.defaultValue false
+                                    if fatal then isDone <- true
                                 | _ -> ()
                         with _ -> ()
 
