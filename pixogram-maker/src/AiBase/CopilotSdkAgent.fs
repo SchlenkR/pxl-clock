@@ -109,6 +109,7 @@ type CopilotSdkAgent(config: CopilotSdkConfig) =
                         let msg = if isNull e.Data then "Unknown error" else e.Data.ToString()
                         log $"ERROR: {msg}"
                         onEvent (Error msg)
+                        tcs.TrySetException(exn msg) |> ignore
 
                     | :? AssistantTurnEndEvent ->
                         tcs.TrySetResult() |> ignore
