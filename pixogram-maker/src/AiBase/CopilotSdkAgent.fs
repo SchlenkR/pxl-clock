@@ -43,6 +43,11 @@ type CopilotSdkAgent(config: CopilotSdkConfig) =
         let opts = CopilotClientOptions()
         opts.AutoStart <- true
         opts.UseStdio <- true
+        match Environment.GetEnvironmentVariable "COPILOT_GITHUB_TOKEN" with
+        | null | "" -> ()
+        | token ->
+            opts.GitHubToken <- token
+            log "Using COPILOT_GITHUB_TOKEN for auth"
         log $"Creating client (model: {config.Model}, effort: {effortStr})..."
         new CopilotClient(opts)
 
