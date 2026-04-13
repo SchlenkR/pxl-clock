@@ -24,7 +24,7 @@ Visionary → Craftsman → Implementor → Maverick → Craftsman → Implement
 
 ## User comments (role="user" / role="maintainer")
 
-When a user or maintainer posts a comment after the last Implementor result, it ALWAYS takes priority (even if max_iterations is reached). But the **next step depends on the nature of the feedback**:
+When a user or maintainer posts a comment after the last Implementor result **AND no pipeline comment (`director/*`, `craftsman`) has been posted after that user comment yet**, this feedback takes priority (even if max_iterations is reached). The **next step depends on the nature of the feedback**:
 
 | Feedback type | Next step | Why |
 |---|---|---|
@@ -32,7 +32,9 @@ When a user or maintainer posts a comment after the last Implementor result, it 
 | **Vague or open-ended feedback** ("looks boring", "mach du mal", "I don't know what to change", "ganz okay aber irgendwie lame") | `MAVERICK` | Needs creative reinterpretation first |
 | **Strong rejection or request for a new direction** ("completely wrong", "start over", "ganz anderer Ansatz") | `VISIONARY` | Needs a fresh creative vision |
 
-After this user-driven step completes (including the Craftsman → Implementor cycle if needed), the normal Director rotation continues.
+**Important:** Once a pipeline agent (Director, Craftsman) has responded after the user's comment, the feedback has been addressed. Do NOT re-route based on the same user comment again — instead, follow the normal pipeline rules (rules 3–7 below).
+
+After the user-driven step completes (including the Craftsman → Implementor cycle if needed), the normal Director rotation continues.
 
 ## How to decide the FIRST step
 
@@ -46,7 +48,7 @@ When the conversation has NO pipeline comments (no `director/*`, `craftsman`, or
 Check in this exact order — **earlier rules take priority**:
 
 1. If @{{admin}} says it's finished ("passt", "fertig", "done", "sieht gut aus") → `DONE`
-2. **If a `role="user"` or `role="maintainer"` comment appears after the last `role="implementor"`** → route based on feedback type (see "User comments" section above): `CRAFTSMAN`, `MAVERICK`, or `VISIONARY`. User wishes ALWAYS take priority, even if max_iterations is reached!
+2. **If a `role="user"` or `role="maintainer"` comment appears after the last `role="implementor"` AND no pipeline comment (`director/*`, `craftsman`) exists after that user comment** → route based on feedback type (see "User comments" section above): `CRAFTSMAN`, `MAVERICK`, or `VISIONARY`. This rule only fires for **unhandled** user feedback — once a pipeline agent has responded, the feedback is consumed.
 3. If the last pipeline comment is `role="director/*"` (no `craftsman` after it) → `CRAFTSMAN`
 4. If the last pipeline comment is `role="craftsman"` (no `implementor` after it) → `IMPLEMENTOR`
 5. If there are {{max_iterations}} or more `role="implementor"` comments AND no new user comment → `DONE`
@@ -65,9 +67,11 @@ Check in this exact order — **earlier rules take priority**:
 
 ## Examples (user comment)
 
-- 1V, 1M, 2C, 2I, then @{{author}} says "add some sparkles" → `CRAFTSMAN` (specific request)
-- 1V, 1M, 2C, 2I, then @{{author}} says "ganz okay, mach du mal weiter" → `MAVERICK` (vague, needs creative twist)
-- 1V, 1M, 2C, 2I, then @{{author}} says "ne, komplett anderer Ansatz bitte" → `VISIONARY` (rejection, needs fresh vision)
+- 1V, 1M, 2C, 2I, then @{{author}} says "add some sparkles" → `CRAFTSMAN` (specific request, no pipeline response yet)
+- 1V, 1M, 2C, 2I, then @{{author}} says "ganz okay, mach du mal weiter" → `MAVERICK` (vague, no pipeline response yet)
+- 1V, 1M, 2C, 2I, then @{{author}} says "ne, komplett anderer Ansatz bitte" → `VISIONARY` (rejection, no pipeline response yet)
+- 1V, 1M, 2C, 2I, user comment, then 2M posted → `CRAFTSMAN` (feedback already consumed by Maverick, rule 3 applies: last pipeline comment is director/*)
+- 1V, 1M, 2C, 2I, user comment, then 2M, then 3C posted → `IMPLEMENTOR` (rule 4: last is craftsman)
 - After the user-driven step completes (including Craftsman → Implementor), normal rotation continues
 
 ## Examples (max iterations)

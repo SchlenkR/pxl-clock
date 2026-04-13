@@ -368,8 +368,19 @@ let run (issue: Issue) =
         // Load existing compaction from release (if any)
         let mutable compaction = downloadCompaction issue.Number
 
+        // Safety valve: hard cap on loop iterations to prevent runaway loops.
+        // Normal cycle = Director + Craftsman/Implementor = 2 iterations.
+        // With user feedback cycles, maxIterations * 3 + 5 is generous.
+        let maxLoopSteps = maxIterations * 3 + 5
+        let mutable loopStep = 0
         let mutable running = true
         while running do
+            loopStep <- loopStep + 1
+            if loopStep > maxLoopSteps then
+                printfn $"  ⚠ Safety valve: {maxLoopSteps} loop steps exceeded — stopping to prevent runaway."
+                log protocol "Workflow" $"SAFETY VALVE: {maxLoopSteps} loop steps exceeded"
+                running <- false
+            else
             printfn ""
             printfn "  ─── Fetching issue state... ───"
             let current = fetchIssueWithComments issue
