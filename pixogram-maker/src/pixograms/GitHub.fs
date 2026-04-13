@@ -56,11 +56,19 @@ let owner = fst ownerAndRepo
 let repoName = snd ownerAndRepo
 
 // ---------------------------------------------------------------------------
+// Authenticated user (for trust model — pipeline comments come from this user)
+// ---------------------------------------------------------------------------
+
+let authenticatedUser =
+    lazy (client.User.Current().Result.Login)
+
+// ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
 type IssueComment =
     {
+        Id: int64
         Author: string
         Body: string
         CreatedAt: string
@@ -97,6 +105,7 @@ let fetchComments issueNumber =
     let comments = client.Issue.Comment.GetAllForIssue(owner, repoName, issueNumber).Result
     [ for c in comments ->
         {
+            Id = c.Id
             Author = c.User.Login
             Body = c.Body
             CreatedAt = c.CreatedAt.ToString "O"

@@ -9,6 +9,7 @@
     <Compile Include="GitHub.fs" />
     <Compile Include="Config.fs" />
     <Compile Include="Triage.fs" />
+    <Compile Include="Conversation.fs" />
     <Compile Include="Workflow.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>

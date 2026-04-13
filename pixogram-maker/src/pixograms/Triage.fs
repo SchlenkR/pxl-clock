@@ -29,11 +29,15 @@ let projectDir = __SOURCE_DIRECTORY__
 let loadPrompt name =
     File.ReadAllText(Path.Combine(projectDir, "prompts", name)).Trim()
 
+let private conversationFormatBlock =
+    lazy (loadPrompt "conversation-format.md")
+
 let renderPrompt (name: string) (vars: (string * string) list) =
     let mutable text = loadPrompt name
     for key, value in vars do
         text <- text.Replace("{{" + key + "}}", value)
-    text
+    // Insert conversation format description between conversation data and instructions
+    text.Replace("---\n\n# Instructions", $"---\n\n{conversationFormatBlock.Value}\n\n---\n\n# Instructions")
 
 // ---------------------------------------------------------------------------
 // Helpers

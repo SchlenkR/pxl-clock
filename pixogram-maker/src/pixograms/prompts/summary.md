@@ -1,15 +1,17 @@
-Summarize what changed in this iteration of the pixogram compared to the previous one.
+{{conversation}}
 
-Read the conversation and focus on the LAST Director comment (Visionary or Craftsman) — what did they change or add?
+---
+
+# Instructions
+
+Summarize what changed between the two most recent `role="implementor"` comments. If there is only one `role="implementor"` comment, summarize the initial creative idea instead.
+
+Identify the changes by looking at the `role="director/visionary"`, `role="director/maverick"`, `role="craftsman"`, or `role="user"` comments that appeared between the two Implementor iterations — those describe what was requested.
 
 ## Rules
 
 - Output as markdown bullet points (- item)
 - 2-4 bullet points, each one short and concrete
 - Name specific changes: colors, effects, movements, timing — not vague descriptions
-- If this is the first iteration (no previous version), summarize the initial creative idea
+- If there is only one `role="implementor"` comment (first iteration), summarize the initial creative idea from the `<body>` and Director/Craftsman comments
 - Write in English
-
-## The conversation so far
-
-{{conversation}}

@@ -3,9 +3,9 @@ module PixogramRequests.Workflow
 open System
 open System.Diagnostics
 open System.IO
-open System.Text
 open AiBase.AgentSelection
 open PixogramRequests.Config
+open PixogramRequests.Conversation
 open PixogramRequests.GitHub
 open PixogramRequests.Triage
 
@@ -37,23 +37,8 @@ let private runGh (args: string list) =
     runProcess "gh" (args @ [ "--repo"; ghRepo ]) ghEnv
 
 // ---------------------------------------------------------------------------
-// Issue → conversation string
+// Issue → conversation string (delegates to Conversation module)
 // ---------------------------------------------------------------------------
-
-let buildConversation (issue: Issue) =
-    let sb = StringBuilder()
-    sb.AppendLine $"## Issue #{issue.Number}: {issue.Title}" |> ignore
-    sb.AppendLine $"Author: {issue.Author}" |> ignore
-    let labels = String.Join(", ", issue.Labels)
-    sb.AppendLine $"Labels: {labels}" |> ignore
-    sb.AppendLine() |> ignore
-    sb.AppendLine "### Description" |> ignore
-    sb.AppendLine issue.Body |> ignore
-    for c in issue.Comments do
-        sb.AppendLine() |> ignore
-        sb.AppendLine $"---\n**@{c.Author}** ({c.CreatedAt}):" |> ignore
-        sb.AppendLine c.Body |> ignore
-    sb.ToString()
 
 // ---------------------------------------------------------------------------
 // Protocol logging
@@ -166,17 +151,6 @@ let private executeCraftsman (protocol: ProtocolLog) (conversation: string) : st
         printfn $"  ✓ Craftsman done (not posting, will embed in Implementor comment)."
         Some response
 
-let private countImplementorComments (conversation: string) =
-    let tag = roleTag Role.Implementor
-    let mutable count = 0
-    let mutable idx = 0
-    while idx >= 0 do
-        idx <- conversation.IndexOf(tag, idx)
-        if idx >= 0 then
-            count <- count + 1
-            idx <- idx + tag.Length
-    count
-
 let private generateSummary (conversation: string) =
     printfn "    Generating summary..."
     match askAI Backends.triage (renderPrompt "summary.md" [ "conversation", conversation ]) with
@@ -185,11 +159,11 @@ let private generateSummary (conversation: string) =
         printfn $"    ✗ Summary failed: {err}"
         ""
 
-let private executeImplementor (protocol: ProtocolLog) (conversation: string) (craftsmanText: string option) (issueNumber: int) =
+let private executeImplementor (protocol: ProtocolLog) (conversation: string) (fullConversation: string) (craftsmanText: string option) (comments: IssueComment list) (issueNumber: int) =
     printfn $"  ▶ Running Implementor ({backendDisplayName Backends.implementor})..."
     printfn "    Prompt: implementor.md"
 
-    let iterationNumber = countImplementorComments conversation + 1
+    let iterationNumber = countImplementorComments comments + 1
     printfn $"    Iteration: #{iterationNumber}"
 
     let prompt = renderPrompt "implementor.md" [ "conversation", conversation ]
@@ -227,7 +201,7 @@ let private executeImplementor (protocol: ProtocolLog) (conversation: string) (c
                 gifUrl
                 |> Option.map (fun url -> $"\n\n![preview]({url})")
                 |> Option.defaultValue ""
-            let summary = generateSummary conversation
+            let summary = generateSummary fullConversation
             let summaryLine = if summary <> "" then $"\n\n{summary}" else ""
             let craftsmanBlock =
                 match craftsmanText with
@@ -343,8 +317,9 @@ let run (issue: Issue) =
             printfn ""
             printfn "  ─── Fetching issue state... ───"
             let current = fetchIssueWithComments issue
-            let conversation = buildConversation current
-            let implCount = countImplementorComments conversation
+            let fullConversation = buildConversation ConversationView.Full current
+            let implConversation = buildConversation ConversationView.Implementor current
+            let implCount = countImplementorComments current.Comments
             printfn $"  Issue #{current.Number}: {current.Title}"
             printfn $"  Comments: {current.Comments.Length}, Implementor iterations: {implCount}/{maxIterations}"
             printfn ""
@@ -355,24 +330,29 @@ let run (issue: Issue) =
                 running <- false
             else
 
-            let action = determineNextAction maxIterations current.Author conversation
+            let action = determineNextAction maxIterations current.Author fullConversation
             log protocol "Triage" $"{action}"
             printfn ""
 
             match action with
             | RunVisionary ->
-                executeDirector protocol Backends.directorVisionary "director-visionary.md" "Director/Visionary" conversation current.Number
+                executeDirector protocol Backends.directorVisionary "director-visionary.md" "Director/Visionary" fullConversation current.Number
             | RunMaverick ->
-                executeDirector protocol Backends.directorMaverick "director-maverick.md" "Director/Maverick" conversation current.Number
+                executeDirector protocol Backends.directorMaverick "director-maverick.md" "Director/Maverick" fullConversation current.Number
             | RunCraftsman ->
-                match executeCraftsman protocol conversation with
+                match executeCraftsman protocol fullConversation with
                 | None -> ()
                 | Some craftsmanResponse ->
+                    let craftsmanComment =
+                        $"\n<comment id=\"0\" author=\"pipeline\" role=\"craftsman\" time=\"{DateTime.UtcNow:O}\">\n" +
+                        $"<![CDATA[{craftsmanResponse}]]>\n" +
+                        "</comment>\n"
+                    // Insert craftsman comment before </conversation> closing tag
                     let extendedConversation =
-                        conversation + "\n\n---\n**[Craftsman]**\n" + craftsmanResponse
-                    executeImplementor protocol extendedConversation (Some craftsmanResponse) current.Number
+                        implConversation.Replace("</conversation>", craftsmanComment + "</conversation>")
+                    executeImplementor protocol extendedConversation fullConversation (Some craftsmanResponse) current.Comments current.Number
             | RunImplementor ->
-                executeImplementor protocol conversation None current.Number
+                executeImplementor protocol implConversation fullConversation None current.Comments current.Number
             | Done reason ->
                 printfn $"  Done: {reason}"
                 running <- false
