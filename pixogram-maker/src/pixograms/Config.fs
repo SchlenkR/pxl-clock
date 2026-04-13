@@ -34,6 +34,7 @@ let isTrustedAuthor (user: string) =
     trustedAuthors |> List.exists (fun m -> String.Equals(m, user, StringComparison.OrdinalIgnoreCase))
 
 let defaultIterations = envRequiredInt "DEFAULT_ITERATIONS"
+let maxIterationsCap = envRequiredInt "MAX_ITERATIONS_CAP"
 let maxImplementorRetries = envRequiredInt "MAX_IMPLEMENTOR_RETRIES"
 let aiTimeoutMs = envRequiredInt "AI_TIMEOUT_MS"
 let gifDurationSeconds = envRequiredInt "GIF_DURATION_SECONDS"

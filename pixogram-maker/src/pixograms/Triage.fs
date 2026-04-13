@@ -106,8 +106,12 @@ let extractIterationCount (issueBody: string) =
         let trimmed = response.Trim()
         match System.Int32.TryParse trimmed with
         | true, n when n >= 1 ->
-            printfn $"  → {n} iterations requested"
-            n
+            let capped = min n maxIterationsCap
+            if capped < n then
+                printfn $"  → {n} iterations requested, capped to {capped} (MAX_ITERATIONS_CAP)"
+            else
+                printfn $"  → {capped} iterations requested"
+            capped
         | _ ->
             printfn $"  ✗ Could not parse '{trimmed}', defaulting to {defaultIterations}"
             defaultIterations
