@@ -27,6 +27,7 @@ Issue
 
 The **Triage** agent examines the full conversation after each step and decides what happens next. In normal rotation, Directors alternate (Visionary, then Maverick, then Visionary...) to keep iterations fresh. When a user posts feedback, Triage routes to the appropriate role based on the nature of the feedback — specific requests go straight to Craftsman, vague feedback goes to Maverick for creative reinterpretation, and strong rejections go to Visionary for a fresh direction. The Craftsman translates a Director's vision into a concrete, implementable specification. The Implementor generates C# code, renders it via `Pxl.Render`, and retries within the same agent session if rendering fails.
 
+
 ## Architectural Decisions
 
 ### Multi-Agent Role Separation
