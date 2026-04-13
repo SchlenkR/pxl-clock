@@ -324,12 +324,6 @@ let run (issue: Issue) =
             printfn $"  Comments: {current.Comments.Length}, Implementor iterations: {implCount}/{maxIterations}"
             printfn ""
 
-            if implCount >= maxIterations then
-                printfn $"  Max iterations reached ({implCount}/{maxIterations}) — stopping."
-                log protocol "Workflow" $"Max iterations reached ({implCount}/{maxIterations})"
-                running <- false
-            else
-
             let action = determineNextAction maxIterations current.Author fullConversation
             log protocol "Triage" $"{action}"
             printfn ""

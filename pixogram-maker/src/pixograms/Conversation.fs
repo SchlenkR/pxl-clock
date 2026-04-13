@@ -31,8 +31,8 @@ let commentRoleTag = function
 let detectCommentRole (body: string) (author: string) (issueAuthor: string) =
     if body.Contains("**[Director/Visionary]**") then CommentRole.Visionary
     elif body.Contains("**[Director/Maverick]**") then CommentRole.Maverick
-    elif body.Contains("**[Craftsman]**") then CommentRole.Craftsman
     elif body.Contains("**[Implementor]**") then CommentRole.Implementor
+    elif body.Contains("**[Craftsman]**") then CommentRole.Craftsman
     elif isMaintainer author then CommentRole.Maintainer
     elif String.Equals(author, issueAuthor, StringComparison.OrdinalIgnoreCase) then CommentRole.User
     else CommentRole.User // fallback for trusted authors that aren't maintainers
