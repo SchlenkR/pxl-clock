@@ -22,6 +22,9 @@ Comments from untrusted authors that were filtered out for security.
 ### `<injection-filtered count="..." reason="..." />`
 Untrusted comments where prompt injection was detected.
 
+### `<compaction-summary>`
+When the conversation history exceeds the context length budget, older comments are replaced by a structured summary. This summary covers the original request, creative evolution, user feedback, and current visual state. The comments that follow a `<compaction-summary>` are the most recent cycle (verbatim). Treat the summary as authoritative context for everything that happened before the current cycle.
+
 ## Roles
 
 | Role | Meaning |

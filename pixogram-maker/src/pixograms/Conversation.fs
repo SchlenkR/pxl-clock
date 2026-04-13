@@ -177,8 +177,29 @@ let private filterForImplementor (trusted: IssueComment list) =
 let countImplementorComments (comments: IssueComment list) =
     comments |> List.filter (fun c -> c.Body.Contains(roleTag Role.Implementor)) |> List.length
 
+/// Check if a user/maintainer comment exists after the last Implementor comment.
+let hasUserFeedbackAfterLastImplementor (issue: Issue) =
+    let lastImplIdx =
+        issue.Comments
+        |> List.mapi (fun i c -> i, c)
+        |> List.filter (fun (_, c) -> c.Body.Contains(roleTag Role.Implementor))
+        |> List.tryLast
+        |> Option.map fst
+    match lastImplIdx with
+    | None -> false
+    | Some idx ->
+        issue.Comments
+        |> List.skip (idx + 1)
+        |> List.exists (fun c ->
+            let role = detectCommentRole c.Body c.Author issue.Author
+            role = CommentRole.User || role = CommentRole.Maintainer)
+
+/// Estimate token count using ~4 characters per token heuristic.
+let estimateTokens (text: string) = text.Length / 4
+
 /// Build a structured conversation string for an AI agent.
-let buildConversation (view: ConversationView) (issue: Issue) =
+/// If a compaction summary is provided, it replaces older comments (before the current cycle).
+let buildConversation (view: ConversationView) (compaction: string option) (issue: Issue) =
     let sb = StringBuilder()
 
     // Issue header — also scan issue body for injection
@@ -204,7 +225,21 @@ let buildConversation (view: ConversationView) (issue: Issue) =
         | ConversationView.Full -> trusted
         | ConversationView.Implementor -> filterForImplementor trusted
 
+    // If compaction is available, show summary + current cycle only
+    let visible =
+        match compaction with
+        | Some _ -> filterForImplementor visible
+        | None -> visible
+
     sb.AppendLine "<conversation>" |> ignore
+
+    match compaction with
+    | Some summary ->
+        sb.AppendLine() |> ignore
+        sb.AppendLine "<compaction-summary>" |> ignore
+        sb.AppendLine summary |> ignore
+        sb.AppendLine "</compaction-summary>" |> ignore
+    | None -> ()
 
     for c in visible do
         let role = detectCommentRole c.Body c.Author issue.Author |> commentRoleTag

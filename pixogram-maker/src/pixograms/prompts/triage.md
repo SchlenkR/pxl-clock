@@ -22,14 +22,17 @@ The two Directors alternate between cycles:
 Visionary → Craftsman → Implementor → Maverick → Craftsman → Implementor → Visionary → ...
 ```
 
-## User comments (role="user")
+## User comments (role="user" / role="maintainer")
 
-When @{{author}} posts a comment (`role="user"`), it counts as creative direction — whether it's a wish ("make it more blue"), a question ("what would it look like with stars?"), or feedback ("the speed is too fast"). In all cases:
+When a user or maintainer posts a comment after the last Implementor result, it ALWAYS takes priority (even if max_iterations is reached). But the **next step depends on the nature of the feedback**:
 
-- Treat the user's comment like a Director has spoken → `CRAFTSMAN`
-- The Craftsman will elaborate the user's wish into a specification
-- Then the Implementor will implement it
-- After this user-driven iteration, the normal Director rotation continues
+| Feedback type | Next step | Why |
+|---|---|---|
+| **Specific technical request** ("make it bluer", "slow down the rotation", "add sparkles") | `CRAFTSMAN` | Clear enough to go straight to a spec |
+| **Vague or open-ended feedback** ("looks boring", "mach du mal", "I don't know what to change", "ganz okay aber irgendwie lame") | `MAVERICK` | Needs creative reinterpretation first |
+| **Strong rejection or request for a new direction** ("completely wrong", "start over", "ganz anderer Ansatz") | `VISIONARY` | Needs a fresh creative vision |
+
+After this user-driven step completes (including the Craftsman → Implementor cycle if needed), the normal Director rotation continues.
 
 ## How to decide the FIRST step
 
@@ -43,7 +46,7 @@ When the conversation has NO pipeline comments (no `director/*`, `craftsman`, or
 Check in this exact order — **earlier rules take priority**:
 
 1. If @{{admin}} says it's finished ("passt", "fertig", "done", "sieht gut aus") → `DONE`
-2. **If a `role="user"` or `role="maintainer"` comment appears after the last `role="implementor"` → `CRAFTSMAN`** (user wishes ALWAYS take priority, even if max_iterations is reached!)
+2. **If a `role="user"` or `role="maintainer"` comment appears after the last `role="implementor"`** → route based on feedback type (see "User comments" section above): `CRAFTSMAN`, `MAVERICK`, or `VISIONARY`. User wishes ALWAYS take priority, even if max_iterations is reached!
 3. If the last pipeline comment is `role="director/*"` (no `craftsman` after it) → `CRAFTSMAN`
 4. If the last pipeline comment is `role="craftsman"` (no `implementor` after it) → `IMPLEMENTOR`
 5. If there are {{max_iterations}} or more `role="implementor"` comments AND no new user comment → `DONE`
@@ -62,8 +65,10 @@ Check in this exact order — **earlier rules take priority**:
 
 ## Examples (user comment)
 
-- 1V, 1M, 2C, 2I, then @{{author}} posts a `role="user"` comment "add some sparkles" → `CRAFTSMAN`
-- After that Craftsman+Implementor run, normal rotation continues with next Director
+- 1V, 1M, 2C, 2I, then @{{author}} says "add some sparkles" → `CRAFTSMAN` (specific request)
+- 1V, 1M, 2C, 2I, then @{{author}} says "ganz okay, mach du mal weiter" → `MAVERICK` (vague, needs creative twist)
+- 1V, 1M, 2C, 2I, then @{{author}} says "ne, komplett anderer Ansatz bitte" → `VISIONARY` (rejection, needs fresh vision)
+- After the user-driven step completes (including Craftsman → Implementor), normal rotation continues
 
 ## Examples (max iterations)
 

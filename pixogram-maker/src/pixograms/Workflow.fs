@@ -122,6 +122,59 @@ let private uploadGif (gifPath: string) (issueNumber: int) : string option =
     Some $"https://github.com/{owner}/{repoName}/releases/download/{tag}/{assetName}"
 
 // ---------------------------------------------------------------------------
+// Compaction
+// ---------------------------------------------------------------------------
+
+let private compactionAssetName = "compaction.md"
+
+let private downloadCompaction (issueNumber: int) : string option =
+    let tag = releaseTag issueNumber
+    let tmpPath = Path.Combine(Path.GetTempPath(), $"compaction-{issueNumber}.md")
+    match runGh [ "release"; "download"; tag; "--pattern"; compactionAssetName; "--dir"; Path.GetDirectoryName tmpPath; "--clobber" ] with
+    | Some _ ->
+        let downloaded = Path.Combine(Path.GetDirectoryName tmpPath, compactionAssetName)
+        if File.Exists downloaded then
+            let content = File.ReadAllText(downloaded).Trim()
+            File.Delete downloaded
+            if content.Length > 0 then
+                printfn $"  ✓ Loaded compaction summary ({content.Length} chars)"
+                Some content
+            else None
+        else None
+    | None -> None
+
+let private uploadCompaction (issueNumber: int) (summary: string) =
+    ensureRelease issueNumber
+    let tag = releaseTag issueNumber
+    let tmpPath = Path.Combine(Path.GetTempPath(), compactionAssetName)
+    File.WriteAllText(tmpPath, summary)
+    printfn $"    Uploading compaction summary to release '{tag}'..."
+    runGh [ "release"; "upload"; tag; tmpPath; "--clobber" ] |> ignore
+    File.Delete tmpPath
+
+let private runCompaction (protocol: ProtocolLog) (fullConversation: string) (issueNumber: int) : string =
+    printfn $"  ▶ Running compaction..."
+    let prompt = renderPrompt "compaction.md" [ "conversation", fullConversation ]
+    match askAI Backends.compaction prompt with
+    | Error err ->
+        printfn $"  ✗ Compaction failed: {err}"
+        log protocol "Compaction" $"FAILED: {err}"
+        ""
+    | Ok summary ->
+        printfn $"  ✓ Compaction done ({summary.Length} chars, ~{estimateTokens summary} tokens)"
+        log protocol "Compaction" summary
+        uploadCompaction issueNumber summary
+        summary
+
+let private needsCompaction (conversationText: string) =
+    let tokens = estimateTokens conversationText
+    let threshold = int (float Backends.contextLengthTokens * Backends.compactionThreshold)
+    let needs = tokens >= threshold
+    if needs then
+        printfn $"  ⚠ Conversation exceeds compaction threshold ({tokens} tokens >= {threshold})"
+    needs
+
+// ---------------------------------------------------------------------------
 // Step execution
 // ---------------------------------------------------------------------------
 
@@ -312,17 +365,41 @@ let run (issue: Issue) =
         let maxIterations = extractIterationCount issue.Body
         printfn $"  Max iterations: {maxIterations}"
 
+        // Load existing compaction from release (if any)
+        let mutable compaction = downloadCompaction issue.Number
+
         let mutable running = true
         while running do
             printfn ""
             printfn "  ─── Fetching issue state... ───"
             let current = fetchIssueWithComments issue
-            let fullConversation = buildConversation ConversationView.Full current
-            let implConversation = buildConversation ConversationView.Implementor current
             let implCount = countImplementorComments current.Comments
             printfn $"  Issue #{current.Number}: {current.Title}"
             printfn $"  Comments: {current.Comments.Length}, Implementor iterations: {implCount}/{maxIterations}"
+
+            // Build full conversation (without compaction) to check size
+            let rawFullConversation = buildConversation ConversationView.Full None current
+            let tokens = estimateTokens rawFullConversation
+            let threshold = int (float Backends.contextLengthTokens * Backends.compactionThreshold)
+            printfn $"  Conversation: ~{tokens} tokens (threshold: {threshold})"
+
+            // Run compaction if needed
+            if needsCompaction rawFullConversation then
+                let summary = runCompaction protocol rawFullConversation current.Number
+                if summary.Length > 0 then
+                    compaction <- Some summary
+                    log protocol "Compaction" $"Compacted to {summary.Length} chars"
+
+            // Build conversations using compaction if available
+            let fullConversation = buildConversation ConversationView.Full compaction current
+            let implConversation = buildConversation ConversationView.Implementor compaction current
             printfn ""
+
+            if implCount >= maxIterations && not (hasUserFeedbackAfterLastImplementor current) then
+                printfn $"  Max iterations reached ({implCount}/{maxIterations}) — stopping."
+                log protocol "Workflow" $"Max iterations reached ({implCount}/{maxIterations})"
+                running <- false
+            else
 
             let action = determineNextAction maxIterations current.Author fullConversation
             log protocol "Triage" $"{action}"
@@ -341,7 +418,6 @@ let run (issue: Issue) =
                         $"\n<comment id=\"0\" author=\"pipeline\" role=\"craftsman\" time=\"{DateTime.UtcNow:O}\">\n" +
                         $"<![CDATA[{craftsmanResponse}]]>\n" +
                         "</comment>\n"
-                    // Insert craftsman comment before </conversation> closing tag
                     let extendedConversation =
                         implConversation.Replace("</conversation>", craftsmanComment + "</conversation>")
                     executeImplementor protocol extendedConversation fullConversation (Some craftsmanResponse) current.Comments current.Number

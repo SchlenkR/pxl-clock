@@ -46,7 +46,7 @@ let doShowConversation (issues: Issue list) =
             match choice with
             | "Implementor" -> ConversationView.Implementor
             | _ -> ConversationView.Full
-        let xml = buildConversation view issue
+        let xml = buildConversation view None issue
         AnsiConsole.WriteLine()
         printfn "%s" xml
         AnsiConsole.WriteLine())
@@ -88,7 +88,7 @@ match args with
     | None -> printfn $"Issue #{n} not found."
     | Some issue ->
         let full = fetchIssueWithComments issue
-        printfn "%s" (buildConversation ConversationView.Full full)
+        printfn "%s" (buildConversation ConversationView.Full None full)
 
 | [| "conversation"; issueNum; "implementor" |] ->
     let n = int issueNum
@@ -97,7 +97,7 @@ match args with
     | None -> printfn $"Issue #{n} not found."
     | Some issue ->
         let full = fetchIssueWithComments issue
-        printfn "%s" (buildConversation ConversationView.Implementor full)
+        printfn "%s" (buildConversation ConversationView.Implementor None full)
 
 | [| "triage-all" |] ->
     printfn $"Scanning for untriaged issues in {owner}/{repoName}..."

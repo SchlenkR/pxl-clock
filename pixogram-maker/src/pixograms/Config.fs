@@ -78,6 +78,9 @@ module Backends =
     let mutable craftsman = Anthropic AnthropicModels.sonnet46
     let mutable directorMaverick = Anthropic AnthropicModels.sonnet46
     let mutable implementor = Anthropic AnthropicModels.sonnet46
+    let mutable compaction = Anthropic AnthropicModels.sonnet46
+    let mutable contextLengthTokens = 50_000
+    let mutable compactionThreshold = 0.8
 
 type ConfigSet =
     {
@@ -88,28 +91,37 @@ type ConfigSet =
         Craftsman: SelectedBackend
         DirectorMaverick: SelectedBackend
         Implementor: SelectedBackend
+        Compaction: SelectedBackend
+        ContextLengthTokens: int
+        CompactionThreshold: float
     }
 
 let configSets =
     [
         {
-            Name = "Claude (Anthropic API)"
+            Name = "Claude-Sonnet-46"
             SafetyCheck = Anthropic AnthropicModels.sonnet46
             Triage = Anthropic AnthropicModels.sonnet46
             DirectorVisionary = Anthropic AnthropicModels.sonnet46
             Craftsman = Anthropic AnthropicModels.sonnet46
             DirectorMaverick = Anthropic AnthropicModels.sonnet46
             Implementor = Anthropic AnthropicModels.sonnet46
+            Compaction = Anthropic AnthropicModels.haiku45
+            ContextLengthTokens = 180_000
+            CompactionThreshold = 0.8
         }
 
         {
-            Name = "Copilot (GPT 5.4)"
+            Name = "Copilot-GPT-5.4"
             SafetyCheck = Copilot(CopilotModels.gpt54, Medium)
             Triage = Copilot(CopilotModels.gpt54, Medium)
             DirectorVisionary = Copilot(CopilotModels.gpt54, Medium)
             Craftsman = Copilot(CopilotModels.gpt54, Medium)
             DirectorMaverick = Copilot(CopilotModels.gpt54, Medium)
             Implementor = Copilot(CopilotModels.gpt54, Medium)
+            Compaction = Copilot(CopilotModels.gpt54Mini, Low)
+            ContextLengthTokens = 120_000
+            CompactionThreshold = 0.8
         }
     ]
 
@@ -120,6 +132,9 @@ let applyConfigSet (cs: ConfigSet) =
     Backends.craftsman <- cs.Craftsman
     Backends.directorMaverick <- cs.DirectorMaverick
     Backends.implementor <- cs.Implementor
+    Backends.compaction <- cs.Compaction
+    Backends.contextLengthTokens <- cs.ContextLengthTokens
+    Backends.compactionThreshold <- cs.CompactionThreshold
     printfn $"  Config: {cs.Name}"
 
 let applyConfigSetFromEnv () =
