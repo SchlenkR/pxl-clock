@@ -17,7 +17,7 @@ type CommentRole =
     | Maverick
     | Craftsman
     | Implementor
-    | Admin
+    | Maintainer
     | User
 
 let commentRoleTag = function
@@ -25,7 +25,7 @@ let commentRoleTag = function
     | CommentRole.Maverick -> "director/maverick"
     | CommentRole.Craftsman -> "craftsman"
     | CommentRole.Implementor -> "implementor"
-    | CommentRole.Admin -> "admin"
+    | CommentRole.Maintainer -> "maintainer"
     | CommentRole.User -> "user"
 
 let detectCommentRole (body: string) (author: string) (issueAuthor: string) =
@@ -33,7 +33,7 @@ let detectCommentRole (body: string) (author: string) (issueAuthor: string) =
     elif body.Contains("**[Director/Maverick]**") then CommentRole.Maverick
     elif body.Contains("**[Craftsman]**") then CommentRole.Craftsman
     elif body.Contains("**[Implementor]**") then CommentRole.Implementor
-    elif isMaintainer author then CommentRole.Admin
+    elif isMaintainer author then CommentRole.Maintainer
     elif String.Equals(author, issueAuthor, StringComparison.OrdinalIgnoreCase) then CommentRole.User
     else CommentRole.User // fallback for trusted authors that aren't maintainers
 
@@ -106,10 +106,9 @@ let detectInjection (text: string) : InjectionMatch list =
 // Trust model
 // ---------------------------------------------------------------------------
 
-let isTrustedAuthor (issueAuthor: string) (commentAuthor: string) =
-    isMaintainer commentAuthor
+let isTrustedCommentAuthor (issueAuthor: string) (commentAuthor: string) =
+    isTrustedAuthor commentAuthor
     || String.Equals(commentAuthor, issueAuthor, StringComparison.OrdinalIgnoreCase)
-    || (try String.Equals(commentAuthor, authenticatedUser.Value, StringComparison.OrdinalIgnoreCase) with _ -> false)
 
 // ---------------------------------------------------------------------------
 // Conversation views
@@ -193,7 +192,7 @@ let buildConversation (view: ConversationView) (issue: Issue) =
     // Split trusted / untrusted
     let trusted, untrusted =
         issue.Comments
-        |> List.partition (fun c -> isTrustedAuthor issue.Author c.Author)
+        |> List.partition (fun c -> isTrustedCommentAuthor issue.Author c.Author)
 
     // Scan untrusted for injection (for reporting)
     let untrustedInjectionCount =

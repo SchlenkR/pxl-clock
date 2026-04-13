@@ -43,7 +43,7 @@ When the conversation has NO pipeline comments (no `director/*`, `craftsman`, or
 Check in this exact order — **earlier rules take priority**:
 
 1. If @{{admin}} says it's finished ("passt", "fertig", "done", "sieht gut aus") → `DONE`
-2. **If a `role="user"` or `role="admin"` comment appears after the last `role="implementor"` → `CRAFTSMAN`** (user wishes ALWAYS take priority, even if max_iterations is reached!)
+2. **If a `role="user"` or `role="maintainer"` comment appears after the last `role="implementor"` → `CRAFTSMAN`** (user wishes ALWAYS take priority, even if max_iterations is reached!)
 3. If the last pipeline comment is `role="director/*"` (no `craftsman` after it) → `CRAFTSMAN`
 4. If the last pipeline comment is `role="craftsman"` (no `implementor` after it) → `IMPLEMENTOR`
 5. If there are {{max_iterations}} or more `role="implementor"` comments AND no new user comment → `DONE`

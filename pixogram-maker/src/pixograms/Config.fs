@@ -26,6 +26,13 @@ let maintainers =
 let isMaintainer (user: string) =
     maintainers |> List.exists (fun m -> String.Equals(m, user, StringComparison.OrdinalIgnoreCase))
 
+let trustedAuthors =
+    (envRequired "TRUSTED_AUTHORS").Split([| ','; ';'; ' ' |], StringSplitOptions.RemoveEmptyEntries)
+    |> Array.toList
+
+let isTrustedAuthor (user: string) =
+    trustedAuthors |> List.exists (fun m -> String.Equals(m, user, StringComparison.OrdinalIgnoreCase))
+
 let defaultIterations = envRequiredInt "DEFAULT_ITERATIONS"
 let maxImplementorRetries = envRequiredInt "MAX_IMPLEMENTOR_RETRIES"
 let aiTimeoutMs = envRequiredInt "AI_TIMEOUT_MS"

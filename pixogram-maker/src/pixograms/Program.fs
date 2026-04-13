@@ -2,6 +2,7 @@ open System
 open Spectre.Console
 open PixogramRequests.GitHub
 open PixogramRequests.Config
+open PixogramRequests.Conversation
 
 AiBase.DotEnv.load()
 
@@ -34,6 +35,22 @@ let doTriage (issues: Issue list) =
 let doWorkflow (issues: Issue list) =
     withIssue issues PixogramRequests.Workflow.run
 
+let doShowConversation (issues: Issue list) =
+    withIssue issues (fun issue ->
+        let viewPrompt =
+            SelectionPrompt<string>()
+                .Title("Select conversation view:")
+                .AddChoices([ "Full"; "Implementor" ])
+        let choice = AnsiConsole.Prompt viewPrompt
+        let view =
+            match choice with
+            | "Implementor" -> ConversationView.Implementor
+            | _ -> ConversationView.Full
+        let xml = buildConversation view issue
+        AnsiConsole.WriteLine()
+        printfn "%s" xml
+        AnsiConsole.WriteLine())
+
 // ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
@@ -62,6 +79,25 @@ match args with
     | Some issue ->
         let full = fetchIssueWithComments issue
         PixogramRequests.Workflow.triageOnly full
+
+| [| "conversation"; issueNum |]
+| [| "conversation"; issueNum; "full" |] ->
+    let n = int issueNum
+    let issues = listEligibleIssues ()
+    match issues |> List.tryFind (fun i -> i.Number = n) with
+    | None -> printfn $"Issue #{n} not found."
+    | Some issue ->
+        let full = fetchIssueWithComments issue
+        printfn "%s" (buildConversation ConversationView.Full full)
+
+| [| "conversation"; issueNum; "implementor" |] ->
+    let n = int issueNum
+    let issues = listEligibleIssues ()
+    match issues |> List.tryFind (fun i -> i.Number = n) with
+    | None -> printfn $"Issue #{n} not found."
+    | Some issue ->
+        let full = fetchIssueWithComments issue
+        printfn "%s" (buildConversation ConversationView.Implementor full)
 
 | [| "triage-all" |] ->
     printfn $"Scanning for untriaged issues in {owner}/{repoName}..."
@@ -115,11 +151,12 @@ match args with
             let prompt =
                 SelectionPrompt<string>()
                     .Title("What do you want to do?")
-                    .AddChoices([ "Triage"; "Run Workflow"; "[grey]Exit[/]" ])
+                    .AddChoices([ "Triage"; "Run Workflow"; "Show Conversation"; "[grey]Exit[/]" ])
             let choice = AnsiConsole.Prompt prompt
 
             match choice with
             | c when c.Contains "Exit" -> running <- false
             | "Triage" -> doTriage issues
             | "Run Workflow" -> doWorkflow issues
+            | "Show Conversation" -> doShowConversation issues
             | _ -> ()
