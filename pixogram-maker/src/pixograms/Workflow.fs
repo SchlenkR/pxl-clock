@@ -301,16 +301,20 @@ let private runSafetyGate (protocol: ProtocolLog) (issue: Issue) : bool =
     else
         printfn $"  Running safety check for issue #{issue.Number}..."
         match runSafetyCheck issue with
-        | Passed ->
+        | SafetyResult.Passed ->
             printfn $"  ✓ Safety check passed."
             log protocol "Safety" "PASSED"
             addLabel issue.Number labelTriagePassed
             addLabel issue.Number labelPixogramIdea
             true
-        | Failed reason ->
+        | SafetyResult.Failed reason ->
             printfn $"  ✗ Safety check failed: {reason}"
             log protocol "Safety" $"FAILED: {reason}"
             addLabel issue.Number labelIgnore
+            false
+        | SafetyResult.Error reason ->
+            printfn $"  ✗ Safety check error (not marking issue): {reason}"
+            log protocol "Safety" $"ERROR: {reason}"
             false
 
 let triageOnly (issue: Issue) =

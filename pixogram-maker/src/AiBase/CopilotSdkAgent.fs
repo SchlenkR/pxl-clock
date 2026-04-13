@@ -106,7 +106,9 @@ type CopilotSdkAgent(config: CopilotSdkConfig) =
                         onEvent (ToolResult "completed")
 
                     | :? SessionErrorEvent as e ->
-                        let msg = if isNull e.Data then "Unknown error" else e.Data.ToString()
+                        let msg =
+                            if isNull e.Data then "Unknown error"
+                            else $"{e.Data.ErrorType}: {e.Data.Message} (HTTP {e.Data.StatusCode})"
                         log $"ERROR: {msg}"
                         onEvent (Error msg)
                         tcs.TrySetException(exn msg) |> ignore

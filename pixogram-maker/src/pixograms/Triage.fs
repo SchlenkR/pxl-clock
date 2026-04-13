@@ -63,9 +63,11 @@ let labelApproved = "pixogram-approved"
 let labelPixogramIdea = "pixogram-idea"
 let labelIgnore = "pixogram-ignore"
 
+[<RequireQualifiedAccess>]
 type SafetyResult =
     | Passed
     | Failed of reason: string
+    | Error of reason: string
 
 let runSafetyCheck (issue: GitHub.Issue) : SafetyResult =
     printfn "  Safety check..."
@@ -75,19 +77,19 @@ let runSafetyCheck (issue: GitHub.Issue) : SafetyResult =
               "author", issue.Author
               "body", issue.Body ]
     match askAI Backends.safetyCheck prompt with
-    | Error err ->
-        printfn $"  ✗ Safety check failed: {err}"
-        Failed $"AI error: {err}"
+    | Result.Error err ->
+        printfn $"  ✗ Safety check AI error: {err}"
+        SafetyResult.Error $"AI error: {err}"
     | Ok response ->
         match findLastLineMatching "TRIAGE-" response with
         | Some line ->
             printfn $"  → {line}"
-            if line.StartsWith "TRIAGE-PASSED" then Passed
-            elif line.StartsWith "TRIAGE-FAILED" then Failed (line.Replace("TRIAGE-FAILED:", "").Trim())
-            else Failed $"Unexpected response: {line}"
+            if line.StartsWith "TRIAGE-PASSED" then SafetyResult.Passed
+            elif line.StartsWith "TRIAGE-FAILED" then SafetyResult.Failed (line.Replace("TRIAGE-FAILED:", "").Trim())
+            else SafetyResult.Failed $"Unexpected response: {line}"
         | None ->
             printfn $"  ✗ No TRIAGE- line found in response"
-            Failed "Could not parse safety check response"
+            SafetyResult.Failed "Could not parse safety check response"
 
 let extractIterationCount (issueBody: string) =
     let prompt = renderPrompt "iteration-count.md" [ "default_iterations", string defaultIterations; "description", issueBody ]
