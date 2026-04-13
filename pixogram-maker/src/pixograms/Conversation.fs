@@ -194,6 +194,14 @@ let hasUserFeedbackAfterLastImplementor (issue: Issue) =
             let role = detectCommentRole c.Body c.Author issue.Author
             role = CommentRole.User || role = CommentRole.Maintainer)
 
+/// Detect the role of the last comment in the conversation.
+/// Returns None if there are no comments.
+let lastCommentRole (issue: Issue) : CommentRole option =
+    issue.Comments
+    |> List.filter (fun c -> isTrustedCommentAuthor c.Author issue.Author)
+    |> List.tryLast
+    |> Option.map (fun c -> detectCommentRole c.Body c.Author issue.Author)
+
 /// Estimate token count using ~4 characters per token heuristic.
 let estimateTokens (text: string) = text.Length / 4
 

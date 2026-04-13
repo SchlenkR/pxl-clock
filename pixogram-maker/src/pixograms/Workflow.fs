@@ -412,8 +412,30 @@ let run (issue: Issue) =
                 running <- false
             else
 
-            let action = determineNextAction maxIterations current.Author fullConversation
-            log protocol "Triage" $"{action}"
+            // Deterministic routing: if the last comment is a Director or Craftsman,
+            // the next step is always known — no need to ask Triage (and risk misrouting).
+            // Triage is only needed for genuine decision points:
+            //   - After Implementor (which Director next? DONE?)
+            //   - After user feedback on Implementor (what kind of feedback?)
+            //   - First step (no pipeline comments yet)
+            let lastRole = lastCommentRole current
+            let action =
+                match lastRole with
+                | Some CommentRole.Visionary | Some CommentRole.Maverick ->
+                    // Director posted → always Craftsman next (deterministic)
+                    printfn $"  [deterministic] Last comment is Director → CRAFTSMAN"
+                    log protocol "Routing" "Deterministic: Director → CRAFTSMAN"
+                    RunCraftsman
+                | Some CommentRole.Craftsman ->
+                    // Craftsman posted → always Implementor next (deterministic)
+                    printfn $"  [deterministic] Last comment is Craftsman → IMPLEMENTOR"
+                    log protocol "Routing" "Deterministic: Craftsman → IMPLEMENTOR"
+                    RunImplementor
+                | _ ->
+                    // Genuine decision point → ask Triage AI
+                    let triageAction = determineNextAction maxIterations current.Author fullConversation
+                    log protocol "Triage" $"{triageAction}"
+                    triageAction
             printfn ""
 
             match action with
