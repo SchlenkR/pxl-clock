@@ -186,6 +186,11 @@ match args with
             let full = fetchIssueWithComments issue
             PixogramRequests.Workflow.triageOnly config full
 
+| [| "dispatch-and-run" |] ->
+    let config = configFromEnv ()
+    printfn $"Dispatching issues in {owner}/{repoName}..."
+    PixogramRequests.Workflow.dispatchAndRun config
+
 | [| "workflow-all" |] ->
     let config = configFromEnv ()
     printfn $"Scanning for open issues in {owner}/{repoName}..."

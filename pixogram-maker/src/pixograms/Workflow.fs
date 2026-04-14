@@ -512,3 +512,14 @@ let run (config: PipelineConfig) (issue: Issue) =
         let endTime = DateTime.Now.ToString "O"
         protocol.Writer.WriteLine $"# Ended: {endTime}"
         protocol.Writer.Dispose()
+
+/// Dispatch + run: find issues needing attention and run workflow on each.
+let dispatchAndRun (config: PipelineConfig) =
+    let issues = dispatch config
+    if issues.IsEmpty then
+        printfn "No issues need attention."
+    else
+        printfn $"\n{issues.Length} issue(s) need attention, running workflows..."
+        for issue in issues do
+            printfn $"\n  === #{issue.Number}: {issue.Title} ==="
+            run config issue
