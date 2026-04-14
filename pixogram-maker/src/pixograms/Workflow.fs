@@ -482,7 +482,7 @@ let run (config: PipelineConfig) (issue: Issue) =
 
             // Build conversations using compaction if available
             let fullConversation = buildConversation config ConversationView.Full compaction current
-            let implConversation = buildConversation config ConversationView.Implementor compaction current
+            let implConversation = fullConversation // Implementor gets full context for better cache hits
             printfn ""
 
             if implCount >= maxIterations && not (hasUserFeedbackAfterLastImplementor config current) then
