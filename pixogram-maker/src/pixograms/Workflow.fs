@@ -565,13 +565,34 @@ let run (config: PipelineConfig) (issue: Issue) =
         protocol.Writer.WriteLine $"# Ended: {endTime}"
         protocol.Writer.Dispose()
 
+/// Check if another pixogram workflow run is already queued (waiting).
+/// Returns true if we should skip this run to avoid queue buildup.
+let private isAnotherRunQueued () : bool =
+    // List pending/queued runs of our workflow, exclude the current one
+    let currentRunId = Environment.GetEnvironmentVariable "GITHUB_RUN_ID"
+    match runGh [ "run"; "list"; "--workflow"; "pixogram-workflow.yml"; "--status"; "queued"; "--json"; "databaseId" ] with
+    | Some output ->
+        let queuedIds =
+            output.Split([| '{'; '}'; ','; ':'; '"'; ' '; '\n'; '\r' |], StringSplitOptions.RemoveEmptyEntries)
+            |> Array.filter (fun s -> s <> "databaseId" && s <> "[" && s <> "]")
+            |> Array.filter (fun s -> match currentRunId with null | "" -> true | id -> s <> id)
+        if queuedIds.Length > 0 then
+            printfn $"  Another run is already queued ({queuedIds.Length} waiting) — skipping this run."
+            true
+        else
+            false
+    | None -> false
+
 /// Dispatch + run: find issues needing attention and run workflow on each.
 let dispatchAndRun (config: PipelineConfig) =
-    let issues = dispatch config
-    if issues.IsEmpty then
-        printfn "No issues need attention."
+    if isAnotherRunQueued () then
+        printfn "Exiting to avoid queue buildup."
     else
-        printfn $"\n{issues.Length} issue(s) need attention, running workflows..."
-        for issue in issues do
-            printfn $"\n  === #{issue.Number}: {issue.Title} ==="
-            run config issue
+        let issues = dispatch config
+        if issues.IsEmpty then
+            printfn "No issues need attention."
+        else
+            printfn $"\n{issues.Length} issue(s) need attention, running workflows..."
+            for issue in issues do
+                printfn $"\n  === #{issue.Number}: {issue.Title} ==="
+                run config issue
