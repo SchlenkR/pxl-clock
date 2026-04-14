@@ -438,9 +438,9 @@ let needsAttention (config: PipelineConfig) (issue: Issue) : bool =
         // No pipeline comments at all → first run needed
         | None ->
             true
-        // Last was user/maintainer but not after implementor → already handled above
+        // Last was user/maintainer → needs attention if no implementor has run yet
         | _ ->
-            false
+            countImplementorComments issue.Comments = 0
 
 /// Scan all eligible issues and return those that need a workflow run.
 let dispatch (config: PipelineConfig) : Issue list =
