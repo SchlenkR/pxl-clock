@@ -126,7 +126,7 @@ let private commitToIssueBranch (issueNumber: int) (iteration: int) (csPath: str
     let targetCs = "pixogram.cs"
     let targetGif = "preview.gif"
 
-    printfn $"    Committing iteration #{iteration} to branch '{branch}'..."
+    printfn $"    Committing iteration {iteration} to branch '{branch}'..."
 
     // Use a temporary worktree to avoid switching the main checkout
     let worktreePath = Path.Combine(Path.GetTempPath(), $"pixogram-wt-{issueNumber}")
@@ -325,18 +325,23 @@ let private executeImplementor (config: PipelineConfig) (protocol: ProtocolLog) 
                     $"{ct}\n\n</details>"
                 | None -> ""
             let branch = issueBranch issueNumber
-            let codespaceBadge =
-                $"\n\n[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/{owner}/{repoName}/tree/{branch}?quickstart=1)"
+            let branchUrl = $"https://github.com/{owner}/{repoName}/tree/{branch}"
+            let vscodeUrl = $"https://vscode.dev/github/{owner}/{repoName}/tree/{branch}"
+            let codespacesUrl = $"https://codespaces.new/{owner}/{repoName}/tree/{branch}?quickstart=1"
+            let openLinks =
+                $"\n\n[`{branch}`]({branchUrl}) · " +
+                $"[Open in VS Code]({vscodeUrl}) · " +
+                $"[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)]({codespacesUrl})"
             let comment =
-                $"{roleTag Role.Implementor} — Iteration #{iterationNumber}" +
+                $"{roleTag Role.Implementor} — Iteration {iterationNumber}" +
                 summaryLine +
                 gifMarkdown +
-                codespaceBadge +
+                openLinks +
                 craftsmanBlock +
                 $"\n\n<details>\n<summary>Code anzeigen</summary>\n\n" +
                 $"```csharp\n{code}\n```\n\n</details>"
             postComment issueNumber comment
-            printfn $"  ✓ Implementor posted — iteration #{iterationNumber} (attempt {attempt})."
+            printfn $"  ✓ Implementor posted — iteration {iterationNumber} (attempt {attempt})."
             success <- true
 
         | Error err ->
