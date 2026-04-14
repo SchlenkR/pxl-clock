@@ -1,6 +1,12 @@
 name: Pixogram Workflow
 
 on:
+  issues:
+    types: [opened]
+  issue_comment:
+    types: [created]
+  push:
+    branches: [main]
   workflow_dispatch:
     inputs:
       issue_number:
@@ -14,6 +20,12 @@ permissions:
 
 jobs:
   run:
+    # Skip bot comments (github-actions posts pipeline results → would cause infinite loop)
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'push' ||
+      (github.event_name == 'issues' && github.event.action == 'opened') ||
+      (github.event_name == 'issue_comment' && github.event.comment.user.login != 'github-actions[bot]')
     runs-on: ubuntu-latest
     timeout-minutes: 30
     concurrency:
@@ -79,7 +91,7 @@ jobs:
           GIF_SCALE: ${{ vars.GIF_SCALE }}
           CONFIG_SET: ${{ vars.CONFIG_SET }}
         run: |
-          ISSUE="${{ github.event.inputs.issue_number }}"
+          ISSUE="${{ github.event.issue.number || github.event.inputs.issue_number }}"
           if [ -n "$ISSUE" ]; then
             dotnet run --project pixogram-maker/src/pixograms --no-build -- workflow "$ISSUE"
           else
