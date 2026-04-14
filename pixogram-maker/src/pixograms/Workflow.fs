@@ -13,8 +13,6 @@ open PixogramRequests.Triage
 // Helpers
 // ---------------------------------------------------------------------------
 
-let private ghRepo = $"{owner}/{repoName}"
-
 let private runProcess cmd (args: string list) (env: (string * string) list) =
     let psi = ProcessStartInfo(cmd)
     for a in args do psi.ArgumentList.Add a
@@ -39,8 +37,6 @@ let private ghEnv =
     | null | "" -> []
     | pat -> [ "GH_TOKEN", pat ]
 
-let private runGh (args: string list) =
-    runProcess "gh" (args @ [ "--repo"; ghRepo ]) ghEnv
 
 // ---------------------------------------------------------------------------
 // Protocol logging
@@ -159,6 +155,10 @@ let private commitToIssueBranch (issueNumber: int) (iteration: int) (csPath: str
         File.Copy(csPath, Path.Combine(worktreePath, targetCs), overwrite = true)
         File.Copy(gifPath, Path.Combine(worktreePath, targetGif), overwrite = true)
 
+        // Configure git identity (not set by default in GitHub Actions)
+        requireProcess "git config user.email" "git" [ "-C"; worktreePath; "config"; "user.email"; "github-actions[bot]@users.noreply.github.com" ] [] |> ignore
+        requireProcess "git config user.name" "git" [ "-C"; worktreePath; "config"; "user.name"; "github-actions[bot]" ] [] |> ignore
+
         // Commit and push from worktree — each step must succeed
         requireProcess "git add" "git" [ "-C"; worktreePath; "add"; targetCs; targetGif ] [] |> ignore
         requireProcess "git commit" "git" [ "-C"; worktreePath; "commit"; "-m"; $"Iteration #{iteration}" ] [] |> ignore
@@ -181,7 +181,7 @@ let private compactionFileName = "compaction.md"
 let private downloadCompaction (issueNumber: int) : string option =
     let branch = issueBranch issueNumber
     // Try to read compaction.md from the issue branch via GitHub API
-    match runGh [ "api"; $"repos/{owner}/{repoName}/contents/{compactionFileName}"; "--jq"; ".content"; "-H"; "Accept: application/vnd.github.v3+json"; "--method"; "GET"; "-f"; $"ref={branch}" ] with
+    match runProcess "gh" [ "api"; $"repos/{owner}/{repoName}/contents/{compactionFileName}"; "--jq"; ".content"; "-H"; "Accept: application/vnd.github.v3+json"; "--method"; "GET"; "-f"; $"ref={branch}" ] ghEnv with
     | Some base64Content ->
         try
             let content = System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(base64Content.Replace("\n", "")))
@@ -206,6 +206,8 @@ let private uploadCompaction (issueNumber: int) (summary: string) =
                 runGit [ "worktree"; "remove"; worktreePath; "--force" ] |> ignore
             requireGit "fetch branch" [ "fetch"; "origin"; branch ] |> ignore
             requireGit "add worktree" [ "worktree"; "add"; worktreePath; branch ] |> ignore
+            requireProcess "git config user.email" "git" [ "-C"; worktreePath; "config"; "user.email"; "github-actions[bot]@users.noreply.github.com" ] [] |> ignore
+            requireProcess "git config user.name" "git" [ "-C"; worktreePath; "config"; "user.name"; "github-actions[bot]" ] [] |> ignore
             File.WriteAllText(Path.Combine(worktreePath, compactionFileName), summary)
             requireProcess "git add" "git" [ "-C"; worktreePath; "add"; compactionFileName ] [] |> ignore
             requireProcess "git commit" "git" [ "-C"; worktreePath; "commit"; "-m"; "Update compaction summary" ] [] |> ignore
