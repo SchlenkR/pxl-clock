@@ -99,54 +99,89 @@ let private renderPixogram (config: PipelineConfig) (csPath: string) (gifPath: s
     with ex ->
         Error ex.Message
 
-let private releaseTag (issueNumber: int) = $"pixogram-issue-{issueNumber}"
-
-let private ensureRelease (issueNumber: int) =
-    let tag = releaseTag issueNumber
-    match runGh [ "release"; "view"; tag ] with
-    | Some _ -> ()
-    | None ->
-        printfn $"    Creating release '{tag}'..."
-        runGh [ "release"; "create"; tag; "--title"; $"Pixogram Issue #{issueNumber}"; "--notes"; $"Rendered GIFs for issue #{issueNumber}"; "--latest=false" ] |> ignore
-
-let private uploadGif (gifPath: string) (issueNumber: int) : string option =
-    ensureRelease issueNumber
-    let tag = releaseTag issueNumber
-    let assetName = Path.GetFileName gifPath
-    printfn $"    Uploading {assetName} to release '{tag}'..."
-    runGh [ "release"; "upload"; tag; gifPath; "--clobber" ] |> ignore
-    Some $"https://github.com/{owner}/{repoName}/releases/download/{tag}/{assetName}"
-
 // ---------------------------------------------------------------------------
-// Compaction
+// Branch-based artifact storage (one branch per issue)
 // ---------------------------------------------------------------------------
 
-let private compactionAssetName = "compaction.md"
+let private issueBranch (issueNumber: int) = $"pixogram/issue-{issueNumber}"
+
+let private runGit (args: string list) =
+    runProcess "git" args []
+
+let private commitToIssueBranch (issueNumber: int) (iteration: int) (csPath: string) (gifPath: string) : string =
+    let branch = issueBranch issueNumber
+    let repoUrl = $"https://github.com/{owner}/{repoName}"
+
+    // Stash current state, work on issue branch
+    printfn $"    Committing iteration #{iteration} to branch '{branch}'..."
+
+    // Create orphan branch or switch to existing
+    let branchExists =
+        runGit [ "ls-remote"; "--heads"; "origin"; branch ]
+        |> Option.map (fun s -> s.Length > 0)
+        |> Option.defaultValue false
+
+    if branchExists then
+        runGit [ "fetch"; "origin"; branch ] |> ignore
+        runGit [ "checkout"; branch ] |> ignore
+    else
+        runGit [ "checkout"; "--orphan"; branch ] |> ignore
+        runGit [ "rm"; "-rf"; "." ] |> ignore
+
+    // Copy files to repo root
+    let targetCs = "pixogram.cs"
+    let targetGif = "preview.gif"
+    File.Copy(csPath, targetCs, overwrite = true)
+    File.Copy(gifPath, targetGif, overwrite = true)
+
+    // Commit and push
+    runGit [ "add"; targetCs; targetGif ] |> ignore
+    runGit [ "commit"; "-m"; $"Iteration #{iteration}" ] |> ignore
+    runGit [ "push"; "-u"; "origin"; branch ] |> ignore
+
+    // Switch back to previous branch
+    runGit [ "checkout"; "-" ] |> ignore
+
+    let gifUrl = $"{repoUrl}/blob/{branch}/{targetGif}?raw=true"
+    printfn $"    ✓ Committed to {branch}, GIF: {gifUrl}"
+    gifUrl
+
+// ---------------------------------------------------------------------------
+// Compaction (stored on issue branch)
+// ---------------------------------------------------------------------------
+
+let private compactionFileName = "compaction.md"
 
 let private downloadCompaction (issueNumber: int) : string option =
-    let tag = releaseTag issueNumber
-    let tmpPath = Path.Combine(Path.GetTempPath(), $"compaction-{issueNumber}.md")
-    match runGh [ "release"; "download"; tag; "--pattern"; compactionAssetName; "--dir"; Path.GetDirectoryName tmpPath; "--clobber" ] with
-    | Some _ ->
-        let downloaded = Path.Combine(Path.GetDirectoryName tmpPath, compactionAssetName)
-        if File.Exists downloaded then
-            let content = File.ReadAllText(downloaded).Trim()
-            File.Delete downloaded
+    let branch = issueBranch issueNumber
+    // Try to read compaction.md from the issue branch via GitHub API
+    match runGh [ "api"; $"repos/{owner}/{repoName}/contents/{compactionFileName}"; "--jq"; ".content"; "-H"; "Accept: application/vnd.github.v3+json"; "--method"; "GET"; "-f"; $"ref={branch}" ] with
+    | Some base64Content ->
+        try
+            let content = System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(base64Content.Replace("\n", "")))
             if content.Length > 0 then
                 printfn $"  ✓ Loaded compaction summary ({content.Length} chars)"
                 Some content
             else None
-        else None
+        with _ -> None
     | None -> None
 
 let private uploadCompaction (issueNumber: int) (summary: string) =
-    ensureRelease issueNumber
-    let tag = releaseTag issueNumber
-    let tmpPath = Path.Combine(Path.GetTempPath(), compactionAssetName)
-    File.WriteAllText(tmpPath, summary)
-    printfn $"    Uploading compaction summary to release '{tag}'..."
-    runGh [ "release"; "upload"; tag; tmpPath; "--clobber" ] |> ignore
-    File.Delete tmpPath
+    let branch = issueBranch issueNumber
+    let branchExists =
+        runGit [ "ls-remote"; "--heads"; "origin"; branch ]
+        |> Option.map (fun s -> s.Length > 0)
+        |> Option.defaultValue false
+
+    if branchExists then
+        runGit [ "fetch"; "origin"; branch ] |> ignore
+        runGit [ "checkout"; branch ] |> ignore
+        File.WriteAllText(compactionFileName, summary)
+        runGit [ "add"; compactionFileName ] |> ignore
+        runGit [ "commit"; "-m"; "Update compaction summary" ] |> ignore
+        runGit [ "push"; "origin"; branch ] |> ignore
+        runGit [ "checkout"; "-" ] |> ignore
+        printfn $"    ✓ Compaction summary committed to {branch}"
 
 let private runCompaction (config: PipelineConfig) (protocol: ProtocolLog) (fullConversation: string) (issueNumber: int) : string =
     printfn $"  ▶ Running compaction..."
@@ -245,11 +280,8 @@ let private executeImplementor (config: PipelineConfig) (protocol: ProtocolLog) 
         | Ok _ ->
             printfn $"    Render OK"
             log protocol "Render" $"OK: {gifPath}"
-            let gifUrl = uploadGif gifPath issueNumber
-            let gifMarkdown =
-                gifUrl
-                |> Option.map (fun url -> $"\n\n![preview]({url})")
-                |> Option.defaultValue ""
+            let gifUrl = commitToIssueBranch issueNumber iterationNumber csPath gifPath
+            let gifMarkdown = $"\n\n![preview]({gifUrl})"
             let summary = generateSummary config fullConversation
             let summaryLine = if summary <> "" then $"\n\n{summary}" else ""
             let craftsmanBlock =
@@ -258,8 +290,9 @@ let private executeImplementor (config: PipelineConfig) (protocol: ProtocolLog) 
                     $"\n\n<details>\n<summary>Craftsman Specification</summary>\n\n" +
                     $"{ct}\n\n</details>"
                 | None -> ""
+            let branch = issueBranch issueNumber
             let codespaceBadge =
-                $"\n\n[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/{owner}/{repoName}?quickstart=1)"
+                $"\n\n[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/{owner}/{repoName}/tree/{branch}?quickstart=1)"
             let comment =
                 $"{roleTag Role.Implementor} — Iteration #{iterationNumber}" +
                 summaryLine +
