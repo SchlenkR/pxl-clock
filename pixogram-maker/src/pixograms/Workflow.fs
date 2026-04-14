@@ -24,9 +24,15 @@ let private runProcess cmd (args: string list) (env: (string * string) list) =
     psi.UseShellExecute <- false
     psi.CreateNoWindow <- true
     use p = Process.Start psi
-    let output = p.StandardOutput.ReadToEnd().Trim()
+    let stdout = p.StandardOutput.ReadToEnd().Trim()
+    let stderr = p.StandardError.ReadToEnd().Trim()
     p.WaitForExit 30_000 |> ignore
-    if p.ExitCode = 0 then Some output else None
+    if p.ExitCode = 0 then Some stdout
+    else
+        let cmdLine = $"{cmd} {String.Join(' ', args)}"
+        printfn $"    ⚠ Process failed (exit {p.ExitCode}): {cmdLine}"
+        if stderr.Length > 0 then printfn $"      stderr: {stderr}"
+        None
 
 let private ghEnv =
     match Environment.GetEnvironmentVariable "GITHUB_REPO_PAT" with
@@ -108,6 +114,16 @@ let private issueBranch (issueNumber: int) = $"pixogram/issue-{issueNumber}"
 let private runGit (args: string list) =
     runProcess "git" args []
 
+let private requireGit (label: string) (args: string list) =
+    match runGit args with
+    | Some output -> output
+    | None -> failwith $"Git command failed: {label} — git {String.Join(' ', args)}"
+
+let private requireProcess (label: string) cmd (args: string list) (env: (string * string) list) =
+    match runProcess cmd args env with
+    | Some output -> output
+    | None -> failwith $"Process failed: {label} — {cmd} {String.Join(' ', args)}"
+
 let private commitToIssueBranch (issueNumber: int) (iteration: int) (csPath: string) (gifPath: string) : string =
     let branch = issueBranch issueNumber
     let repoUrl = $"https://github.com/{owner}/{repoName}"
@@ -130,10 +146,10 @@ let private commitToIssueBranch (issueNumber: int) (iteration: int) (csPath: str
             |> Option.defaultValue false
 
         if branchExists then
-            runGit [ "fetch"; "origin"; branch ] |> ignore
-            runGit [ "worktree"; "add"; worktreePath; branch ] |> ignore
+            requireGit "fetch branch" [ "fetch"; "origin"; branch ] |> ignore
+            requireGit "add worktree" [ "worktree"; "add"; worktreePath; branch ] |> ignore
         else
-            runGit [ "worktree"; "add"; "--orphan"; worktreePath; "-b"; branch ] |> ignore
+            requireGit "add orphan worktree" [ "worktree"; "add"; "--orphan"; worktreePath; "-b"; branch ] |> ignore
             // Remove all files from orphan worktree
             for f in Directory.GetFiles(worktreePath) do
                 if not (Path.GetFileName(f).StartsWith(".")) then
@@ -143,10 +159,10 @@ let private commitToIssueBranch (issueNumber: int) (iteration: int) (csPath: str
         File.Copy(csPath, Path.Combine(worktreePath, targetCs), overwrite = true)
         File.Copy(gifPath, Path.Combine(worktreePath, targetGif), overwrite = true)
 
-        // Commit and push from worktree
-        runProcess "git" [ "-C"; worktreePath; "add"; targetCs; targetGif ] [] |> ignore
-        runProcess "git" [ "-C"; worktreePath; "commit"; "-m"; $"Iteration #{iteration}" ] [] |> ignore
-        runProcess "git" [ "-C"; worktreePath; "push"; "-u"; "origin"; branch ] [] |> ignore
+        // Commit and push from worktree — each step must succeed
+        requireProcess "git add" "git" [ "-C"; worktreePath; "add"; targetCs; targetGif ] [] |> ignore
+        requireProcess "git commit" "git" [ "-C"; worktreePath; "commit"; "-m"; $"Iteration #{iteration}" ] [] |> ignore
+        requireProcess "git push" "git" [ "-C"; worktreePath; "push"; "-u"; "origin"; branch ] [] |> ignore
 
         let gifUrl = $"{repoUrl}/blob/{branch}/{targetGif}?raw=true"
         printfn $"    ✓ Committed to {branch}, GIF: {gifUrl}"
@@ -188,12 +204,12 @@ let private uploadCompaction (issueNumber: int) (summary: string) =
         try
             if Directory.Exists worktreePath then
                 runGit [ "worktree"; "remove"; worktreePath; "--force" ] |> ignore
-            runGit [ "fetch"; "origin"; branch ] |> ignore
-            runGit [ "worktree"; "add"; worktreePath; branch ] |> ignore
+            requireGit "fetch branch" [ "fetch"; "origin"; branch ] |> ignore
+            requireGit "add worktree" [ "worktree"; "add"; worktreePath; branch ] |> ignore
             File.WriteAllText(Path.Combine(worktreePath, compactionFileName), summary)
-            runProcess "git" [ "-C"; worktreePath; "add"; compactionFileName ] [] |> ignore
-            runProcess "git" [ "-C"; worktreePath; "commit"; "-m"; "Update compaction summary" ] [] |> ignore
-            runProcess "git" [ "-C"; worktreePath; "push"; "origin"; branch ] [] |> ignore
+            requireProcess "git add" "git" [ "-C"; worktreePath; "add"; compactionFileName ] [] |> ignore
+            requireProcess "git commit" "git" [ "-C"; worktreePath; "commit"; "-m"; "Update compaction summary" ] [] |> ignore
+            requireProcess "git push" "git" [ "-C"; worktreePath; "push"; "origin"; branch ] [] |> ignore
             printfn $"    ✓ Compaction summary committed to {branch}"
         finally
             if Directory.Exists worktreePath then
@@ -565,34 +581,13 @@ let run (config: PipelineConfig) (issue: Issue) =
         protocol.Writer.WriteLine $"# Ended: {endTime}"
         protocol.Writer.Dispose()
 
-/// Check if another pixogram workflow run is already queued (waiting).
-/// Returns true if we should skip this run to avoid queue buildup.
-let private isAnotherRunQueued () : bool =
-    // List pending/queued runs of our workflow, exclude the current one
-    let currentRunId = Environment.GetEnvironmentVariable "GITHUB_RUN_ID"
-    match runGh [ "run"; "list"; "--workflow"; "pixogram-workflow.yml"; "--status"; "queued"; "--json"; "databaseId" ] with
-    | Some output ->
-        let queuedIds =
-            output.Split([| '{'; '}'; ','; ':'; '"'; ' '; '\n'; '\r' |], StringSplitOptions.RemoveEmptyEntries)
-            |> Array.filter (fun s -> s <> "databaseId" && s <> "[" && s <> "]")
-            |> Array.filter (fun s -> match currentRunId with null | "" -> true | id -> s <> id)
-        if queuedIds.Length > 0 then
-            printfn $"  Another run is already queued ({queuedIds.Length} waiting) — skipping this run."
-            true
-        else
-            false
-    | None -> false
-
 /// Dispatch + run: find issues needing attention and run workflow on each.
 let dispatchAndRun (config: PipelineConfig) =
-    if isAnotherRunQueued () then
-        printfn "Exiting to avoid queue buildup."
+    let issues = dispatch config
+    if issues.IsEmpty then
+        printfn "No issues need attention."
     else
-        let issues = dispatch config
-        if issues.IsEmpty then
-            printfn "No issues need attention."
-        else
-            printfn $"\n{issues.Length} issue(s) need attention, running workflows..."
-            for issue in issues do
-                printfn $"\n  === #{issue.Number}: {issue.Title} ==="
-                run config issue
+        printfn $"\n{issues.Length} issue(s) need attention, running workflows..."
+        for issue in issues do
+            printfn $"\n  === #{issue.Number}: {issue.Title} ==="
+            run config issue
