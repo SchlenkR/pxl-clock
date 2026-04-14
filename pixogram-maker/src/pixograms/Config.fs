@@ -66,6 +66,19 @@ let configSets =
         }
 
         {
+            Name = "copilot-sonnet-4.6/haiku-4.5"
+            SafetyCheck = Copilot(CopilotModels.sonnet46, Medium)
+            Triage = Copilot(CopilotModels.sonnet46, Medium)
+            DirectorVisionary = Copilot(CopilotModels.sonnet46, Medium)
+            Craftsman = Copilot(CopilotModels.sonnet46, Medium)
+            DirectorMaverick = Copilot(CopilotModels.sonnet46, Medium)
+            Implementor = Copilot(CopilotModels.sonnet46, Medium)
+            Compaction = Copilot(CopilotModels.haiku45, Low)
+            ContextLengthTokens = 180_000
+            CompactionThreshold = 0.8
+        }
+
+        {
             Name = "copilot-gpt-5.4/gpt-5.4-mini"
             SafetyCheck = Copilot(CopilotModels.gpt54, Medium)
             Triage = Copilot(CopilotModels.gpt54, Medium)

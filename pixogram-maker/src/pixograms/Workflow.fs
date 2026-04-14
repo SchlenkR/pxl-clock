@@ -350,11 +350,11 @@ let needsAttention (config: PipelineConfig) (issue: Issue) : bool =
     // Ignored → skip
     if issue.Labels |> List.exists (fun l -> l = labelIgnore) then
         false
+    // Not safety-checked yet → needs safety gate first (is this even a pixogram request?)
+    elif not (issue.Labels |> List.exists (fun l -> l = labelTriagePassed)) then
+        true
     // Not approved yet → needs approval gate
     elif not (issue.Labels |> List.exists (fun l -> l = labelApproved)) then
-        true
-    // Not safety-checked yet → needs safety gate
-    elif not (issue.Labels |> List.exists (fun l -> l = labelTriagePassed)) then
         true
     // Has user feedback after last implementor → new work to do
     elif hasUserFeedbackAfterLastImplementor config issue then
@@ -390,8 +390,8 @@ let dispatch (config: PipelineConfig) : Issue list =
 let triageOnly (config: PipelineConfig) (issue: Issue) =
     let protocol = startProtocol issue.Number
     try
-        if runApprovalGate config protocol issue then
-            runSafetyGate config protocol issue |> ignore
+        if runSafetyGate config protocol issue then
+            runApprovalGate config protocol issue |> ignore
     finally
         protocol.Writer.Dispose()
 
@@ -399,10 +399,10 @@ let run (config: PipelineConfig) (issue: Issue) =
     let protocol = startProtocol issue.Number
 
     try
-        if not (runApprovalGate config protocol issue) then
+        if not (runSafetyGate config protocol issue) then
+            printfn "  ─── Workflow aborted (not a pixogram request) ───"
+        elif not (runApprovalGate config protocol issue) then
             printfn "  ─── Workflow aborted (not approved) ───"
-        elif not (runSafetyGate config protocol issue) then
-            printfn "  ─── Workflow aborted (safety check failed) ───"
         else
 
         let maxIterations = extractIterationCount config issue.Body
