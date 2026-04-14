@@ -5,28 +5,108 @@ on:
     types: [opened]
   issue_comment:
     types: [created]
+  push:
+    branches: [main]
+    paths: ['.github/workflows/pixogram-workflow.yml']
   workflow_dispatch:
     inputs:
       issue_number:
-        description: 'Issue number (leave empty to process all open issues)'
+        description: 'Issue number (leave empty to dispatch all)'
         required: false
         type: string
-
-concurrency:
-  group: pixogram-${{ github.event.issue.number || github.event.inputs.issue_number || 'all' }}
-  cancel-in-progress: false
 
 permissions:
   issues: write
   contents: write
 
+# ---------------------------------------------------------------------------
+# Job 1: Dispatch — determine which issues need a workflow run
+# ---------------------------------------------------------------------------
+
 jobs:
-  workflow:
+  dispatch:
     # Skip bot comments (github-actions posts pipeline results → would cause infinite loop)
     if: >-
       github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'push' ||
       (github.event_name == 'issues' && github.event.action == 'opened') ||
       (github.event_name == 'issue_comment' && github.event.comment.user.login != 'github-actions[bot]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      matrix: ${{ steps.dispatch.outputs.matrix }}
+      has_issues: ${{ steps.dispatch.outputs.has_issues }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Build
+        run: dotnet build pixogram-maker/src/pixograms
+
+      - name: Dispatch
+        id: dispatch
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CLAUDE_API_KEY: ${{ secrets.CLAUDE_API_KEY }}
+          COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
+          MAINTAINERS: ${{ vars.MAINTAINERS }}
+          TRUSTED_AUTHORS: ${{ vars.TRUSTED_AUTHORS }}
+          DEFAULT_ITERATIONS: ${{ vars.DEFAULT_ITERATIONS }}
+          MAX_ITERATIONS_CAP: ${{ vars.MAX_ITERATIONS_CAP }}
+          MAX_IMPLEMENTOR_RETRIES: ${{ vars.MAX_IMPLEMENTOR_RETRIES }}
+          AI_TIMEOUT_MS: ${{ vars.AI_TIMEOUT_MS }}
+          GIF_DURATION_SECONDS: ${{ vars.GIF_DURATION_SECONDS }}
+          GIF_SCALE: ${{ vars.GIF_SCALE }}
+          CONFIG_SET: ${{ vars.CONFIG_SET }}
+        run: |
+          ISSUE="${{ github.event.issue.number || github.event.inputs.issue_number }}"
+          if [ -n "$ISSUE" ]; then
+            # Single issue — check if it needs attention
+            echo "Checking issue #$ISSUE..."
+            OUTPUT=$(dotnet run --project pixogram-maker/src/pixograms --no-build -- dispatch "$ISSUE" 2>&1)
+            echo "$OUTPUT"
+            if echo "$OUTPUT" | grep -q "needs attention"; then
+              MATRIX="[{\"number\":$ISSUE}]"
+            else
+              MATRIX="[]"
+            fi
+          else
+            # No specific issue — dispatch all
+            echo "Dispatching all issues..."
+            OUTPUT=$(dotnet run --project pixogram-maker/src/pixograms --no-build -- dispatch 2>&1)
+            echo "$OUTPUT"
+            # Last line containing [ is the JSON
+            MATRIX=$(echo "$OUTPUT" | grep '^\[' | tail -1)
+            if [ -z "$MATRIX" ]; then
+              MATRIX="[]"
+            fi
+          fi
+          echo "Matrix: $MATRIX"
+          echo "matrix=$MATRIX" >> $GITHUB_OUTPUT
+          if [ "$MATRIX" = "[]" ]; then
+            echo "has_issues=false" >> $GITHUB_OUTPUT
+          else
+            echo "has_issues=true" >> $GITHUB_OUTPUT
+          fi
+
+  # ---------------------------------------------------------------------------
+  # Job 2: Process — run workflow on each dispatched issue (parallel)
+  # ---------------------------------------------------------------------------
+
+  process:
+    needs: dispatch
+    if: needs.dispatch.outputs.has_issues == 'true'
+    strategy:
+      matrix:
+        issue: ${{ fromJson(needs.dispatch.outputs.matrix) }}
+      fail-fast: false
+      max-parallel: 3
+    concurrency:
+      group: pixogram-issue-${{ matrix.issue.number }}
+      cancel-in-progress: false
     runs-on: macos-latest
     timeout-minutes: 30
     steps:
@@ -74,7 +154,7 @@ jobs:
           Pxl.Render /tmp/test-render.cs --output /tmp/test-render-raw.gif --duration 1 --scale 1 --mode raw
           echo "RAW GIF size: $(stat -f%z /tmp/test-render-raw.gif) bytes"
 
-      - name: Run workflow
+      - name: Run workflow on issue #${{ matrix.issue.number }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CLAUDE_API_KEY: ${{ secrets.CLAUDE_API_KEY }}
@@ -89,11 +169,5 @@ jobs:
           GIF_SCALE: ${{ vars.GIF_SCALE }}
           CONFIG_SET: ${{ vars.CONFIG_SET }}
         run: |
-          ISSUE="${{ github.event.issue.number || github.event.inputs.issue_number }}"
-          if [ -n "$ISSUE" ]; then
-            echo "Running workflow on issue #$ISSUE..."
-            dotnet run --project pixogram-maker/src/pixograms --no-build -- workflow "$ISSUE"
-          else
-            echo "Running workflow on all eligible issues..."
-            dotnet run --project pixogram-maker/src/pixograms --no-build -- workflow-all
-          fi
+          echo "Running workflow on issue #${{ matrix.issue.number }}..."
+          dotnet run --project pixogram-maker/src/pixograms --no-build -- workflow "${{ matrix.issue.number }}"

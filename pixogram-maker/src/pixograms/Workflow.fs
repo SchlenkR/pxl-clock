@@ -37,10 +37,6 @@ let private runGh (args: string list) =
     runProcess "gh" (args @ [ "--repo"; ghRepo ]) ghEnv
 
 // ---------------------------------------------------------------------------
-// Issue → conversation string (delegates to Conversation module)
-// ---------------------------------------------------------------------------
-
-// ---------------------------------------------------------------------------
 // Protocol logging
 // ---------------------------------------------------------------------------
 
@@ -78,10 +74,10 @@ let private log (protocol: ProtocolLog) (role: string) (text: string) =
 // Code extraction & rendering
 // ---------------------------------------------------------------------------
 
-let private renderPixogram (csPath: string) (gifPath: string) : Result<string, string> =
+let private renderPixogram (config: PipelineConfig) (csPath: string) (gifPath: string) : Result<string, string> =
     printfn $"  Rendering: {Path.GetFileName csPath} → {Path.GetFileName gifPath}"
     let psi = ProcessStartInfo "Pxl.Render"
-    for a in [ csPath; "--output"; gifPath; "--duration"; string gifDurationSeconds; "--scale"; string gifScale; "--mode"; "clock" ] do
+    for a in [ csPath; "--output"; gifPath; "--duration"; string config.GifDurationSeconds; "--scale"; string config.GifScale; "--mode"; "clock" ] do
         psi.ArgumentList.Add a
     psi.RedirectStandardOutput <- true
     psi.RedirectStandardError <- true
@@ -152,10 +148,10 @@ let private uploadCompaction (issueNumber: int) (summary: string) =
     runGh [ "release"; "upload"; tag; tmpPath; "--clobber" ] |> ignore
     File.Delete tmpPath
 
-let private runCompaction (protocol: ProtocolLog) (fullConversation: string) (issueNumber: int) : string =
+let private runCompaction (config: PipelineConfig) (protocol: ProtocolLog) (fullConversation: string) (issueNumber: int) : string =
     printfn $"  ▶ Running compaction..."
     let prompt = renderPrompt "compaction.md" [ "conversation", fullConversation ]
-    match askAI Backends.compaction prompt with
+    match askAI config.Models.Compaction config.AiTimeoutMs prompt with
     | Error err ->
         printfn $"  ✗ Compaction failed: {err}"
         log protocol "Compaction" $"FAILED: {err}"
@@ -166,9 +162,9 @@ let private runCompaction (protocol: ProtocolLog) (fullConversation: string) (is
         uploadCompaction issueNumber summary
         summary
 
-let private needsCompaction (conversationText: string) =
+let private needsCompaction (config: PipelineConfig) (conversationText: string) =
     let tokens = estimateTokens conversationText
-    let threshold = int (float Backends.contextLengthTokens * Backends.compactionThreshold)
+    let threshold = int (float config.Models.ContextLengthTokens * config.Models.CompactionThreshold)
     let needs = tokens >= threshold
     if needs then
         printfn $"  ⚠ Conversation exceeds compaction threshold ({tokens} tokens >= {threshold})"
@@ -178,10 +174,10 @@ let private needsCompaction (conversationText: string) =
 // Step execution
 // ---------------------------------------------------------------------------
 
-let private executeDirector (protocol: ProtocolLog) (backend: SelectedBackend) (promptFile: string) (label: string) (conversation: string) (issueNumber: int) =
+let private executeDirector (config: PipelineConfig) (protocol: ProtocolLog) (backend: SelectedBackend) (promptFile: string) (label: string) (conversation: string) (issueNumber: int) =
     printfn $"  ▶ Running {label} ({backendDisplayName backend})..."
     printfn $"    Prompt: {promptFile}"
-    match callAgent backend promptFile conversation with
+    match callAgent backend config.AiTimeoutMs promptFile conversation with
     | Error err ->
         printfn $"  ✗ {label} failed: {err}"
         log protocol label $"FAILED: {err}"
@@ -191,10 +187,10 @@ let private executeDirector (protocol: ProtocolLog) (backend: SelectedBackend) (
         postComment issueNumber response
         printfn $"  ✓ {label} posted."
 
-let private executeCraftsman (protocol: ProtocolLog) (conversation: string) : string option =
-    printfn $"  ▶ Running Craftsman ({backendDisplayName Backends.craftsman})..."
+let private executeCraftsman (config: PipelineConfig) (protocol: ProtocolLog) (conversation: string) : string option =
+    printfn $"  ▶ Running Craftsman ({backendDisplayName config.Models.Craftsman})..."
     printfn $"    Prompt: director-craftsman.md"
-    match callAgent Backends.craftsman "director-craftsman.md" conversation with
+    match callAgent config.Models.Craftsman config.AiTimeoutMs "director-craftsman.md" conversation with
     | Error err ->
         printfn $"  ✗ Craftsman failed: {err}"
         log protocol "Craftsman" $"FAILED: {err}"
@@ -204,16 +200,16 @@ let private executeCraftsman (protocol: ProtocolLog) (conversation: string) : st
         printfn $"  ✓ Craftsman done (not posting, will embed in Implementor comment)."
         Some response
 
-let private generateSummary (conversation: string) =
+let private generateSummary (config: PipelineConfig) (conversation: string) =
     printfn "    Generating summary..."
-    match askAI Backends.triage (renderPrompt "summary.md" [ "conversation", conversation ]) with
+    match askAI config.Models.Triage config.AiTimeoutMs (renderPrompt "summary.md" [ "conversation", conversation ]) with
     | Ok summary -> summary.Trim()
     | Error err ->
         printfn $"    ✗ Summary failed: {err}"
         ""
 
-let private executeImplementor (protocol: ProtocolLog) (conversation: string) (fullConversation: string) (craftsmanText: string option) (comments: IssueComment list) (issueNumber: int) =
-    printfn $"  ▶ Running Implementor ({backendDisplayName Backends.implementor})..."
+let private executeImplementor (config: PipelineConfig) (protocol: ProtocolLog) (conversation: string) (fullConversation: string) (craftsmanText: string option) (comments: IssueComment list) (issueNumber: int) =
+    printfn $"  ▶ Running Implementor ({backendDisplayName config.Models.Implementor})..."
     printfn "    Prompt: implementor.md"
 
     let iterationNumber = countImplementorComments comments + 1
@@ -221,11 +217,11 @@ let private executeImplementor (protocol: ProtocolLog) (conversation: string) (f
 
     let prompt = renderPrompt "implementor.md" [ "conversation", conversation ]
 
-    use agent = createAgent Backends.implementor
+    use agent = createAgent config.Models.Implementor
     printfn $"    [impl] Agent created, sending initial prompt..."
 
     // Step 1: Get initial code
-    match sendToAgent agent prompt with
+    match sendToAgent agent config.AiTimeoutMs prompt with
     | Error err ->
         printfn $"  ✗ Implementor AI failed: {err}"
         log protocol "Implementor" $"FAILED: {err}"
@@ -235,8 +231,8 @@ let private executeImplementor (protocol: ProtocolLog) (conversation: string) (f
     let mutable attempt = 1
     let mutable success = false
 
-    while not success && attempt <= maxImplementorRetries do
-        printfn $"    [impl] Render attempt {attempt}/{maxImplementorRetries}..."
+    while not success && attempt <= config.MaxImplementorRetries do
+        printfn $"    [impl] Render attempt {attempt}/{config.MaxImplementorRetries}..."
         log protocol "Implementor" $"ATTEMPT {attempt}:\n{code}"
 
         let timestamp = DateTime.Now.ToString "yyyy-MM-dd_HH-mm-ss"
@@ -245,7 +241,7 @@ let private executeImplementor (protocol: ProtocolLog) (conversation: string) (f
         File.WriteAllText(csPath, code)
         printfn $"    Code saved: {csPath}"
 
-        match renderPixogram csPath gifPath with
+        match renderPixogram config csPath gifPath with
         | Ok _ ->
             printfn $"    Render OK"
             log protocol "Render" $"OK: {gifPath}"
@@ -254,7 +250,7 @@ let private executeImplementor (protocol: ProtocolLog) (conversation: string) (f
                 gifUrl
                 |> Option.map (fun url -> $"\n\n![preview]({url})")
                 |> Option.defaultValue ""
-            let summary = generateSummary fullConversation
+            let summary = generateSummary config fullConversation
             let summaryLine = if summary <> "" then $"\n\n{summary}" else ""
             let craftsmanBlock =
                 match craftsmanText with
@@ -277,17 +273,17 @@ let private executeImplementor (protocol: ProtocolLog) (conversation: string) (f
             printfn $"    Render failed (attempt {attempt}): {err}"
             log protocol "Render" $"ATTEMPT {attempt} FAILED: {err}"
 
-            if attempt < maxImplementorRetries then
+            if attempt < config.MaxImplementorRetries then
                 let feedback =
                     "The code failed to compile/render. Here is the error:\n\n" +
                     $"```\n{err}\n```\n\n" +
                     "Please fix the code and output ONLY the corrected raw C# code. No markdown, no explanations."
                 printfn $"    [impl] Sending error feedback to same session..."
-                match sendToAgent agent feedback with
+                match sendToAgent agent config.AiTimeoutMs feedback with
                 | Error aiErr ->
                     printfn $"  ✗ Implementor retry AI failed: {aiErr}"
                     log protocol "Implementor" $"RETRY AI FAILED: {aiErr}"
-                    attempt <- maxImplementorRetries // bail out
+                    attempt <- config.MaxImplementorRetries // bail out
                 | Ok fixedCode ->
                     code <- fixedCode
 
@@ -301,23 +297,23 @@ let private executeImplementor (protocol: ProtocolLog) (conversation: string) (f
 // Public API
 // ---------------------------------------------------------------------------
 
-let private runApprovalGate (protocol: ProtocolLog) (issue: Issue) : bool =
+let private runApprovalGate (config: PipelineConfig) (protocol: ProtocolLog) (issue: Issue) : bool =
     if hasLabel issue.Number labelApproved then
         printfn $"  ✓ Issue #{issue.Number} already approved."
         true
-    elif isMaintainer issue.Author then
+    elif isMaintainer config issue.Author then
         printfn $"  ✓ Issue #{issue.Number} auto-approved (author {issue.Author} is maintainer)."
         addLabel issue.Number labelApproved
         log protocol "Approval" $"Auto-approved ({issue.Author} is maintainer)"
         true
     else
-        let names = String.Join(", ", maintainers |> List.map (fun m -> $"@{m}"))
+        let names = String.Join(", ", config.Maintainers |> List.map (fun m -> $"@{m}"))
         printfn $"  ✗ Issue #{issue.Number} needs approval from a maintainer."
         postComment issue.Number $"{names} Bitte gebt dieses Issue frei (Label `{labelApproved}` setzen)."
         log protocol "Approval" "Waiting for maintainer approval"
         false
 
-let private runSafetyGate (protocol: ProtocolLog) (issue: Issue) : bool =
+let private runSafetyGate (config: PipelineConfig) (protocol: ProtocolLog) (issue: Issue) : bool =
     if hasLabel issue.Number labelIgnore then
         printfn $"  ✗ Issue #{issue.Number} has '{labelIgnore}' label — skipping."
         log protocol "Safety" "Skipped: marked as ignore."
@@ -327,7 +323,7 @@ let private runSafetyGate (protocol: ProtocolLog) (issue: Issue) : bool =
         true
     else
         printfn $"  Running safety check for issue #{issue.Number}..."
-        match runSafetyCheck issue with
+        match runSafetyCheck config issue with
         | SafetyResult.Passed ->
             printfn $"  ✓ Safety check passed."
             log protocol "Safety" "PASSED"
@@ -344,25 +340,72 @@ let private runSafetyGate (protocol: ProtocolLog) (issue: Issue) : bool =
             log protocol "Safety" $"ERROR: {reason}"
             false
 
-let triageOnly (issue: Issue) =
+// ---------------------------------------------------------------------------
+// Dispatcher: determine which issues need a workflow run (no AI calls)
+// ---------------------------------------------------------------------------
+
+/// Pure check: does this issue need a workflow run right now?
+/// No AI calls, no side effects beyond label reads — safe for fast scanning.
+let needsAttention (config: PipelineConfig) (issue: Issue) : bool =
+    // Ignored → skip
+    if issue.Labels |> List.exists (fun l -> l = labelIgnore) then
+        false
+    // Not approved yet → needs approval gate
+    elif not (issue.Labels |> List.exists (fun l -> l = labelApproved)) then
+        true
+    // Not safety-checked yet → needs safety gate
+    elif not (issue.Labels |> List.exists (fun l -> l = labelTriagePassed)) then
+        true
+    // Has user feedback after last implementor → new work to do
+    elif hasUserFeedbackAfterLastImplementor config issue then
+        true
+    else
+        match lastCommentRole config issue with
+        // Pipeline mid-cycle (Director or Craftsman posted, next step pending)
+        | Some CommentRole.Visionary | Some CommentRole.Maverick | Some CommentRole.Craftsman ->
+            true
+        // Last was Implementor → check if still under iteration limit
+        | Some CommentRole.Implementor ->
+            countImplementorComments issue.Comments < config.DefaultIterations
+        // No pipeline comments at all → first run needed
+        | None ->
+            true
+        // Last was user/maintainer but not after implementor → already handled above
+        | _ ->
+            false
+
+/// Scan all eligible issues and return those that need a workflow run.
+let dispatch (config: PipelineConfig) : Issue list =
+    let issues = listEligibleIssues ()
+    printfn $"  Found {issues.Length} eligible issue(s), checking which need attention..."
+    issues
+    |> List.map (fun issue ->
+        let full = fetchIssueWithComments issue
+        full, needsAttention config full)
+    |> List.filter snd
+    |> List.map (fun (issue, _) ->
+        printfn $"    #{issue.Number}: {issue.Title} → needs attention"
+        issue)
+
+let triageOnly (config: PipelineConfig) (issue: Issue) =
     let protocol = startProtocol issue.Number
     try
-        if runApprovalGate protocol issue then
-            runSafetyGate protocol issue |> ignore
+        if runApprovalGate config protocol issue then
+            runSafetyGate config protocol issue |> ignore
     finally
         protocol.Writer.Dispose()
 
-let run (issue: Issue) =
+let run (config: PipelineConfig) (issue: Issue) =
     let protocol = startProtocol issue.Number
 
     try
-        if not (runApprovalGate protocol issue) then
+        if not (runApprovalGate config protocol issue) then
             printfn "  ─── Workflow aborted (not approved) ───"
-        elif not (runSafetyGate protocol issue) then
+        elif not (runSafetyGate config protocol issue) then
             printfn "  ─── Workflow aborted (safety check failed) ───"
         else
 
-        let maxIterations = extractIterationCount issue.Body
+        let maxIterations = extractIterationCount config issue.Body
         printfn $"  Max iterations: {maxIterations}"
 
         // Load existing compaction from release (if any)
@@ -389,24 +432,24 @@ let run (issue: Issue) =
             printfn $"  Comments: {current.Comments.Length}, Implementor iterations: {implCount}/{maxIterations}"
 
             // Build full conversation (without compaction) to check size
-            let rawFullConversation = buildConversation ConversationView.Full None current
+            let rawFullConversation = buildConversation config ConversationView.Full None current
             let tokens = estimateTokens rawFullConversation
-            let threshold = int (float Backends.contextLengthTokens * Backends.compactionThreshold)
+            let threshold = int (float config.Models.ContextLengthTokens * config.Models.CompactionThreshold)
             printfn $"  Conversation: ~{tokens} tokens (threshold: {threshold})"
 
             // Run compaction if needed
-            if needsCompaction rawFullConversation then
-                let summary = runCompaction protocol rawFullConversation current.Number
+            if needsCompaction config rawFullConversation then
+                let summary = runCompaction config protocol rawFullConversation current.Number
                 if summary.Length > 0 then
                     compaction <- Some summary
                     log protocol "Compaction" $"Compacted to {summary.Length} chars"
 
             // Build conversations using compaction if available
-            let fullConversation = buildConversation ConversationView.Full compaction current
-            let implConversation = buildConversation ConversationView.Implementor compaction current
+            let fullConversation = buildConversation config ConversationView.Full compaction current
+            let implConversation = buildConversation config ConversationView.Implementor compaction current
             printfn ""
 
-            if implCount >= maxIterations && not (hasUserFeedbackAfterLastImplementor current) then
+            if implCount >= maxIterations && not (hasUserFeedbackAfterLastImplementor config current) then
                 printfn $"  Max iterations reached ({implCount}/{maxIterations}) — stopping."
                 log protocol "Workflow" $"Max iterations reached ({implCount}/{maxIterations})"
                 running <- false
@@ -418,7 +461,7 @@ let run (issue: Issue) =
             //   - After Implementor (which Director next? DONE?)
             //   - After user feedback on Implementor (what kind of feedback?)
             //   - First step (no pipeline comments yet)
-            let lastRole = lastCommentRole current
+            let lastRole = lastCommentRole config current
             let action =
                 match lastRole with
                 | Some CommentRole.Visionary | Some CommentRole.Maverick ->
@@ -433,18 +476,18 @@ let run (issue: Issue) =
                     RunImplementor
                 | _ ->
                     // Genuine decision point → ask Triage AI
-                    let triageAction = determineNextAction maxIterations current.Author fullConversation
+                    let triageAction = determineNextAction config maxIterations current.Author fullConversation
                     log protocol "Triage" $"{triageAction}"
                     triageAction
             printfn ""
 
             match action with
             | RunVisionary ->
-                executeDirector protocol Backends.directorVisionary "director-visionary.md" "Director/Visionary" fullConversation current.Number
+                executeDirector config protocol config.Models.DirectorVisionary "director-visionary.md" "Director/Visionary" fullConversation current.Number
             | RunMaverick ->
-                executeDirector protocol Backends.directorMaverick "director-maverick.md" "Director/Maverick" fullConversation current.Number
+                executeDirector config protocol config.Models.DirectorMaverick "director-maverick.md" "Director/Maverick" fullConversation current.Number
             | RunCraftsman ->
-                match executeCraftsman protocol fullConversation with
+                match executeCraftsman config protocol fullConversation with
                 | None -> ()
                 | Some craftsmanResponse ->
                     let craftsmanComment =
@@ -453,9 +496,9 @@ let run (issue: Issue) =
                         "</comment>\n"
                     let extendedConversation =
                         implConversation.Replace("</conversation>", craftsmanComment + "</conversation>")
-                    executeImplementor protocol extendedConversation fullConversation (Some craftsmanResponse) current.Comments current.Number
+                    executeImplementor config protocol extendedConversation fullConversation (Some craftsmanResponse) current.Comments current.Number
             | RunImplementor ->
-                executeImplementor protocol implConversation fullConversation None current.Comments current.Number
+                executeImplementor config protocol implConversation fullConversation None current.Comments current.Number
             | Done reason ->
                 printfn $"  Done: {reason}"
                 running <- false

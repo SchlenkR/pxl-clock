@@ -73,14 +73,14 @@ type SafetyResult =
     | Failed of reason: string
     | Error of reason: string
 
-let runSafetyCheck (issue: GitHub.Issue) : SafetyResult =
+let runSafetyCheck (config: PipelineConfig) (issue: GitHub.Issue) : SafetyResult =
     printfn "  Safety check..."
     let prompt =
         renderPrompt "safety-check.md"
             [ "title", issue.Title
               "author", issue.Author
               "body", issue.Body ]
-    match askAI Backends.safetyCheck prompt with
+    match askAI config.Models.SafetyCheck config.AiTimeoutMs prompt with
     | Result.Error err ->
         printfn $"  ✗ Safety check AI error: {err}"
         SafetyResult.Error $"AI error: {err}"
@@ -95,37 +95,37 @@ let runSafetyCheck (issue: GitHub.Issue) : SafetyResult =
             printfn $"  ✗ No TRIAGE- line found in response"
             SafetyResult.Failed "Could not parse safety check response"
 
-let extractIterationCount (issueBody: string) =
-    let prompt = renderPrompt "iteration-count.md" [ "default_iterations", string defaultIterations; "description", issueBody ]
+let extractIterationCount (config: PipelineConfig) (issueBody: string) =
+    let prompt = renderPrompt "iteration-count.md" [ "default_iterations", string config.DefaultIterations; "description", issueBody ]
     printfn "  Extracting iteration count..."
-    match askAI Backends.triage prompt with
+    match askAI config.Models.Triage config.AiTimeoutMs prompt with
     | Error err ->
-        printfn $"  ✗ Iteration extraction failed: {err}, defaulting to {defaultIterations}"
-        defaultIterations
+        printfn $"  ✗ Iteration extraction failed: {err}, defaulting to {config.DefaultIterations}"
+        config.DefaultIterations
     | Ok response ->
         let trimmed = response.Trim()
         match System.Int32.TryParse trimmed with
         | true, n when n >= 1 ->
-            let capped = min n maxIterationsCap
+            let capped = min n config.MaxIterationsCap
             if capped < n then
                 printfn $"  → {n} iterations requested, capped to {capped} (MAX_ITERATIONS_CAP)"
             else
                 printfn $"  → {capped} iterations requested"
             capped
         | _ ->
-            printfn $"  ✗ Could not parse '{trimmed}', defaulting to {defaultIterations}"
-            defaultIterations
+            printfn $"  ✗ Could not parse '{trimmed}', defaulting to {config.DefaultIterations}"
+            config.DefaultIterations
 
-let determineNextAction (maxIterations: int) (author: string) (conversation: string) =
+let determineNextAction (config: PipelineConfig) (maxIterations: int) (author: string) (conversation: string) =
     let fullPrompt =
         renderPrompt "triage.md"
-            [ "admin", String.concat ", " maintainers
+            [ "admin", String.concat ", " config.Maintainers
               "author", author
               "max_iterations", string maxIterations
               "conversation", conversation ]
 
     printfn "  Triage..."
-    match askAI Backends.triage fullPrompt with
+    match askAI config.Models.Triage config.AiTimeoutMs fullPrompt with
     | Error err ->
         printfn $"  ✗ Triage failed: {err}"
         Done $"Triage error: {err}"
@@ -148,6 +148,6 @@ let determineNextAction (maxIterations: int) (author: string) (conversation: str
 // Agent calls: backend + prompt + conversation → response string
 // ---------------------------------------------------------------------------
 
-let callAgent (backend: SelectedBackend) (promptFile: string) (conversation: string) : Result<string, string> =
+let callAgent (backend: SelectedBackend) (timeoutMs: int) (promptFile: string) (conversation: string) : Result<string, string> =
     let prompt = renderPrompt promptFile [ "conversation", conversation ]
-    askAI backend prompt
+    askAI backend timeoutMs prompt

@@ -197,6 +197,26 @@ The most interesting category. The *iteration count* is a good example: an AI ag
 
 **The lesson:** Let AI handle understanding, creativity, and nuance. Let code handle enforcement, security, and resource limits. When in doubt, make the *gate* deterministic and let AI operate freely *within* the gate. A runaway AI loop taught us this the hard way — removing the deterministic iteration guard to "let Triage decide" caused 6 uncontrolled iterations on a real issue.
 
+### Design Principle: Composable Pipeline Functions
+
+Every pipeline function must be **composable** — callable directly in-process or delegable to an external sub-agent (separate process, container, or remote worker). This is a hard constraint on how we write code in this project.
+
+**What this means in practice:**
+
+1. **Explicit inputs, explicit outputs.** No function reads global mutable state (`Backends.*`, environment variables) implicitly. All dependencies are passed as parameters. Return types are structured (discriminated unions, `Result<'a, 'b>`), not side effects.
+
+2. **Separation of I/O from logic.** A function like `parseSafetyCheckResponse: string → SafetyResult` is pure. The I/O wrapper `runSafetyCheck: SafetyCheckConfig → Issue → Async<SafetyResult>` handles the AI call. The pure core is testable; the wrapper is swappable.
+
+3. **Proxy-ready signatures.** Every pipeline step (safety check, triage, director, craftsman, implementor, compaction) should have a signature clean enough that a "proxy" can either:
+   - Call it directly in-process (fast, simple)
+   - Serialize the inputs, send them to a sub-agent (separate process/container), and deserialize the output
+
+4. **No mixed concerns.** A function that calls AI, renders a GIF, uploads to GitHub, and posts a comment is not composable. Break it into steps that can be composed by the caller.
+
+**Current status:** `Conversation.fs` already follows this principle (mostly pure functions). `Triage.fs` has good signatures but reads global state. `Workflow.fs` is a monolith that needs decomposition. See the composability analysis for details.
+
+**Why this matters:** We want the option to run pipeline steps as parallel GitHub Actions matrix jobs (one per issue), as separate containers, or as sub-agents — without rewriting the core logic. Composability is what makes this possible.
+
 ## Configuration
 
 All configuration is via environment variables (loaded from `.env` locally, from GitHub repository variables in CI):

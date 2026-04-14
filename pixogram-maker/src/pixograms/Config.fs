@@ -5,43 +5,7 @@ open AiBase.Agent
 open AiBase.AgentSelection
 
 // ---------------------------------------------------------------------------
-// Settings (all from environment variables, no fallbacks)
-// ---------------------------------------------------------------------------
-
-let private envRequired (name: string) =
-    match Environment.GetEnvironmentVariable name with
-    | null | "" -> failwith $"Required environment variable '{name}' is not set."
-    | v -> v
-
-let private envRequiredInt (name: string) =
-    let v = envRequired name
-    match Int32.TryParse v with
-    | true, n -> n
-    | _ -> failwith $"Environment variable '{name}' must be an integer, got '{v}'."
-
-let maintainers =
-    (envRequired "MAINTAINERS").Split([| ','; ';'; ' ' |], StringSplitOptions.RemoveEmptyEntries)
-    |> Array.toList
-
-let isMaintainer (user: string) =
-    maintainers |> List.exists (fun m -> String.Equals(m, user, StringComparison.OrdinalIgnoreCase))
-
-let trustedAuthors =
-    (envRequired "TRUSTED_AUTHORS").Split([| ','; ';'; ' ' |], StringSplitOptions.RemoveEmptyEntries)
-    |> Array.toList
-
-let isTrustedAuthor (user: string) =
-    trustedAuthors |> List.exists (fun m -> String.Equals(m, user, StringComparison.OrdinalIgnoreCase))
-
-let defaultIterations = envRequiredInt "DEFAULT_ITERATIONS"
-let maxIterationsCap = envRequiredInt "MAX_ITERATIONS_CAP"
-let maxImplementorRetries = envRequiredInt "MAX_IMPLEMENTOR_RETRIES"
-let aiTimeoutMs = envRequiredInt "AI_TIMEOUT_MS"
-let gifDurationSeconds = envRequiredInt "GIF_DURATION_SECONDS"
-let gifScale = envRequiredInt "GIF_SCALE"
-
-// ---------------------------------------------------------------------------
-// Known Copilot models
+// Known model identifiers
 // ---------------------------------------------------------------------------
 
 module CopilotModels =
@@ -63,25 +27,14 @@ module CopilotModels =
     let gpt5Mini = "gpt-5-mini"
     let gpt41 = "gpt-4.1"
 
-// ---------------------------------------------------------------------------
-// Backend configuration
-// ---------------------------------------------------------------------------
-
 module AnthropicModels =
     let opus46 = "claude-opus-4-6"
     let sonnet46 = "claude-sonnet-4-6"
     let haiku45 = "claude-haiku-4-5"
 
-module Backends =
-    let mutable safetyCheck = Anthropic AnthropicModels.sonnet46
-    let mutable triage = Anthropic AnthropicModels.sonnet46
-    let mutable directorVisionary = Anthropic AnthropicModels.sonnet46
-    let mutable craftsman = Anthropic AnthropicModels.sonnet46
-    let mutable directorMaverick = Anthropic AnthropicModels.sonnet46
-    let mutable implementor = Anthropic AnthropicModels.sonnet46
-    let mutable compaction = Anthropic AnthropicModels.sonnet46
-    let mutable contextLengthTokens = 50_000
-    let mutable compactionThreshold = 0.8
+// ---------------------------------------------------------------------------
+// ConfigSet — which AI models to use for each pipeline role
+// ---------------------------------------------------------------------------
 
 type ConfigSet =
     {
@@ -100,7 +53,7 @@ type ConfigSet =
 let configSets =
     [
         {
-            Name = "Claude-Sonnet-46"
+            Name = "claude-sonnet-4.6/haiku-4.5"
             SafetyCheck = Anthropic AnthropicModels.sonnet46
             Triage = Anthropic AnthropicModels.sonnet46
             DirectorVisionary = Anthropic AnthropicModels.sonnet46
@@ -113,7 +66,7 @@ let configSets =
         }
 
         {
-            Name = "Copilot-GPT-5.4"
+            Name = "copilot-gpt-5.4/gpt-5.4-mini"
             SafetyCheck = Copilot(CopilotModels.gpt54, Medium)
             Triage = Copilot(CopilotModels.gpt54, Medium)
             DirectorVisionary = Copilot(CopilotModels.gpt54, Medium)
@@ -126,28 +79,42 @@ let configSets =
         }
     ]
 
-let applyConfigSet (cs: ConfigSet) =
-    Backends.safetyCheck <- cs.SafetyCheck
-    Backends.triage <- cs.Triage
-    Backends.directorVisionary <- cs.DirectorVisionary
-    Backends.craftsman <- cs.Craftsman
-    Backends.directorMaverick <- cs.DirectorMaverick
-    Backends.implementor <- cs.Implementor
-    Backends.compaction <- cs.Compaction
-    Backends.contextLengthTokens <- cs.ContextLengthTokens
-    Backends.compactionThreshold <- cs.CompactionThreshold
-    printfn $"  Config: {cs.Name}"
-
-let applyConfigSetFromEnv () =
-    let name = envRequired "CONFIG_SET"
+let resolveConfigSet (name: string) : ConfigSet =
     match configSets |> List.tryFind (fun cs -> cs.Name.Contains(name, StringComparison.OrdinalIgnoreCase)) with
-    | Some cs -> applyConfigSet cs
+    | Some cs -> cs
     | None ->
         let available = configSets |> List.map (fun cs -> cs.Name) |> String.concat ", "
         failwith $"Unknown CONFIG_SET '{name}'. Available: {available}"
 
 // ---------------------------------------------------------------------------
-// AI call helper
+// PipelineConfig — everything a pipeline run needs, no globals
+// ---------------------------------------------------------------------------
+
+type PipelineConfig =
+    {
+        // AI backends (from ConfigSet)
+        Models: ConfigSet
+        // People
+        Maintainers: string list
+        TrustedAuthors: string list
+        // Iteration limits
+        DefaultIterations: int
+        MaxIterationsCap: int
+        MaxImplementorRetries: int
+        // Timeouts & rendering
+        AiTimeoutMs: int
+        GifDurationSeconds: int
+        GifScale: int
+    }
+
+let isMaintainer (config: PipelineConfig) (user: string) =
+    config.Maintainers |> List.exists (fun m -> String.Equals(m, user, StringComparison.OrdinalIgnoreCase))
+
+let isTrustedAuthor (config: PipelineConfig) (user: string) =
+    config.TrustedAuthors |> List.exists (fun m -> String.Equals(m, user, StringComparison.OrdinalIgnoreCase))
+
+// ---------------------------------------------------------------------------
+// AI call helpers
 // ---------------------------------------------------------------------------
 
 let mutable private inThinking = false
@@ -192,11 +159,11 @@ let private onEvent (event: AgentEvent) =
 let createAgent (backend: SelectedBackend) : IAgent =
     agentFactory backend None None []
 
-let sendToAgent (agent: IAgent) (prompt: string) : Result<string, string> =
+let sendToAgent (agent: IAgent) (timeoutMs: int) (prompt: string) : Result<string, string> =
     printfn $"    [agent] Sending {prompt.Length} chars..."
     try
         let work = agent.Send(prompt, onEvent)
-        let result = Async.RunSynchronously(work, timeout = aiTimeoutMs)
+        let result = Async.RunSynchronously(work, timeout = timeoutMs)
         let trimmed = result.Trim()
         if String.IsNullOrWhiteSpace trimmed then
             printfn $"    [agent] ERROR: empty response"
@@ -206,23 +173,23 @@ let sendToAgent (agent: IAgent) (prompt: string) : Result<string, string> =
             Ok trimmed
     with
     | :? TimeoutException ->
-        printfn $"    [agent] ERROR: timed out after {aiTimeoutMs / 1000}s"
-        Result.Error $"AI call timed out after {aiTimeoutMs / 1000}s"
+        printfn $"    [agent] ERROR: timed out after {timeoutMs / 1000}s"
+        Result.Error $"AI call timed out after {timeoutMs / 1000}s"
     | ex ->
         printfn $"    [agent] ERROR: {ex.Message}"
         Result.Error $"AI call failed: {ex.Message}"
 
-let askAI (backend: SelectedBackend) (prompt: string) : Result<string, string> =
+let askAI (backend: SelectedBackend) (timeoutMs: int) (prompt: string) : Result<string, string> =
     let name = backendDisplayName backend
     printfn $"    [askAI] Backend: {name}"
-    printfn $"    [askAI] Prompt: {prompt.Length} chars, Timeout: {aiTimeoutMs / 1000}s"
+    printfn $"    [askAI] Prompt: {prompt.Length} chars, Timeout: {timeoutMs / 1000}s"
     try
         printfn $"    [askAI] Creating agent..."
         use agent = agentFactory backend None None []
         printfn $"    [askAI] Agent ready, sending prompt..."
         let work = agent.Send(prompt, onEvent)
         let result =
-            Async.RunSynchronously(work, timeout = aiTimeoutMs)
+            Async.RunSynchronously(work, timeout = timeoutMs)
         let trimmed = result.Trim()
         if String.IsNullOrWhiteSpace trimmed then
             printfn $"    [askAI] ERROR: empty response"
@@ -232,8 +199,8 @@ let askAI (backend: SelectedBackend) (prompt: string) : Result<string, string> =
             Ok trimmed
     with
     | :? TimeoutException ->
-        printfn $"    [askAI] ERROR: timed out after {aiTimeoutMs / 1000}s"
-        Result.Error $"AI call timed out after {aiTimeoutMs / 1000}s"
+        printfn $"    [askAI] ERROR: timed out after {timeoutMs / 1000}s"
+        Result.Error $"AI call timed out after {timeoutMs / 1000}s"
     | ex ->
         printfn $"    [askAI] ERROR: {ex.Message}"
         Result.Error $"AI call failed: {ex.Message}"

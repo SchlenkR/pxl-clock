@@ -28,12 +28,12 @@ let commentRoleTag = function
     | CommentRole.Maintainer -> "maintainer"
     | CommentRole.User -> "user"
 
-let detectCommentRole (body: string) (author: string) (issueAuthor: string) =
+let detectCommentRole (maintainers: string list) (body: string) (author: string) (issueAuthor: string) =
     if body.Contains("**[Director/Visionary]**") then CommentRole.Visionary
     elif body.Contains("**[Director/Maverick]**") then CommentRole.Maverick
     elif body.Contains("**[Implementor]**") then CommentRole.Implementor
     elif body.Contains("**[Craftsman]**") then CommentRole.Craftsman
-    elif isMaintainer author then CommentRole.Maintainer
+    elif maintainers |> List.exists (fun m -> String.Equals(m, author, StringComparison.OrdinalIgnoreCase)) then CommentRole.Maintainer
     elif String.Equals(author, issueAuthor, StringComparison.OrdinalIgnoreCase) then CommentRole.User
     else CommentRole.User // fallback for trusted authors that aren't maintainers
 
@@ -106,8 +106,8 @@ let detectInjection (text: string) : InjectionMatch list =
 // Trust model
 // ---------------------------------------------------------------------------
 
-let isTrustedCommentAuthor (issueAuthor: string) (commentAuthor: string) =
-    isTrustedAuthor commentAuthor
+let isTrustedCommentAuthor (trustedAuthors: string list) (issueAuthor: string) (commentAuthor: string) =
+    trustedAuthors |> List.exists (fun m -> String.Equals(m, commentAuthor, StringComparison.OrdinalIgnoreCase))
     || String.Equals(commentAuthor, issueAuthor, StringComparison.OrdinalIgnoreCase)
 
 // ---------------------------------------------------------------------------
@@ -178,7 +178,7 @@ let countImplementorComments (comments: IssueComment list) =
     comments |> List.filter (fun c -> c.Body.Contains(roleTag Role.Implementor)) |> List.length
 
 /// Check if a user/maintainer comment exists after the last Implementor comment.
-let hasUserFeedbackAfterLastImplementor (issue: Issue) =
+let hasUserFeedbackAfterLastImplementor (config: PipelineConfig) (issue: Issue) =
     let lastImplIdx =
         issue.Comments
         |> List.mapi (fun i c -> i, c)
@@ -191,23 +191,23 @@ let hasUserFeedbackAfterLastImplementor (issue: Issue) =
         issue.Comments
         |> List.skip (idx + 1)
         |> List.exists (fun c ->
-            let role = detectCommentRole c.Body c.Author issue.Author
+            let role = detectCommentRole config.Maintainers c.Body c.Author issue.Author
             role = CommentRole.User || role = CommentRole.Maintainer)
 
 /// Detect the role of the last comment in the conversation.
 /// Returns None if there are no comments.
-let lastCommentRole (issue: Issue) : CommentRole option =
+let lastCommentRole (config: PipelineConfig) (issue: Issue) : CommentRole option =
     issue.Comments
-    |> List.filter (fun c -> isTrustedCommentAuthor c.Author issue.Author)
+    |> List.filter (fun c -> isTrustedCommentAuthor config.TrustedAuthors c.Author issue.Author)
     |> List.tryLast
-    |> Option.map (fun c -> detectCommentRole c.Body c.Author issue.Author)
+    |> Option.map (fun c -> detectCommentRole config.Maintainers c.Body c.Author issue.Author)
 
 /// Estimate token count using ~4 characters per token heuristic.
 let estimateTokens (text: string) = text.Length / 4
 
 /// Build a structured conversation string for an AI agent.
 /// If a compaction summary is provided, it replaces older comments (before the current cycle).
-let buildConversation (view: ConversationView) (compaction: string option) (issue: Issue) =
+let buildConversation (config: PipelineConfig) (view: ConversationView) (compaction: string option) (issue: Issue) =
     let sb = StringBuilder()
 
     // Issue header — also scan issue body for injection
@@ -221,7 +221,7 @@ let buildConversation (view: ConversationView) (compaction: string option) (issu
     // Split trusted / untrusted
     let trusted, untrusted =
         issue.Comments
-        |> List.partition (fun c -> isTrustedCommentAuthor issue.Author c.Author)
+        |> List.partition (fun c -> isTrustedCommentAuthor config.TrustedAuthors issue.Author c.Author)
 
     // Scan untrusted for injection (for reporting)
     let untrustedInjectionCount =
@@ -250,7 +250,7 @@ let buildConversation (view: ConversationView) (compaction: string option) (issu
     | None -> ()
 
     for c in visible do
-        let role = detectCommentRole c.Body c.Author issue.Author |> commentRoleTag
+        let role = detectCommentRole config.Maintainers c.Body c.Author issue.Author |> commentRoleTag
         let injections = detectInjection c.Body
         if injections <> [] then
             let names = injections |> List.map (fun m -> m.Pattern) |> String.concat ", "
