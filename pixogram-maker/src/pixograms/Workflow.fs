@@ -111,40 +111,50 @@ let private runGit (args: string list) =
 let private commitToIssueBranch (issueNumber: int) (iteration: int) (csPath: string) (gifPath: string) : string =
     let branch = issueBranch issueNumber
     let repoUrl = $"https://github.com/{owner}/{repoName}"
-
-    // Stash current state, work on issue branch
-    printfn $"    Committing iteration #{iteration} to branch '{branch}'..."
-
-    // Create orphan branch or switch to existing
-    let branchExists =
-        runGit [ "ls-remote"; "--heads"; "origin"; branch ]
-        |> Option.map (fun s -> s.Length > 0)
-        |> Option.defaultValue false
-
-    if branchExists then
-        runGit [ "fetch"; "origin"; branch ] |> ignore
-        runGit [ "checkout"; branch ] |> ignore
-    else
-        runGit [ "checkout"; "--orphan"; branch ] |> ignore
-        runGit [ "rm"; "-rf"; "." ] |> ignore
-
-    // Copy files to repo root
     let targetCs = "pixogram.cs"
     let targetGif = "preview.gif"
-    File.Copy(csPath, targetCs, overwrite = true)
-    File.Copy(gifPath, targetGif, overwrite = true)
 
-    // Commit and push
-    runGit [ "add"; targetCs; targetGif ] |> ignore
-    runGit [ "commit"; "-m"; $"Iteration #{iteration}" ] |> ignore
-    runGit [ "push"; "-u"; "origin"; branch ] |> ignore
+    printfn $"    Committing iteration #{iteration} to branch '{branch}'..."
 
-    // Switch back to previous branch
-    runGit [ "checkout"; "-" ] |> ignore
+    // Use a temporary worktree to avoid switching the main checkout
+    let worktreePath = Path.Combine(Path.GetTempPath(), $"pixogram-wt-{issueNumber}")
+    try
+        // Clean up any leftover worktree
+        if Directory.Exists worktreePath then
+            runGit [ "worktree"; "remove"; worktreePath; "--force" ] |> ignore
 
-    let gifUrl = $"{repoUrl}/blob/{branch}/{targetGif}?raw=true"
-    printfn $"    ✓ Committed to {branch}, GIF: {gifUrl}"
-    gifUrl
+        // Create orphan branch or fetch existing
+        let branchExists =
+            runGit [ "ls-remote"; "--heads"; "origin"; branch ]
+            |> Option.map (fun s -> s.Length > 0)
+            |> Option.defaultValue false
+
+        if branchExists then
+            runGit [ "fetch"; "origin"; branch ] |> ignore
+            runGit [ "worktree"; "add"; worktreePath; branch ] |> ignore
+        else
+            runGit [ "worktree"; "add"; "--orphan"; worktreePath; "-b"; branch ] |> ignore
+            // Remove all files from orphan worktree
+            for f in Directory.GetFiles(worktreePath) do
+                if not (Path.GetFileName(f).StartsWith(".")) then
+                    File.Delete f
+
+        // Copy files to worktree
+        File.Copy(csPath, Path.Combine(worktreePath, targetCs), overwrite = true)
+        File.Copy(gifPath, Path.Combine(worktreePath, targetGif), overwrite = true)
+
+        // Commit and push from worktree
+        runProcess "git" [ "-C"; worktreePath; "add"; targetCs; targetGif ] [] |> ignore
+        runProcess "git" [ "-C"; worktreePath; "commit"; "-m"; $"Iteration #{iteration}" ] [] |> ignore
+        runProcess "git" [ "-C"; worktreePath; "push"; "-u"; "origin"; branch ] [] |> ignore
+
+        let gifUrl = $"{repoUrl}/blob/{branch}/{targetGif}?raw=true"
+        printfn $"    ✓ Committed to {branch}, GIF: {gifUrl}"
+        gifUrl
+    finally
+        // Always clean up worktree
+        if Directory.Exists worktreePath then
+            runGit [ "worktree"; "remove"; worktreePath; "--force" ] |> ignore
 
 // ---------------------------------------------------------------------------
 // Compaction (stored on issue branch)
@@ -174,14 +184,20 @@ let private uploadCompaction (issueNumber: int) (summary: string) =
         |> Option.defaultValue false
 
     if branchExists then
-        runGit [ "fetch"; "origin"; branch ] |> ignore
-        runGit [ "checkout"; branch ] |> ignore
-        File.WriteAllText(compactionFileName, summary)
-        runGit [ "add"; compactionFileName ] |> ignore
-        runGit [ "commit"; "-m"; "Update compaction summary" ] |> ignore
-        runGit [ "push"; "origin"; branch ] |> ignore
-        runGit [ "checkout"; "-" ] |> ignore
-        printfn $"    ✓ Compaction summary committed to {branch}"
+        let worktreePath = Path.Combine(Path.GetTempPath(), $"pixogram-wt-compact-{issueNumber}")
+        try
+            if Directory.Exists worktreePath then
+                runGit [ "worktree"; "remove"; worktreePath; "--force" ] |> ignore
+            runGit [ "fetch"; "origin"; branch ] |> ignore
+            runGit [ "worktree"; "add"; worktreePath; branch ] |> ignore
+            File.WriteAllText(Path.Combine(worktreePath, compactionFileName), summary)
+            runProcess "git" [ "-C"; worktreePath; "add"; compactionFileName ] [] |> ignore
+            runProcess "git" [ "-C"; worktreePath; "commit"; "-m"; "Update compaction summary" ] [] |> ignore
+            runProcess "git" [ "-C"; worktreePath; "push"; "origin"; branch ] [] |> ignore
+            printfn $"    ✓ Compaction summary committed to {branch}"
+        finally
+            if Directory.Exists worktreePath then
+                runGit [ "worktree"; "remove"; worktreePath; "--force" ] |> ignore
 
 let private runCompaction (config: PipelineConfig) (protocol: ProtocolLog) (fullConversation: string) (issueNumber: int) : string =
     printfn $"  ▶ Running compaction..."
