@@ -258,10 +258,13 @@ let private executeImplementor (config: PipelineConfig) (protocol: ProtocolLog) 
                     $"\n\n<details>\n<summary>Craftsman Specification</summary>\n\n" +
                     $"{ct}\n\n</details>"
                 | None -> ""
+            let codespaceBadge =
+                $"\n\n[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/{owner}/{repoName}?quickstart=1)"
             let comment =
                 $"{roleTag Role.Implementor} — Iteration #{iterationNumber}" +
                 summaryLine +
                 gifMarkdown +
+                codespaceBadge +
                 craftsmanBlock +
                 $"\n\n<details>\n<summary>Code anzeigen</summary>\n\n" +
                 $"```csharp\n{code}\n```\n\n</details>"
