@@ -353,10 +353,10 @@ let private runApprovalGate (config: PipelineConfig) (protocol: ProtocolLog) (is
     if hasLabel issue.Number labelApproved then
         printfn $"  ✓ Issue #{issue.Number} already approved."
         true
-    elif isMaintainer config issue.Author then
-        printfn $"  ✓ Issue #{issue.Number} auto-approved (author {issue.Author} is maintainer)."
+    elif isTrustedAuthor config issue.Author then
+        printfn $"  ✓ Issue #{issue.Number} auto-approved (author {issue.Author} is trusted)."
         addLabel issue.Number labelApproved
-        log protocol "Approval" $"Auto-approved ({issue.Author} is maintainer)"
+        log protocol "Approval" $"Auto-approved ({issue.Author} is trusted author)"
         true
     else
         let names = String.Join(", ", config.Maintainers |> List.map (fun m -> $"@{m}"))
