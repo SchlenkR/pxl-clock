@@ -102,10 +102,10 @@ let private renderPixogram (config: PipelineConfig) (csPath: string) (gifPath: s
         Error ex.Message
 
 // ---------------------------------------------------------------------------
-// Branch-based artifact storage (one branch per issue)
+// Artifact storage on the pixogram-maker branch
 // ---------------------------------------------------------------------------
 
-let private issueBranch (issueNumber: int) = $"pixogram/issue-{issueNumber}"
+let private artifactBranch = "pixogram-maker"
 
 let private runGit (args: string list) =
     runProcess "git" args []
@@ -120,68 +120,78 @@ let private requireProcess (label: string) cmd (args: string list) (env: (string
     | Some output -> output
     | None -> failwith $"Process failed: {label} — {cmd} {String.Join(' ', args)}"
 
-let private commitToIssueBranch (issueNumber: int) (iteration: int) (csPath: string) (gifPath: string) : string =
-    let branch = issueBranch issueNumber
-    let repoUrl = $"https://github.com/{owner}/{repoName}"
-    let targetCs = "pixogram.cs"
-    let targetGif = "preview.gif"
+let private sanitizeForFilesystem (title: string) =
+    let cleaned =
+        title.ToLowerInvariant()
+        |> Seq.choose (fun c ->
+            if Char.IsLetterOrDigit c then Some c
+            elif c = ' ' || c = '-' || c = '_' then Some '_'
+            else None)
+        |> Seq.toArray
+        |> String
+    let collapsed = System.Text.RegularExpressions.Regex.Replace(cleaned, "_+", "_")
+    let trimmed = collapsed.Trim('_')
+    if trimmed.Length > 40 then trimmed.Substring(0, 40).TrimEnd('_') else trimmed
 
-    printfn $"    Committing iteration {iteration} to branch '{branch}'..."
+let private issueFolderName (issueNumber: int) (title: string) =
+    let sanitized = sanitizeForFilesystem title
+    $"issue-{issueNumber}_{sanitized}"
 
-    // Use a temporary worktree to avoid switching the main checkout
-    let worktreePath = Path.Combine(Path.GetTempPath(), $"pixogram-wt-{issueNumber}")
+let private setupWorktree () =
+    let worktreePath = Path.Combine(Path.GetTempPath(), "pixogram-maker-wt")
+    // Clean up any leftover worktree
+    if Directory.Exists worktreePath then
+        runGit [ "worktree"; "remove"; worktreePath; "--force" ] |> ignore
+    requireGit "fetch branch" [ "fetch"; "origin"; artifactBranch ] |> ignore
+    requireGit "add worktree" [ "worktree"; "add"; worktreePath; artifactBranch ] |> ignore
+    // Configure git identity (not set by default in GitHub Actions)
+    requireProcess "git config user.email" "git" [ "-C"; worktreePath; "config"; "user.email"; "github-actions[bot]@users.noreply.github.com" ] [] |> ignore
+    requireProcess "git config user.name" "git" [ "-C"; worktreePath; "config"; "user.name"; "github-actions[bot]" ] [] |> ignore
+    worktreePath
+
+let private cleanupWorktree (worktreePath: string) =
+    if Directory.Exists worktreePath then
+        runGit [ "worktree"; "remove"; worktreePath; "--force" ] |> ignore
+
+let private commitArtifacts (issueNumber: int) (issueTitle: string) (iteration: int) (csPath: string) (gifPath: string) : string =
+    let folder = issueFolderName issueNumber issueTitle
+    let num = iteration.ToString("D3")
+    let targetCs = $"{num}.cs"
+    let targetGif = $"{num}.gif"
+
+    printfn $"    Committing iteration {iteration} to {artifactBranch}/{folder}/..."
+
+    let worktreePath = setupWorktree ()
     try
-        // Clean up any leftover worktree
-        if Directory.Exists worktreePath then
-            runGit [ "worktree"; "remove"; worktreePath; "--force" ] |> ignore
+        // Create issue folder
+        let issueDir = Path.Combine(worktreePath, folder)
+        Directory.CreateDirectory issueDir |> ignore
 
-        // Create orphan branch or fetch existing
-        let branchExists =
-            runGit [ "ls-remote"; "--heads"; "origin"; branch ]
-            |> Option.map (fun s -> s.Length > 0)
-            |> Option.defaultValue false
+        // Copy files
+        File.Copy(csPath, Path.Combine(issueDir, targetCs), overwrite = true)
+        File.Copy(gifPath, Path.Combine(issueDir, targetGif), overwrite = true)
 
-        if branchExists then
-            requireGit "fetch branch" [ "fetch"; "origin"; branch ] |> ignore
-            requireGit "add worktree" [ "worktree"; "add"; worktreePath; branch ] |> ignore
-        else
-            requireGit "add orphan worktree" [ "worktree"; "add"; "--orphan"; worktreePath; "-b"; branch ] |> ignore
-            // Remove all files from orphan worktree
-            for f in Directory.GetFiles(worktreePath) do
-                if not (Path.GetFileName(f).StartsWith(".")) then
-                    File.Delete f
+        // Commit and push
+        requireProcess "git add" "git" [ "-C"; worktreePath; "add"; $"{folder}/{targetCs}"; $"{folder}/{targetGif}" ] [] |> ignore
+        requireProcess "git commit" "git" [ "-C"; worktreePath; "commit"; "-m"; $"#{issueNumber} iteration {iteration}" ] [] |> ignore
+        requireProcess "git push" "git" [ "-C"; worktreePath; "push"; "origin"; artifactBranch ] [] |> ignore
 
-        // Copy files to worktree
-        File.Copy(csPath, Path.Combine(worktreePath, targetCs), overwrite = true)
-        File.Copy(gifPath, Path.Combine(worktreePath, targetGif), overwrite = true)
-
-        // Configure git identity (not set by default in GitHub Actions)
-        requireProcess "git config user.email" "git" [ "-C"; worktreePath; "config"; "user.email"; "github-actions[bot]@users.noreply.github.com" ] [] |> ignore
-        requireProcess "git config user.name" "git" [ "-C"; worktreePath; "config"; "user.name"; "github-actions[bot]" ] [] |> ignore
-
-        // Commit and push from worktree — each step must succeed
-        requireProcess "git add" "git" [ "-C"; worktreePath; "add"; targetCs; targetGif ] [] |> ignore
-        requireProcess "git commit" "git" [ "-C"; worktreePath; "commit"; "-m"; $"Iteration #{iteration}" ] [] |> ignore
-        requireProcess "git push" "git" [ "-C"; worktreePath; "push"; "-u"; "origin"; branch ] [] |> ignore
-
-        let gifUrl = $"{repoUrl}/blob/{branch}/{targetGif}?raw=true"
-        printfn $"    ✓ Committed to {branch}, GIF: {gifUrl}"
+        let gifUrl = $"https://github.com/{owner}/{repoName}/blob/{artifactBranch}/{folder}/{targetGif}?raw=true"
+        printfn $"    ✓ Committed to {artifactBranch}/{folder}/, GIF: {gifUrl}"
         gifUrl
     finally
-        // Always clean up worktree
-        if Directory.Exists worktreePath then
-            runGit [ "worktree"; "remove"; worktreePath; "--force" ] |> ignore
+        cleanupWorktree worktreePath
 
 // ---------------------------------------------------------------------------
-// Compaction (stored on issue branch)
+// Compaction (stored in issue folder on pixogram-maker branch)
 // ---------------------------------------------------------------------------
 
 let private compactionFileName = "compaction.md"
 
-let private downloadCompaction (issueNumber: int) : string option =
-    let branch = issueBranch issueNumber
-    // Try to read compaction.md from the issue branch via GitHub API
-    match runProcess "gh" [ "api"; $"repos/{owner}/{repoName}/contents/{compactionFileName}"; "--jq"; ".content"; "-H"; "Accept: application/vnd.github.v3+json"; "--method"; "GET"; "-f"; $"ref={branch}" ] ghEnv with
+let private downloadCompaction (issueNumber: int) (issueTitle: string) : string option =
+    let folder = issueFolderName issueNumber issueTitle
+    let path = $"{folder}/{compactionFileName}"
+    match runProcess "gh" [ "api"; $"repos/{owner}/{repoName}/contents/{path}"; "--jq"; ".content"; "-H"; "Accept: application/vnd.github.v3+json"; "--method"; "GET"; "-f"; $"ref={artifactBranch}" ] ghEnv with
     | Some base64Content ->
         try
             let content = System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(base64Content.Replace("\n", "")))
@@ -192,32 +202,21 @@ let private downloadCompaction (issueNumber: int) : string option =
         with _ -> None
     | None -> None
 
-let private uploadCompaction (issueNumber: int) (summary: string) =
-    let branch = issueBranch issueNumber
-    let branchExists =
-        runGit [ "ls-remote"; "--heads"; "origin"; branch ]
-        |> Option.map (fun s -> s.Length > 0)
-        |> Option.defaultValue false
+let private uploadCompaction (issueNumber: int) (issueTitle: string) (summary: string) =
+    let folder = issueFolderName issueNumber issueTitle
+    let worktreePath = setupWorktree ()
+    try
+        let issueDir = Path.Combine(worktreePath, folder)
+        Directory.CreateDirectory issueDir |> ignore
+        File.WriteAllText(Path.Combine(issueDir, compactionFileName), summary)
+        requireProcess "git add" "git" [ "-C"; worktreePath; "add"; $"{folder}/{compactionFileName}" ] [] |> ignore
+        requireProcess "git commit" "git" [ "-C"; worktreePath; "commit"; "-m"; $"#{issueNumber} update compaction" ] [] |> ignore
+        requireProcess "git push" "git" [ "-C"; worktreePath; "push"; "origin"; artifactBranch ] [] |> ignore
+        printfn $"    ✓ Compaction summary committed to {artifactBranch}/{folder}/"
+    finally
+        cleanupWorktree worktreePath
 
-    if branchExists then
-        let worktreePath = Path.Combine(Path.GetTempPath(), $"pixogram-wt-compact-{issueNumber}")
-        try
-            if Directory.Exists worktreePath then
-                runGit [ "worktree"; "remove"; worktreePath; "--force" ] |> ignore
-            requireGit "fetch branch" [ "fetch"; "origin"; branch ] |> ignore
-            requireGit "add worktree" [ "worktree"; "add"; worktreePath; branch ] |> ignore
-            requireProcess "git config user.email" "git" [ "-C"; worktreePath; "config"; "user.email"; "github-actions[bot]@users.noreply.github.com" ] [] |> ignore
-            requireProcess "git config user.name" "git" [ "-C"; worktreePath; "config"; "user.name"; "github-actions[bot]" ] [] |> ignore
-            File.WriteAllText(Path.Combine(worktreePath, compactionFileName), summary)
-            requireProcess "git add" "git" [ "-C"; worktreePath; "add"; compactionFileName ] [] |> ignore
-            requireProcess "git commit" "git" [ "-C"; worktreePath; "commit"; "-m"; "Update compaction summary" ] [] |> ignore
-            requireProcess "git push" "git" [ "-C"; worktreePath; "push"; "origin"; branch ] [] |> ignore
-            printfn $"    ✓ Compaction summary committed to {branch}"
-        finally
-            if Directory.Exists worktreePath then
-                runGit [ "worktree"; "remove"; worktreePath; "--force" ] |> ignore
-
-let private runCompaction (config: PipelineConfig) (protocol: ProtocolLog) (fullConversation: string) (issueNumber: int) : string =
+let private runCompaction (config: PipelineConfig) (protocol: ProtocolLog) (fullConversation: string) (issueNumber: int) (issueTitle: string) : string =
     printfn $"  ▶ Running compaction..."
     let prompt = renderPrompt "compaction.md" [ "conversation", fullConversation ]
     match askAI config.Models.Compaction config.AiTimeoutMs prompt with
@@ -228,7 +227,7 @@ let private runCompaction (config: PipelineConfig) (protocol: ProtocolLog) (full
     | Ok summary ->
         printfn $"  ✓ Compaction done ({summary.Length} chars, ~{estimateTokens summary} tokens)"
         log protocol "Compaction" summary
-        uploadCompaction issueNumber summary
+        uploadCompaction issueNumber issueTitle summary
         summary
 
 let private needsCompaction (config: PipelineConfig) (conversationText: string) =
@@ -277,7 +276,7 @@ let private generateSummary (config: PipelineConfig) (conversation: string) =
         printfn $"    ✗ Summary failed: {err}"
         ""
 
-let private executeImplementor (config: PipelineConfig) (protocol: ProtocolLog) (conversation: string) (fullConversation: string) (craftsmanText: string option) (comments: IssueComment list) (issueNumber: int) =
+let private executeImplementor (config: PipelineConfig) (protocol: ProtocolLog) (conversation: string) (fullConversation: string) (craftsmanText: string option) (comments: IssueComment list) (issueNumber: int) (issueTitle: string) =
     printfn $"  ▶ Running Implementor ({backendDisplayName config.Models.Implementor})..."
     printfn "    Prompt: implementor.md"
 
@@ -314,7 +313,7 @@ let private executeImplementor (config: PipelineConfig) (protocol: ProtocolLog) 
         | Ok _ ->
             printfn $"    Render OK"
             log protocol "Render" $"OK: {gifPath}"
-            let gifUrl = commitToIssueBranch issueNumber iterationNumber csPath gifPath
+            let gifUrl = commitArtifacts issueNumber issueTitle iterationNumber csPath gifPath
             let gifMarkdown = $"\n\n![preview]({gifUrl})"
             let summary = generateSummary config fullConversation
             let summaryLine = if summary <> "" then $"\n\n{summary}" else ""
@@ -324,12 +323,12 @@ let private executeImplementor (config: PipelineConfig) (protocol: ProtocolLog) 
                     $"\n\n<details>\n<summary>Craftsman Specification</summary>\n\n" +
                     $"{ct}\n\n</details>"
                 | None -> ""
-            let branch = issueBranch issueNumber
-            let branchUrl = $"https://github.com/{owner}/{repoName}/tree/{branch}"
-            let vscodeUrl = $"https://vscode.dev/github/{owner}/{repoName}/tree/{branch}"
-            let codespacesUrl = $"https://codespaces.new/{owner}/{repoName}/tree/{branch}?quickstart=1"
+            let folder = issueFolderName issueNumber issueTitle
+            let folderUrl = $"https://github.com/{owner}/{repoName}/tree/{artifactBranch}/{folder}"
+            let vscodeUrl = $"https://vscode.dev/github/{owner}/{repoName}/tree/{artifactBranch}/{folder}"
+            let codespacesUrl = $"https://codespaces.new/{owner}/{repoName}/tree/{artifactBranch}?quickstart=1"
             let openLinks =
-                $"\n\n[`{branch}`]({branchUrl}) · " +
+                $"\n\n[`{artifactBranch}/{folder}`]({folderUrl}) · " +
                 $"[Open in VS Code]({vscodeUrl}) · " +
                 $"[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)]({codespacesUrl})"
             let comment =
@@ -483,8 +482,8 @@ let run (config: PipelineConfig) (issue: Issue) =
         let maxIterations = extractIterationCount config issue.Body
         printfn $"  Max iterations: {maxIterations}"
 
-        // Load existing compaction from release (if any)
-        let mutable compaction = downloadCompaction issue.Number
+        // Load existing compaction (if any)
+        let mutable compaction = downloadCompaction issue.Number issue.Title
 
         // Safety valve: hard cap on loop iterations to prevent runaway loops.
         // Normal cycle = Director + Craftsman/Implementor = 2 iterations.
@@ -514,7 +513,7 @@ let run (config: PipelineConfig) (issue: Issue) =
 
             // Run compaction if needed
             if needsCompaction config rawFullConversation then
-                let summary = runCompaction config protocol rawFullConversation current.Number
+                let summary = runCompaction config protocol rawFullConversation current.Number current.Title
                 if summary.Length > 0 then
                     compaction <- Some summary
                     log protocol "Compaction" $"Compacted to {summary.Length} chars"
@@ -571,9 +570,9 @@ let run (config: PipelineConfig) (issue: Issue) =
                         "</comment>\n"
                     let extendedConversation =
                         implConversation.Replace("</conversation>", craftsmanComment + "</conversation>")
-                    executeImplementor config protocol extendedConversation fullConversation (Some craftsmanResponse) current.Comments current.Number
+                    executeImplementor config protocol extendedConversation fullConversation (Some craftsmanResponse) current.Comments current.Number current.Title
             | RunImplementor ->
-                executeImplementor config protocol implConversation fullConversation None current.Comments current.Number
+                executeImplementor config protocol implConversation fullConversation None current.Comments current.Number current.Title
             | Done reason ->
                 printfn $"  Done: {reason}"
                 running <- false
