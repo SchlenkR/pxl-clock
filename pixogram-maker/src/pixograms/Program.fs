@@ -32,6 +32,7 @@ let buildPipelineConfig (models: ConfigSet) : PipelineConfig =
         TrustedAuthors = splitList (envRequired "TRUSTED_AUTHORS")
         DefaultIterations = envRequiredInt "DEFAULT_ITERATIONS"
         MaxIterationsCap = envRequiredInt "MAX_ITERATIONS_CAP"
+        MaxDirectorRetries = envRequiredInt "MAX_DIRECTOR_RETRIES"
         MaxImplementorRetries = envRequiredInt "MAX_IMPLEMENTOR_RETRIES"
         AiTimeoutMs = envRequiredInt "AI_TIMEOUT_MS"
         GifDurationSeconds = envRequiredInt "GIF_DURATION_SECONDS"

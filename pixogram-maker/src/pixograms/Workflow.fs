@@ -243,17 +243,28 @@ let private needsCompaction (config: PipelineConfig) (conversationText: string) 
 // ---------------------------------------------------------------------------
 
 let private executeDirector (config: PipelineConfig) (protocol: ProtocolLog) (backend: SelectedBackend) (promptFile: string) (label: string) (conversation: string) (issueNumber: int) =
-    printfn $"  ▶ Running {label} ({backendDisplayName backend})..."
-    printfn $"    Prompt: {promptFile}"
-    match callAgent backend config.AiTimeoutMs promptFile conversation with
-    | Error err ->
-        printfn $"  ✗ {label} failed: {err}"
-        log protocol label $"FAILED: {err}"
-    | Ok response ->
-        log protocol label response
-        printfn $"    Posting comment..."
-        postComment issueNumber response
-        printfn $"  ✓ {label} posted."
+    let expectedTag = $"**[{label}]**"
+    let mutable attempt = 1
+    let mutable posted = false
+    while not posted && attempt <= config.MaxDirectorRetries do
+        printfn $"  ▶ Running {label} ({backendDisplayName backend}), attempt {attempt}/{config.MaxDirectorRetries}..."
+        printfn $"    Prompt: {promptFile}"
+        match callAgent backend config.AiTimeoutMs promptFile conversation with
+        | Error err ->
+            printfn $"  ✗ {label} failed: {err}"
+            log protocol label $"FAILED (attempt {attempt}): {err}"
+        | Ok response when not (response.Contains(expectedTag)) ->
+            printfn $"  ✗ {label} response missing expected tag '{expectedTag}', discarding."
+            log protocol label $"DISCARDED (attempt {attempt}, missing tag): {response}"
+        | Ok response ->
+            log protocol label response
+            printfn $"    Posting comment..."
+            postComment issueNumber response
+            printfn $"  ✓ {label} posted."
+            posted <- true
+        attempt <- attempt + 1
+    if not posted then
+        printfn $"  ✗ {label} failed after {config.MaxDirectorRetries} attempts."
 
 let private executeCraftsman (config: PipelineConfig) (protocol: ProtocolLog) (conversation: string) : string option =
     printfn $"  ▶ Running Craftsman ({backendDisplayName config.Models.Craftsman})..."

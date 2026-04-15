@@ -80,7 +80,7 @@ let configSets =
 
         {
             Name = "copilot-gpt-5.4/gpt-5.4-mini"
-            SafetyCheck = Copilot(CopilotModels.gpt54, Medium)
+            SafetyCheck = Copilot(CopilotModels.gpt54, High)
             Triage = Copilot(CopilotModels.gpt54, Medium)
             DirectorVisionary = Copilot(CopilotModels.gpt54, Medium)
             Craftsman = Copilot(CopilotModels.gpt54, Medium)
@@ -113,6 +113,7 @@ type PipelineConfig =
         // Iteration limits
         DefaultIterations: int
         MaxIterationsCap: int
+        MaxDirectorRetries: int
         MaxImplementorRetries: int
         // Timeouts & rendering
         AiTimeoutMs: int
