@@ -94,12 +94,12 @@ let runSafetyCheck (config: PipelineConfig) (issue: GitHub.Issue) : SafetyResult
             printfn $"  ✗ No TRIAGE- line found in response"
             SafetyResult.Failed "Could not parse safety check response"
 
-let runCommentSafetyCheck (config: PipelineConfig) (issue: GitHub.Issue) (commentBody: string) : SafetyResult =
+let runCommentSafetyCheck (config: PipelineConfig) (context: string) (author: string) (commentBody: string) : SafetyResult =
     printfn "  Comment safety check..."
     let prompt =
-        renderPrompt "safety-check.md"
-            [ "title", issue.Title
-              "author", issue.Author
+        renderPrompt "comment-safety-check.md"
+            [ "context", context
+              "author", author
               "body", commentBody ]
     match askAI config.Models.SafetyCheck config.AiTimeoutMs prompt with
     | Result.Error err ->

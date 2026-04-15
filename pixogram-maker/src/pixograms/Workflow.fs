@@ -500,7 +500,8 @@ let run (config: PipelineConfig) (issue: Issue) =
             match lastUserOrMaintainerComment config current with
             | Some userComment ->
                 printfn $"  Last comment is from user/maintainer — running safety check..."
-                match runCommentSafetyCheck config current userComment.Body with
+                let safetyContext = buildCommentSafetyContext config current
+                match runCommentSafetyCheck config safetyContext userComment.Author userComment.Body with
                 | SafetyResult.Passed ->
                     printfn $"  ✓ Comment safety check passed."
                     log protocol "CommentSafety" "PASSED"

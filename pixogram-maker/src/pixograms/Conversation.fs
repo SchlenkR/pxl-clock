@@ -213,6 +213,29 @@ let lastUserOrMaintainerComment (config: PipelineConfig) (issue: Issue) : IssueC
         | CommentRole.User | CommentRole.Maintainer -> Some c
         | _ -> None)
 
+/// Build a lightweight context summary for comment safety checks.
+/// Includes issue metadata and conversation flow but NO code.
+let buildCommentSafetyContext (config: PipelineConfig) (issue: Issue) : string =
+    let trusted =
+        issue.Comments
+        |> List.filter (fun c -> isTrustedCommentAuthor config.TrustedAuthors issue.Author c.Author)
+    let implCount = countImplementorComments trusted
+    let roles =
+        trusted
+        |> List.map (fun c ->
+            let role = detectCommentRole config.Maintainers c.Body c.Author issue.Author
+            commentRoleTag role)
+    let labels = String.Join(", ", issue.Labels)
+    let sb = StringBuilder()
+    let title = issue.Title
+    sb.AppendLine $"Issue #{issue.Number}: \"{title}\"" |> ignore
+    sb.AppendLine $"Author: @{issue.Author}" |> ignore
+    sb.AppendLine $"Labels: {labels}" |> ignore
+    sb.AppendLine $"Implementor iterations: {implCount}" |> ignore
+    let roleFlow = String.Join(" → ", roles)
+    sb.AppendLine $"Conversation roles: {roleFlow}" |> ignore
+    sb.ToString().Trim()
+
 /// Estimate token count using ~4 characters per token heuristic.
 let estimateTokens (text: string) = text.Length / 4
 
