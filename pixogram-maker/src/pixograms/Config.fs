@@ -166,8 +166,16 @@ let private onEvent (event: AgentEvent) =
         eprintfn "    [ERROR] %s" e
         Console.ResetColor()
 
+// System prompt to prevent models (especially gpt-5.4) from attempting tool use.
+// These agents have no tools available — without this instruction, some models
+// produce empty responses because they try to call non-existent tools.
+let private noToolsPrompt =
+    "You are a text-only AI. You have NO tools available. " +
+    "You cannot read files, edit files, browse repositories, run commands, or access any external resources. " +
+    "Output only text. Do not attempt to call tools or functions — they do not exist."
+
 let createAgent (backend: SelectedBackend) : IAgent =
-    agentFactory backend None None []
+    agentFactory backend (Some noToolsPrompt) None []
 
 let sendToAgent (agent: IAgent) (timeoutMs: int) (prompt: string) : Result<string, string> =
     printfn $"    [agent] Sending {prompt.Length} chars..."
@@ -195,7 +203,7 @@ let askAI (backend: SelectedBackend) (timeoutMs: int) (prompt: string) : Result<
     printfn $"    [askAI] Prompt: {prompt.Length} chars, Timeout: {timeoutMs / 1000}s"
     try
         printfn $"    [askAI] Creating agent..."
-        use agent = agentFactory backend None None []
+        use agent = agentFactory backend (Some noToolsPrompt) None []
         printfn $"    [askAI] Agent ready, sending prompt..."
         let work = agent.Send(prompt, onEvent)
         let result =
