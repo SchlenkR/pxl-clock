@@ -58,7 +58,6 @@ let private findLastLineMatching (prefix: string) (response: string) =
 type NextAction =
     | RunVisionary
     | RunMaverick
-    | RunCraftsman
     | RunImplementor
     | Done of reason: string
 
@@ -95,6 +94,28 @@ let runSafetyCheck (config: PipelineConfig) (issue: GitHub.Issue) : SafetyResult
             printfn $"  ✗ No TRIAGE- line found in response"
             SafetyResult.Failed "Could not parse safety check response"
 
+let runCommentSafetyCheck (config: PipelineConfig) (issue: GitHub.Issue) (commentBody: string) : SafetyResult =
+    printfn "  Comment safety check..."
+    let prompt =
+        renderPrompt "safety-check.md"
+            [ "title", issue.Title
+              "author", issue.Author
+              "body", commentBody ]
+    match askAI config.Models.SafetyCheck config.AiTimeoutMs prompt with
+    | Result.Error err ->
+        printfn $"  ✗ Comment safety check AI error: {err}"
+        SafetyResult.Error $"AI error: {err}"
+    | Ok response ->
+        match findLastLineMatching "TRIAGE-" response with
+        | Some line ->
+            printfn $"  → {line}"
+            if line.StartsWith "TRIAGE-PASSED" then SafetyResult.Passed
+            elif line.StartsWith "TRIAGE-FAILED" then SafetyResult.Failed (line.Replace("TRIAGE-FAILED:", "").Trim())
+            else SafetyResult.Failed $"Unexpected response: {line}"
+        | None ->
+            printfn $"  ✗ No TRIAGE- line found in response"
+            SafetyResult.Failed "Could not parse comment safety check response"
+
 let extractIterationCount (config: PipelineConfig) (issueBody: string) =
     let prompt = renderPrompt "iteration-count.md" [ "default_iterations", string config.DefaultIterations; "description", issueBody ]
     printfn "  Extracting iteration count..."
@@ -130,7 +151,7 @@ let determineNextAction (config: PipelineConfig) (maxIterations: int) (author: s
         printfn $"  ✗ Triage failed: {err}"
         Done $"Triage error: {err}"
     | Ok response ->
-        let keywords = [| "VISIONARY"; "MAVERICK"; "CRAFTSMAN"; "IMPLEMENTOR"; "DONE" |]
+        let keywords = [| "VISIONARY"; "MAVERICK"; "IMPLEMENTOR"; "DONE" |]
         let line =
             keywords
             |> Array.tryPick (fun kw -> findLastLineMatching kw response)
@@ -139,7 +160,7 @@ let determineNextAction (config: PipelineConfig) (maxIterations: int) (author: s
 
         if line.StartsWith "VISIONARY" then RunVisionary
         elif line.StartsWith "MAVERICK" then RunMaverick
-        elif line.StartsWith "CRAFTSMAN" then RunCraftsman
+        elif line.StartsWith "CRAFTSMAN" then RunImplementor // legacy: treat as IMPLEMENTOR
         elif line.StartsWith "IMPLEMENTOR" then RunImplementor
         elif line.StartsWith "DONE" then Done (line.Replace("DONE:", "").Trim())
         else RunVisionary

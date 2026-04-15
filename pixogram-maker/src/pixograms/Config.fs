@@ -42,7 +42,6 @@ type ConfigSet =
         SafetyCheck: SelectedBackend
         Triage: SelectedBackend
         DirectorVisionary: SelectedBackend
-        Craftsman: SelectedBackend
         DirectorMaverick: SelectedBackend
         Implementor: SelectedBackend
         Compaction: SelectedBackend
@@ -57,7 +56,6 @@ let configSets =
             SafetyCheck = Anthropic AnthropicModels.sonnet46
             Triage = Anthropic AnthropicModels.sonnet46
             DirectorVisionary = Anthropic AnthropicModels.sonnet46
-            Craftsman = Anthropic AnthropicModels.sonnet46
             DirectorMaverick = Anthropic AnthropicModels.sonnet46
             Implementor = Anthropic AnthropicModels.sonnet46
             Compaction = Anthropic AnthropicModels.haiku45
@@ -70,7 +68,6 @@ let configSets =
             SafetyCheck = Copilot(CopilotModels.sonnet46, Medium)
             Triage = Copilot(CopilotModels.sonnet46, Medium)
             DirectorVisionary = Copilot(CopilotModels.sonnet46, Medium)
-            Craftsman = Copilot(CopilotModels.sonnet46, Medium)
             DirectorMaverick = Copilot(CopilotModels.sonnet46, Medium)
             Implementor = Copilot(CopilotModels.sonnet46, Medium)
             Compaction = Copilot(CopilotModels.haiku45, Low)
@@ -83,7 +80,6 @@ let configSets =
             SafetyCheck = Copilot(CopilotModels.gpt54, High)
             Triage = Copilot(CopilotModels.gpt54, Medium)
             DirectorVisionary = Copilot(CopilotModels.gpt54, Medium)
-            Craftsman = Copilot(CopilotModels.gpt54, Medium)
             DirectorMaverick = Copilot(CopilotModels.gpt54, Medium)
             Implementor = Copilot(CopilotModels.gpt54, Medium)
             Compaction = Copilot(CopilotModels.gpt54Mini, Low)

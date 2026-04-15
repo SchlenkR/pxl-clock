@@ -202,6 +202,17 @@ let lastCommentRole (config: PipelineConfig) (issue: Issue) : CommentRole option
     |> List.tryLast
     |> Option.map (fun c -> detectCommentRole config.Maintainers c.Body c.Author issue.Author)
 
+/// Return the last comment if it's from a user or maintainer (for safety re-check).
+let lastUserOrMaintainerComment (config: PipelineConfig) (issue: Issue) : IssueComment option =
+    issue.Comments
+    |> List.filter (fun c -> isTrustedCommentAuthor config.TrustedAuthors c.Author issue.Author)
+    |> List.tryLast
+    |> Option.bind (fun c ->
+        let role = detectCommentRole config.Maintainers c.Body c.Author issue.Author
+        match role with
+        | CommentRole.User | CommentRole.Maintainer -> Some c
+        | _ -> None)
+
 /// Estimate token count using ~4 characters per token heuristic.
 let estimateTokens (text: string) = text.Length / 4
 

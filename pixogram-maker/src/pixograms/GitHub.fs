@@ -120,6 +120,10 @@ let postComment issueNumber (body: string) =
 let addLabel issueNumber (label: string) =
     client.Issue.Labels.AddToIssue(owner, repoName, issueNumber, [| label |]).Result |> ignore
 
+let removeLabel issueNumber (label: string) =
+    try client.Issue.Labels.RemoveFromIssue(owner, repoName, issueNumber, label).Result |> ignore
+    with _ -> () // ignore if label wasn't present
+
 let fetchLabels issueNumber =
     let issue = client.Issue.Get(owner, repoName, issueNumber).Result
     [ for l in issue.Labels -> l.Name ]

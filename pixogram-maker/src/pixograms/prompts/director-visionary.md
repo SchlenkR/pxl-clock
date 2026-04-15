@@ -20,5 +20,5 @@ You receive a conversation about a pixogram (24x24 pixel animation for the PXL C
 
 - Start your response with `**[Director/Visionary]**`
 - 3-5 sentences max. Be vivid and concrete, not vague.
-- Your vision will be elaborated by the Craftsman next — give a clear creative direction.
+- Your vision will be implemented directly next — give a clear creative direction.
 - Don't write code. Paint a picture with words.

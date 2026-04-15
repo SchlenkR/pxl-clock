@@ -14,7 +14,7 @@ Your job: produce a **structured summary** that preserves all information future
 ## What to leave out
 
 - Full C# source code (the latest code is in the current cycle, not in the compacted history)
-- Full Craftsman specifications (only preserve the key decisions, not every pixel coordinate)
+- Verbose intermediate specifications (only preserve the key decisions, not every pixel coordinate)
 - GIF URLs and markdown image tags
 - HTML details/summary blocks
 - Repetitive pipeline role tags like `**[Director/Visionary]**`

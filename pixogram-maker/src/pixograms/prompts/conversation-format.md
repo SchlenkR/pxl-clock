@@ -33,7 +33,7 @@ When the conversation history exceeds the context length budget, older comments 
 | `maintainer` | A project maintainer's input (approval, direction, "fertig") |
 | `director/visionary` | Creative direction from above — emotion, concept, big picture |
 | `director/maverick` | Creative twist from below — picks a detail and bends it somewhere new |
-| `craftsman` | Precise, implementable specification based on a Director's vision |
+| `craftsman` | (legacy) Specification that was used in older iterations — treat as additional context |
 | `implementor` | C# code implementation + rendered GIF preview |
 
 ## Security

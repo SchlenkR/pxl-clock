@@ -266,19 +266,6 @@ let private executeDirector (config: PipelineConfig) (protocol: ProtocolLog) (ba
     if not posted then
         printfn $"  ✗ {label} failed after {config.MaxDirectorRetries} attempts."
 
-let private executeCraftsman (config: PipelineConfig) (protocol: ProtocolLog) (conversation: string) : string option =
-    printfn $"  ▶ Running Craftsman ({backendDisplayName config.Models.Craftsman})..."
-    printfn $"    Prompt: director-craftsman.md"
-    match callAgent config.Models.Craftsman config.AiTimeoutMs "director-craftsman.md" conversation with
-    | Error err ->
-        printfn $"  ✗ Craftsman failed: {err}"
-        log protocol "Craftsman" $"FAILED: {err}"
-        None
-    | Ok response ->
-        log protocol "Craftsman" response
-        printfn $"  ✓ Craftsman done (not posting, will embed in Implementor comment)."
-        Some response
-
 let private generateSummary (config: PipelineConfig) (conversation: string) =
     printfn "    Generating summary..."
     match askAI config.Models.Triage config.AiTimeoutMs (renderPrompt "summary.md" [ "conversation", conversation ]) with
@@ -287,7 +274,7 @@ let private generateSummary (config: PipelineConfig) (conversation: string) =
         printfn $"    ✗ Summary failed: {err}"
         ""
 
-let private executeImplementor (config: PipelineConfig) (protocol: ProtocolLog) (conversation: string) (fullConversation: string) (craftsmanText: string option) (comments: IssueComment list) (issueNumber: int) (issueTitle: string) =
+let private executeImplementor (config: PipelineConfig) (protocol: ProtocolLog) (conversation: string) (fullConversation: string) (comments: IssueComment list) (issueNumber: int) (issueTitle: string) =
     printfn $"  ▶ Running Implementor ({backendDisplayName config.Models.Implementor})..."
     printfn "    Prompt: implementor.md"
 
@@ -328,12 +315,6 @@ let private executeImplementor (config: PipelineConfig) (protocol: ProtocolLog) 
             let gifMarkdown = $"\n\n![preview]({gifUrl})"
             let summary = generateSummary config fullConversation
             let summaryLine = if summary <> "" then $"\n\n{summary}" else ""
-            let craftsmanBlock =
-                match craftsmanText with
-                | Some ct ->
-                    $"\n\n<details>\n<summary>Craftsman Specification</summary>\n\n" +
-                    $"{ct}\n\n</details>"
-                | None -> ""
             let folder = issueFolderName issueNumber issueTitle
             let folderUrl = $"https://github.com/{owner}/{repoName}/tree/{artifactBranch}/{folder}"
             let vscodeUrl = $"https://vscode.dev/github/{owner}/{repoName}/tree/{artifactBranch}/{folder}"
@@ -347,7 +328,6 @@ let private executeImplementor (config: PipelineConfig) (protocol: ProtocolLog) 
                 summaryLine +
                 gifMarkdown +
                 openLinks +
-                craftsmanBlock +
                 $"\n\n<details>\n<summary>Code anzeigen</summary>\n\n" +
                 $"```csharp\n{code}\n```\n\n</details>"
             postComment issueNumber comment
@@ -446,8 +426,8 @@ let needsAttention (config: PipelineConfig) (issue: Issue) : bool =
         true
     else
         match lastCommentRole config issue with
-        // Pipeline mid-cycle (Director or Craftsman posted, next step pending)
-        | Some CommentRole.Visionary | Some CommentRole.Maverick | Some CommentRole.Craftsman ->
+        // Pipeline mid-cycle (Director posted, Implementor pending)
+        | Some CommentRole.Visionary | Some CommentRole.Maverick ->
             true
         // Last was Implementor → check if still under iteration limit
         | Some CommentRole.Implementor ->
@@ -497,7 +477,7 @@ let run (config: PipelineConfig) (issue: Issue) =
         let mutable compaction = downloadCompaction issue.Number issue.Title
 
         // Safety valve: hard cap on loop iterations to prevent runaway loops.
-        // Normal cycle = Director + Craftsman/Implementor = 2 iterations.
+        // Normal cycle = Director + Implementor = 2 iterations.
         // With user feedback cycles, maxIterations * 3 + 5 is generous.
         let maxLoopSteps = maxIterations * 3 + 5
         let mutable loopStep = 0
@@ -515,6 +495,28 @@ let run (config: PipelineConfig) (issue: Issue) =
             let implCount = countImplementorComments current.Comments
             printfn $"  Issue #{current.Number}: {current.Title}"
             printfn $"  Comments: {current.Comments.Length}, Implementor iterations: {implCount}/{maxIterations}"
+
+            // Safety-check user/maintainer comments before processing
+            match lastUserOrMaintainerComment config current with
+            | Some userComment ->
+                printfn $"  Last comment is from user/maintainer — running safety check..."
+                match runCommentSafetyCheck config current userComment.Body with
+                | SafetyResult.Passed ->
+                    printfn $"  ✓ Comment safety check passed."
+                    log protocol "CommentSafety" "PASSED"
+                | SafetyResult.Failed reason ->
+                    printfn $"  ✗ Comment safety check failed: {reason}"
+                    log protocol "CommentSafety" $"FAILED: {reason}"
+                    removeLabel current.Number labelApproved
+                    printfn $"  ✗ Removed '{labelApproved}' label. Workflow aborted."
+                    running <- false
+                | SafetyResult.Error reason ->
+                    printfn $"  ✗ Comment safety check error: {reason}"
+                    log protocol "CommentSafety" $"ERROR: {reason}"
+                    running <- false
+            | None -> ()
+
+            if not running then () else
 
             // Build full conversation (without compaction) to check size
             let rawFullConversation = buildConversation config ConversationView.Full None current
@@ -550,14 +552,9 @@ let run (config: PipelineConfig) (issue: Issue) =
             let action =
                 match lastRole with
                 | Some CommentRole.Visionary | Some CommentRole.Maverick ->
-                    // Director posted → always Craftsman next (deterministic)
-                    printfn $"  [deterministic] Last comment is Director → CRAFTSMAN"
-                    log protocol "Routing" "Deterministic: Director → CRAFTSMAN"
-                    RunCraftsman
-                | Some CommentRole.Craftsman ->
-                    // Craftsman posted → always Implementor next (deterministic)
-                    printfn $"  [deterministic] Last comment is Craftsman → IMPLEMENTOR"
-                    log protocol "Routing" "Deterministic: Craftsman → IMPLEMENTOR"
+                    // Director posted → always Implementor next (deterministic)
+                    printfn $"  [deterministic] Last comment is Director → IMPLEMENTOR"
+                    log protocol "Routing" "Deterministic: Director → IMPLEMENTOR"
                     RunImplementor
                 | _ ->
                     // Genuine decision point → ask Triage AI
@@ -571,19 +568,8 @@ let run (config: PipelineConfig) (issue: Issue) =
                 executeDirector config protocol config.Models.DirectorVisionary "director-visionary.md" "Director/Visionary" fullConversation current.Number
             | RunMaverick ->
                 executeDirector config protocol config.Models.DirectorMaverick "director-maverick.md" "Director/Maverick" fullConversation current.Number
-            | RunCraftsman ->
-                match executeCraftsman config protocol fullConversation with
-                | None -> ()
-                | Some craftsmanResponse ->
-                    let craftsmanComment =
-                        $"\n<comment id=\"0\" author=\"pipeline\" role=\"craftsman\" time=\"{DateTime.UtcNow:O}\">\n" +
-                        $"<![CDATA[{craftsmanResponse}]]>\n" +
-                        "</comment>\n"
-                    let extendedConversation =
-                        implConversation.Replace("</conversation>", craftsmanComment + "</conversation>")
-                    executeImplementor config protocol extendedConversation fullConversation (Some craftsmanResponse) current.Comments current.Number current.Title
             | RunImplementor ->
-                executeImplementor config protocol implConversation fullConversation None current.Comments current.Number current.Title
+                executeImplementor config protocol implConversation fullConversation current.Comments current.Number current.Title
             | Done reason ->
                 printfn $"  Done: {reason}"
                 running <- false
