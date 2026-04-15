@@ -6,7 +6,7 @@
 // Example 35: Layer Rotation
 // Spin a shape around the display center
 
-#:package Pxl@0.0.64
+#:package Pxl@*
 
 using Pxl.Ui.CSharp;
 

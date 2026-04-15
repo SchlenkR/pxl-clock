@@ -5,7 +5,7 @@
 // ---
 // Example 38: Using classes — a simple particle system
 
-#:package Pxl@0.0.64
+#:package Pxl@*
 
 using Pxl.Ui.CSharp;
 
