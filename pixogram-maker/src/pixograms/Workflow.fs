@@ -542,8 +542,8 @@ let run (config: PipelineConfig) (issue: Issue) =
                 running <- false
             else
 
-            // Deterministic routing: if the last comment is a Director or Craftsman,
-            // the next step is always known — no need to ask Triage (and risk misrouting).
+            // Deterministic routing: if the last comment is a Director,
+            // the next step is always Implementor — no need to ask Triage.
             // Triage is only needed for genuine decision points:
             //   - After Implementor (which Director next? DONE?)
             //   - After user feedback on Implementor (what kind of feedback?)
