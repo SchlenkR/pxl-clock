@@ -86,6 +86,24 @@ let private log (protocol: ProtocolLog) (role: string) (text: string) =
     protocol.Writer.WriteLine text
     protocol.Writer.WriteLine()
 
+let private configSetMarkdown (models: ConfigSet) =
+    let impl = backendDisplayName models.Implementor
+    let rows =
+        [ "Safety Check", backendDisplayName models.SafetyCheck
+          "Triage", backendDisplayName models.Triage
+          "Director (Visionary)", backendDisplayName models.DirectorVisionary
+          "Director (Maverick)", backendDisplayName models.DirectorMaverick
+          "Implementor", impl
+          match models.ImplementorFallback with
+          | Some fb -> "Implementor (Fallback)", backendDisplayName fb
+          | None -> ()
+          "Compaction", backendDisplayName models.Compaction ]
+    let table =
+        "| Role | Model |\n|------|-------|\n" +
+        (rows |> List.map (fun (role, model) -> $"| {role} | {model} |") |> String.concat "\n")
+    $"\n\n---\n\n🤖 **Config Set:** `{models.Name}` · **Implementor:** {impl}" +
+    $"\n\n<details>\n<summary>Model Configuration</summary>\n\n{table}\n\n</details>"
+
 // ---------------------------------------------------------------------------
 // Code extraction & rendering
 // ---------------------------------------------------------------------------
@@ -383,7 +401,8 @@ let private executeImplementor (config: PipelineConfig) (protocol: ProtocolLog) 
                 $"{roleTag Role.Implementor} — Iteration {iterationNumber}" +
                 summaryLine +
                 gifMarkdown +
-                openLinks +
+                $"\n\n" + openLinks +
+                configSetMarkdown config.Models +
                 $"\n\n<details>\n<summary>Code anzeigen</summary>\n\n" +
                 $"```csharp\n{code}\n```\n\n</details>"
             postComment issueNumber comment
