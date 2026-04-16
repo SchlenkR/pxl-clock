@@ -3,6 +3,7 @@ module PixogramRequests.Workflow
 open System
 open System.Diagnostics
 open System.IO
+open AiBase.Agent
 open AiBase.AgentSelection
 open PixogramRequests.Config
 open PixogramRequests.Conversation
@@ -97,9 +98,9 @@ let private renderPixogram (config: PipelineConfig) (csPath: string) (gifPath: s
         else
             let output = (stdout + "\n" + stderr).Trim()
             printfn $"  Render FAILED (exit {proc.ExitCode})"
-            Error output
+            Result.Error output
     with ex ->
-        Error ex.Message
+        Result.Error ex.Message
 
 // ---------------------------------------------------------------------------
 // Artifact storage on the pixogram-maker branch
@@ -216,11 +217,13 @@ let private uploadCompaction (issueNumber: int) (issueTitle: string) (summary: s
     finally
         cleanupWorktree worktreePath
 
-let private runCompaction (config: PipelineConfig) (protocol: ProtocolLog) (fullConversation: string) (issueNumber: int) (issueTitle: string) : string =
+let private runCompaction (config: PipelineConfig) (protocol: ProtocolLog) (conversationMessages: ChatMessage list) (issueNumber: int) (issueTitle: string) : string =
     printfn $"  ▶ Running compaction..."
-    let prompt = renderPrompt "compaction.md" [ "conversation", fullConversation ]
-    match askAI config.Models.Compaction config.AiTimeoutMs prompt with
-    | Error err ->
+    let conversationText = renderConversationAsText conversationMessages
+    let systemPrompt = renderSystemPrompt "compaction.md" []
+    let messages = [ ChatMessage.system systemPrompt; ChatMessage.user conversationText ]
+    match askChat config.Models.Compaction config.AiTimeoutMs messages with
+    | Result.Error err ->
         printfn $"  ✗ Compaction failed: {err}"
         log protocol "Compaction" $"FAILED: {err}"
         ""
@@ -230,8 +233,9 @@ let private runCompaction (config: PipelineConfig) (protocol: ProtocolLog) (full
         uploadCompaction issueNumber issueTitle summary
         summary
 
-let private needsCompaction (config: PipelineConfig) (conversationText: string) =
-    let tokens = estimateTokens conversationText
+let private needsCompaction (config: PipelineConfig) (conversationMessages: ChatMessage list) =
+    let text = renderConversationAsText conversationMessages
+    let tokens = estimateTokens text
     let threshold = int (float config.Models.ContextLengthTokens * config.Models.CompactionThreshold)
     let needs = tokens >= threshold
     if needs then
@@ -242,15 +246,15 @@ let private needsCompaction (config: PipelineConfig) (conversationText: string) 
 // Step execution
 // ---------------------------------------------------------------------------
 
-let private executeDirector (config: PipelineConfig) (protocol: ProtocolLog) (backend: SelectedBackend) (promptFile: string) (label: string) (conversation: string) (issueNumber: int) =
+let private executeDirector (config: PipelineConfig) (protocol: ProtocolLog) (backend: SelectedBackend) (promptFile: string) (label: string) (conversationMessages: ChatMessage list) (issueNumber: int) =
     let expectedTag = $"**[{label}]**"
     let mutable attempt = 1
     let mutable posted = false
     while not posted && attempt <= config.MaxDirectorRetries do
         printfn $"  ▶ Running {label} ({backendDisplayName backend}), attempt {attempt}/{config.MaxDirectorRetries}..."
         printfn $"    Prompt: {promptFile}"
-        match callAgent backend config.AiTimeoutMs promptFile conversation with
-        | Error err ->
+        match callAgent backend config.AiTimeoutMs promptFile conversationMessages with
+        | Result.Error err ->
             printfn $"  ✗ {label} failed: {err}"
             log protocol label $"FAILED (attempt {attempt}): {err}"
         | Ok response when not (response.Contains(expectedTag)) ->
@@ -266,33 +270,62 @@ let private executeDirector (config: PipelineConfig) (protocol: ProtocolLog) (ba
     if not posted then
         printfn $"  ✗ {label} failed after {config.MaxDirectorRetries} attempts."
 
-let private generateSummary (config: PipelineConfig) (conversation: string) =
+let private generateSummary (config: PipelineConfig) (conversationMessages: ChatMessage list) =
     printfn "    Generating summary..."
-    match askAI config.Models.Triage config.AiTimeoutMs (renderPrompt "summary.md" [ "conversation", conversation ]) with
+    let conversationText = renderConversationAsText conversationMessages
+    let prompt = renderPrompt "summary.md" [ "conversation", conversationText ]
+    let messages = [ ChatMessage.system noToolsPrompt; ChatMessage.user prompt ]
+    match askChat config.Models.Triage config.AiTimeoutMs messages with
     | Ok summary -> summary.Trim()
-    | Error err ->
+    | Result.Error err ->
         printfn $"    ✗ Summary failed: {err}"
         ""
 
-let private executeImplementor (config: PipelineConfig) (protocol: ProtocolLog) (conversation: string) (fullConversation: string) (comments: IssueComment list) (issueNumber: int) (issueTitle: string) =
+let private executeImplementor (config: PipelineConfig) (protocol: ProtocolLog) (conversationMessages: ChatMessage list) (fullConversationMessages: ChatMessage list) (comments: IssueComment list) (issueNumber: int) (issueTitle: string) =
     printfn $"  ▶ Running Implementor ({backendDisplayName config.Models.Implementor})..."
     printfn "    Prompt: implementor.md"
 
     let iterationNumber = countImplementorComments comments + 1
     printfn $"    Iteration: #{iterationNumber}"
 
-    let prompt = renderPrompt "implementor.md" [ "conversation", conversation ]
+    let systemPrompt = renderSystemPrompt "implementor.md" []
+    let baseMessages = ChatMessage.system systemPrompt :: conversationMessages
 
-    use agent = createAgent config.Models.Implementor
-    printfn $"    [impl] Agent created, sending initial prompt..."
+    // Try primary model, fall back if response is empty or missing code marker
+    let getInitialCode (backend: SelectedBackend) =
+        printfn $"    [impl] Sending to {backendDisplayName backend}..."
+        match askChat backend config.AiTimeoutMs baseMessages with
+        | Ok code when code.Contains("// ---") -> Some code
+        | Ok code ->
+            printfn $"  ⚠ Implementor response missing '// ---' marker ({code.Length} chars)"
+            log protocol "Implementor" $"INVALID (missing marker, {code.Length} chars): {code.[..min 200 (code.Length - 1)]}"
+            None
+        | Result.Error err ->
+            printfn $"  ✗ Implementor AI failed: {err}"
+            log protocol "Implementor" $"FAILED: {err}"
+            None
 
-    // Step 1: Get initial code
-    match sendToAgent agent config.AiTimeoutMs prompt with
-    | Error err ->
-        printfn $"  ✗ Implementor AI failed: {err}"
-        log protocol "Implementor" $"FAILED: {err}"
-    | Ok initialCode ->
+    let initialCode =
+        match getInitialCode config.Models.Implementor with
+        | Some code -> Some code
+        | None ->
+            match config.Models.ImplementorFallback with
+            | Some fallback ->
+                printfn $"  ↩ Trying fallback model ({backendDisplayName fallback})..."
+                log protocol "Implementor" $"FALLBACK: switching to {backendDisplayName fallback}"
+                getInitialCode fallback
+            | None ->
+                printfn $"  ✗ No fallback model configured."
+                None
 
+    match initialCode with
+    | None ->
+        printfn $"  ✗ Implementor could not produce valid code."
+        log protocol "Implementor" "GAVE UP: no valid code from primary or fallback"
+    | Some initialCode ->
+
+    // Render-retry loop: accumulate message history for each retry
+    let mutable retryMessages = baseMessages @ [ ChatMessage.assistant initialCode ]
     let mutable code = initialCode
     let mutable attempt = 1
     let mutable success = false
@@ -313,7 +346,7 @@ let private executeImplementor (config: PipelineConfig) (protocol: ProtocolLog) 
             log protocol "Render" $"OK: {gifPath}"
             let gifUrl = commitArtifacts issueNumber issueTitle iterationNumber csPath gifPath
             let gifMarkdown = $"\n\n![preview]({gifUrl})"
-            let summary = generateSummary config fullConversation
+            let summary = generateSummary config fullConversationMessages
             let summaryLine = if summary <> "" then $"\n\n{summary}" else ""
             let folder = issueFolderName issueNumber issueTitle
             let folderUrl = $"https://github.com/{owner}/{repoName}/tree/{artifactBranch}/{folder}"
@@ -334,7 +367,7 @@ let private executeImplementor (config: PipelineConfig) (protocol: ProtocolLog) 
             printfn $"  ✓ Implementor posted — iteration {iterationNumber} (attempt {attempt})."
             success <- true
 
-        | Error err ->
+        | Result.Error err ->
             printfn $"    Render failed (attempt {attempt}): {err}"
             log protocol "Render" $"ATTEMPT {attempt} FAILED: {err}"
 
@@ -343,13 +376,15 @@ let private executeImplementor (config: PipelineConfig) (protocol: ProtocolLog) 
                     "The code failed to compile/render. Here is the error:\n\n" +
                     $"```\n{err}\n```\n\n" +
                     "Please fix the code and output ONLY the corrected raw C# code. No markdown, no explanations."
-                printfn $"    [impl] Sending error feedback to same session..."
-                match sendToAgent agent config.AiTimeoutMs feedback with
-                | Error aiErr ->
+                retryMessages <- retryMessages @ [ ChatMessage.user feedback ]
+                printfn $"    [impl] Sending error feedback (attempt {attempt})..."
+                match askChat config.Models.Implementor config.AiTimeoutMs retryMessages with
+                | Result.Error aiErr ->
                     printfn $"  ✗ Implementor retry AI failed: {aiErr}"
                     log protocol "Implementor" $"RETRY AI FAILED: {aiErr}"
                     attempt <- config.MaxImplementorRetries // bail out
                 | Ok fixedCode ->
+                    retryMessages <- retryMessages @ [ ChatMessage.assistant fixedCode ]
                     code <- fixedCode
 
         attempt <- attempt + 1
@@ -482,6 +517,11 @@ let run (config: PipelineConfig) (issue: Issue) =
         let maxLoopSteps = maxIterations * 3 + 5
         let mutable loopStep = 0
         let mutable running = true
+
+        // Cache: skip redundant safety checks and triage when conversation is unchanged
+        let mutable lastSafetyCheckedCommentId: int64 option = None
+        let mutable lastTriageCommentCount = -1
+        let mutable lastTriageResult: NextAction option = None
         while running do
             loopStep <- loopStep + 1
             if loopStep > maxLoopSteps then
@@ -496,8 +536,10 @@ let run (config: PipelineConfig) (issue: Issue) =
             printfn $"  Issue #{current.Number}: {current.Title}"
             printfn $"  Comments: {current.Comments.Length}, Implementor iterations: {implCount}/{maxIterations}"
 
-            // Safety-check user/maintainer comments before processing
+            // Safety-check user/maintainer comments before processing (cached by comment ID)
             match lastUserOrMaintainerComment config current with
+            | Some userComment when lastSafetyCheckedCommentId = Some userComment.Id ->
+                printfn $"  ↩ Comment safety check skipped (unchanged, comment {userComment.Id})"
             | Some userComment ->
                 printfn $"  Last comment is from user/maintainer — running safety check..."
                 let safetyContext = buildCommentSafetyContext config current
@@ -505,6 +547,7 @@ let run (config: PipelineConfig) (issue: Issue) =
                 | SafetyResult.Passed ->
                     printfn $"  ✓ Comment safety check passed."
                     log protocol "CommentSafety" "PASSED"
+                    lastSafetyCheckedCommentId <- Some userComment.Id
                 | SafetyResult.Failed reason ->
                     printfn $"  ✗ Comment safety check failed: {reason}"
                     log protocol "CommentSafety" $"FAILED: {reason}"
@@ -521,7 +564,7 @@ let run (config: PipelineConfig) (issue: Issue) =
 
             // Build full conversation (without compaction) to check size
             let rawFullConversation = buildConversation config ConversationView.Full None current
-            let tokens = estimateTokens rawFullConversation
+            let tokens = rawFullConversation |> renderConversationAsText |> estimateTokens
             let threshold = int (float config.Models.ContextLengthTokens * config.Models.CompactionThreshold)
             printfn $"  Conversation: ~{tokens} tokens (threshold: {threshold})"
 
@@ -558,10 +601,17 @@ let run (config: PipelineConfig) (issue: Issue) =
                     log protocol "Routing" "Deterministic: Director → IMPLEMENTOR"
                     RunImplementor
                 | _ ->
-                    // Genuine decision point → ask Triage AI
-                    let triageAction = determineNextAction config maxIterations current.Author fullConversation
-                    log protocol "Triage" $"{triageAction}"
-                    triageAction
+                    // Genuine decision point → ask Triage AI (cached by comment count)
+                    if current.Comments.Length = lastTriageCommentCount && lastTriageResult.IsSome then
+                        printfn $"  ↩ Triage skipped (unchanged, {current.Comments.Length} comments)"
+                        log protocol "Triage" $"CACHED: {lastTriageResult.Value}"
+                        lastTriageResult.Value
+                    else
+                        let triageAction = determineNextAction config maxIterations current.Author fullConversation
+                        log protocol "Triage" $"{triageAction}"
+                        lastTriageCommentCount <- current.Comments.Length
+                        lastTriageResult <- Some triageAction
+                        triageAction
             printfn ""
 
             match action with

@@ -90,9 +90,9 @@ let doShowConversation (config: PipelineConfig) (issues: Issue list) =
             match choice with
             | "Implementor" -> ConversationView.Implementor
             | _ -> ConversationView.Full
-        let xml = buildConversation config view None issue
+        let messages = buildConversation config view None issue
         AnsiConsole.WriteLine()
-        printfn "%s" xml
+        printfn "%s" (renderConversationAsText messages)
         AnsiConsole.WriteLine())
 
 // ---------------------------------------------------------------------------
@@ -133,7 +133,7 @@ match args with
     | None -> printfn $"Issue #{n} not found."
     | Some issue ->
         let full = fetchIssueWithComments issue
-        printfn "%s" (buildConversation config ConversationView.Full None full)
+        printfn "%s" (buildConversation config ConversationView.Full None full |> renderConversationAsText)
 
 | [| "conversation"; issueNum; "implementor" |] ->
     let config = configFromEnv ()
@@ -143,7 +143,7 @@ match args with
     | None -> printfn $"Issue #{n} not found."
     | Some issue ->
         let full = fetchIssueWithComments issue
-        printfn "%s" (buildConversation config ConversationView.Implementor None full)
+        printfn "%s" (buildConversation config ConversationView.Implementor None full |> renderConversationAsText)
 
 | [| "dispatch" |] ->
     let config = configFromEnv ()
@@ -214,9 +214,9 @@ match args with
     let configPrompt =
         SelectionPrompt<string>()
             .Title("Select config set:")
-            .AddChoices([ for cs in configSets -> cs.Name ])
+            .AddChoices([ for cs in configSets () -> cs.Name ])
     let selectedConfig = AnsiConsole.Prompt configPrompt
-    let models = configSets |> List.find (fun cs -> cs.Name = selectedConfig)
+    let models = configSets () |> List.find (fun cs -> cs.Name = selectedConfig)
     let config = buildPipelineConfig models
     printfn $"  Config: {models.Name}"
     AnsiConsole.WriteLine()

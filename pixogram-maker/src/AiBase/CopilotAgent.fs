@@ -17,7 +17,6 @@ type CopilotConfig =
         Effort: Effort
         WorkingDirectory: string
         AvailableTools: string list
-        SystemPrompt: string option
     }
 
 let defaultCopilotConfig =
@@ -26,7 +25,6 @@ let defaultCopilotConfig =
         Effort = Medium
         WorkingDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)
         AvailableTools = []
-        SystemPrompt = None
     }
 
 // ---------------------------------------------------------------------------
@@ -97,7 +95,7 @@ let listModels () : string list =
 type CopilotAgent(config: CopilotConfig) =
     let mutable requestId = 0
     let mutable sessionId = ""
-    let mutable isFirstPrompt = true
+
     let mutable disposed = false
 
     let nextId () =
@@ -314,18 +312,13 @@ type CopilotAgent(config: CopilotConfig) =
             false
 
     interface IAgent with
-        member _.Send(prompt, onEvent) =
+        member _.SendChat(messages, onEvent) =
             async {
+                let prompt = ChatMessage.formatAsText messages
                 let promptLen = prompt.Length
                 log $"Sending prompt ({promptLen} chars)..."
 
-                let actualPrompt =
-                    if isFirstPrompt then
-                        isFirstPrompt <- false
-                        match config.SystemPrompt with
-                        | Some sp -> sp + "\n\n---\n\n" + prompt
-                        | None -> prompt
-                    else prompt
+                let actualPrompt = prompt
 
                 let promptParams = buildJson (fun w ->
                     w.WriteStartObject()

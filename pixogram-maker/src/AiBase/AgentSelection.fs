@@ -16,7 +16,7 @@ open Spectre.Console
 type SelectedBackend =
     | Docker of image: string * model: Model * effort: Effort
     | Copilot of model: string * effort: Effort
-    | Ollama of baseUrl: string * model: string
+    | Ollama of baseUrl: string * model: string * apiKey: string option
     | Anthropic of model: string
 
 type BackendOptions =
@@ -98,7 +98,7 @@ let selectBackend (label: string) (options: BackendOptions) : SelectedBackend =
         modelPrompt.AddChoices(displayNames) |> ignore
         let selected = AnsiConsole.Prompt(modelPrompt)
         let model = selected.Replace(" (running)", "")
-        Ollama(options.OllamaBaseUrl, model)
+        Ollama(options.OllamaBaseUrl, model, None)
     | _ ->
         let modelPrompt = SelectionPrompt<string>()
         modelPrompt.Title <- $"Choose Claude model for [bold]{label}[/]:"
@@ -136,35 +136,28 @@ let backendDisplayName (backend: SelectedBackend) =
     | Copilot(model, effort) ->
         let e = match effort with Low -> "Low" | Medium -> "Medium" | High -> "High" | Max -> "Max"
         $"Copilot {model} ({e})"
-    | Ollama(_, model) -> $"Ollama {model}"
+    | Ollama(_, model, _) -> $"Ollama {model}"
     | Anthropic model -> $"Anthropic {model}"
 
-let agentFactory (backend: SelectedBackend) (systemPrompt: string option) (sharedFolder: string option) (allowedTools: string list) : IAgent =
+let agentFactory (backend: SelectedBackend) : IAgent =
     match backend with
     | Docker(image, model, effort) ->
         createAgent
             { defaultConfig with
                 Model = model
                 Effort = effort
-                DockerImage = Some image
-                SharedFolder = sharedFolder
-                SystemPrompt = systemPrompt
-                AllowedTools = allowedTools }
+                DockerImage = Some image }
     | Copilot(model, effort) ->
         new CopilotSdkAgent(
             { defaultCopilotSdkConfig with
                 Model = model
-                Effort = effort
-                SystemPrompt = systemPrompt
-                AvailableTools =
-                    if allowedTools.IsEmpty then defaultCopilotSdkConfig.AvailableTools
-                    else allowedTools })
-    | Ollama(baseUrl, model) ->
+                Effort = effort })
+    | Ollama(baseUrl, model, apiKey) ->
         new OllamaAgent(
             {
                 BaseUrl = baseUrl
                 Model = model
-                SystemPrompt = systemPrompt
+                ApiKey = apiKey
             })
     | Anthropic model ->
         let apiKey =
@@ -176,5 +169,4 @@ let agentFactory (backend: SelectedBackend) (systemPrompt: string option) (share
                 ApiKey = apiKey
                 Model = model
                 MaxTokens = 8192
-                SystemPrompt = systemPrompt
             })

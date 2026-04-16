@@ -16,7 +16,6 @@ type AnthropicConfig =
         ApiKey: string
         Model: string
         MaxTokens: int
-        SystemPrompt: string option
     }
 
 let defaultAnthropicConfig =
@@ -24,7 +23,6 @@ let defaultAnthropicConfig =
         ApiKey = ""
         Model = "claude-sonnet-4-5-20241022"
         MaxTokens = 8192
-        SystemPrompt = None
     }
 
 // ---------------------------------------------------------------------------
@@ -33,7 +31,6 @@ let defaultAnthropicConfig =
 
 type AnthropicAgent(config: AnthropicConfig) =
     let client = new HttpClient(Timeout = TimeSpan.FromMinutes(5.0))
-    let history = ResizeArray<string * string>()
     let mutable disposed = false
 
     let log msg = eprintfn $"    [anthropic] {msg}"
@@ -43,7 +40,15 @@ type AnthropicAgent(config: AnthropicConfig) =
             failwith "AnthropicAgent: CLAUDE_API_KEY is not set"
         log $"Agent created (model: {config.Model}, maxTokens: {config.MaxTokens})"
 
-    let buildRequestJson () =
+    let buildRequestJson (messages: ChatMessage list) =
+        // Extract system messages and non-system messages
+        let systemText =
+            messages
+            |> List.choose (fun m -> if m.Role = "system" then Some m.Content else None)
+            |> String.concat "\n\n"
+        let chatMessages =
+            messages |> List.filter (fun m -> m.Role <> "system")
+
         use stream = new MemoryStream()
         use writer = new Utf8JsonWriter(stream)
         writer.WriteStartObject()
@@ -51,23 +56,21 @@ type AnthropicAgent(config: AnthropicConfig) =
         writer.WriteNumber("max_tokens", config.MaxTokens)
         writer.WriteBoolean("stream", true)
 
-        match config.SystemPrompt with
-        | Some sp when sp <> "" ->
+        if systemText <> "" then
             writer.WritePropertyName("system")
             writer.WriteStartArray()
             writer.WriteStartObject()
             writer.WriteString("type", "text")
-            writer.WriteString("text", sp)
+            writer.WriteString("text", systemText)
             writer.WriteEndObject()
             writer.WriteEndArray()
-        | _ -> ()
 
         writer.WritePropertyName("messages")
         writer.WriteStartArray()
-        for role, content in history do
+        for msg in chatMessages do
             writer.WriteStartObject()
-            writer.WriteString("role", role)
-            writer.WriteString("content", content)
+            writer.WriteString("role", msg.Role)
+            writer.WriteString("content", msg.Content)
             writer.WriteEndObject()
         writer.WriteEndArray()
 
@@ -76,12 +79,11 @@ type AnthropicAgent(config: AnthropicConfig) =
         Encoding.UTF8.GetString(stream.ToArray())
 
     interface IAgent with
-        member _.Send(prompt, onEvent) =
+        member _.SendChat(messages, onEvent) =
             async {
-                history.Add("user", prompt)
-                log $"Sending prompt ({prompt.Length} chars)..."
+                log $"Sending {messages.Length} messages..."
 
-                let json = buildRequestJson()
+                let json = buildRequestJson messages
                 let content = new StringContent(json, Encoding.UTF8, "application/json")
                 use request = new HttpRequestMessage(HttpMethod.Post, "https://api.anthropic.com/v1/messages")
                 request.Content <- content
@@ -198,7 +200,6 @@ type AnthropicAgent(config: AnthropicConfig) =
 
                 let result = fullResponse.ToString()
                 log $"Response received ({result.Length} chars)"
-                history.Add("assistant", result)
                 onEvent (Result result)
                 return result
             }

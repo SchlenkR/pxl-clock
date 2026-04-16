@@ -14,7 +14,6 @@ type CopilotSdkConfig =
     {
         Model: string
         Effort: Effort
-        SystemPrompt: string option
         AvailableTools: string list
     }
 
@@ -22,7 +21,6 @@ let defaultCopilotSdkConfig =
     {
         Model = "claude-sonnet-4.6"
         Effort = Medium
-        SystemPrompt = None
         AvailableTools = []
     }
 
@@ -78,9 +76,10 @@ type CopilotSdkAgent(config: CopilotSdkConfig) =
         }
 
     interface IAgent with
-        member _.Send(prompt, onEvent) =
+        member _.SendChat(messages, onEvent) =
             async {
                 let! s = ensureSession()
+                let prompt = ChatMessage.formatAsText messages
                 log $"Sending prompt ({prompt.Length} chars)..."
 
                 let fullResponse = StringBuilder()
@@ -124,14 +123,8 @@ type CopilotSdkAgent(config: CopilotSdkConfig) =
                     | _ -> ()
                 )
 
-                // Prepend system prompt on first message if needed
-                let actualPrompt =
-                    match config.SystemPrompt with
-                    | Some sp -> sp + "\n\n---\n\n" + prompt
-                    | None -> prompt
-
                 let msgOpts = MessageOptions()
-                msgOpts.Prompt <- actualPrompt
+                msgOpts.Prompt <- prompt
 
                 let! _msgId = s.SendAsync(msgOpts, CancellationToken.None) |> Async.AwaitTask
 

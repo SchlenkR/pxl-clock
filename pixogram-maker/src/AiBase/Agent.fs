@@ -30,7 +30,6 @@ type AgentConfig =
         DockerImage: string option
         SharedFolder: string option
         MaxTurns: int option
-        SystemPrompt: string option
     }
 
 type AgentEvent =
@@ -41,9 +40,30 @@ type AgentEvent =
     | Result of string
     | Error of string
 
+type ChatMessage =
+    {
+        Role: string
+        Content: string
+    }
+
+module ChatMessage =
+    let system content = { Role = "system"; Content = content }
+    let user content = { Role = "user"; Content = content }
+    let assistant content = { Role = "assistant"; Content = content }
+
+    /// Concatenate messages into a single text block for backends that don't support chat format.
+    let formatAsText (messages: ChatMessage list) =
+        messages
+        |> List.map (fun m ->
+            match m.Role with
+            | "system" -> m.Content
+            | "assistant" -> $"[Assistant]\n{m.Content}"
+            | _ -> m.Content)
+        |> String.concat "\n\n---\n\n"
+
 type IAgent =
     inherit IDisposable
-    abstract Send: prompt: string * onEvent: (AgentEvent -> unit) -> Async<string>
+    abstract SendChat: messages: ChatMessage list * onEvent: (AgentEvent -> unit) -> Async<string>
 
 // ---------------------------------------------------------------------------
 // Defaults
@@ -58,7 +78,6 @@ let defaultConfig =
         DockerImage = None
         SharedFolder = None
         MaxTurns = None
-        SystemPrompt = None
     }
 
 // ---------------------------------------------------------------------------
@@ -101,10 +120,6 @@ let private buildClaudeArgs (config: AgentConfig) =
 
         match config.MaxTurns with
         | Some n -> "--max-turns"; string n
-        | None -> ()
-
-        match config.SystemPrompt with
-        | Some sp -> "--append-system-prompt"; sp
         | None -> ()
     ]
 
@@ -246,7 +261,8 @@ type ProcessAgent(config: AgentConfig) =
             cleanup())
 
     interface IAgent with
-        member _.Send(prompt, onEvent) =
+        member _.SendChat(messages, onEvent) =
+            let prompt = ChatMessage.formatAsText messages
             sendToProcess proc.StandardInput proc.StandardOutput prompt onEvent
 
     interface IDisposable with
@@ -321,7 +337,8 @@ type DockerAgent(config: AgentConfig) =
             cleanup())
 
     interface IAgent with
-        member _.Send(prompt, onEvent) =
+        member _.SendChat(messages, onEvent) =
+            let prompt = ChatMessage.formatAsText messages
             sendToProcess proc.StandardInput proc.StandardOutput prompt onEvent
 
     interface IDisposable with

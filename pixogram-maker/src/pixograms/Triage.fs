@@ -1,6 +1,7 @@
 module PixogramRequests.Triage
 
 open System.IO
+open AiBase.Agent
 open AiBase.AgentSelection
 open PixogramRequests.Config
 
@@ -32,12 +33,25 @@ let loadPrompt name =
 let private conversationFormatBlock =
     lazy (loadPrompt "conversation-format.md")
 
+/// Render a prompt template as a system prompt (without conversation placeholder).
+/// The {{conversation}} placeholder is removed — conversation is passed as chat messages.
+let renderSystemPrompt (name: string) (vars: (string * string) list) =
+    let mutable text = loadPrompt name
+    // Remove the conversation placeholder and the separator after it
+    text <- text.Replace("{{conversation}}\n\n---\n\n", "")
+    text <- text.Replace("{{conversation}}\n\n---", "")
+    text <- text.Replace("{{conversation}}", "")
+    for key, value in vars do
+        text <- text.Replace("{{" + key + "}}", value)
+    // Prepend conversation format description and no-tools instruction
+    $"{noToolsPrompt}\n\n---\n\n{conversationFormatBlock.Value}\n\n---\n\n{text.Trim()}"
+
+/// Render a prompt template as a single string (for non-conversation prompts like safety-check).
 let renderPrompt (name: string) (vars: (string * string) list) =
     let mutable text = loadPrompt name
     for key, value in vars do
         text <- text.Replace("{{" + key + "}}", value)
-    // Insert conversation format description between conversation data and instructions
-    text.Replace("---\n\n# Instructions", $"---\n\n{conversationFormatBlock.Value}\n\n---\n\n# Instructions")
+    text
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -52,7 +66,7 @@ let private findLastLineMatching (prefix: string) (response: string) =
     |> Option.map (fun l -> l.Trim().TrimStart('`').TrimEnd('`').Trim())
 
 // ---------------------------------------------------------------------------
-// Triage: conversation string → next action
+// Triage: conversation → next action
 // ---------------------------------------------------------------------------
 
 type NextAction =
@@ -79,7 +93,8 @@ let runSafetyCheck (config: PipelineConfig) (issue: GitHub.Issue) : SafetyResult
             [ "title", issue.Title
               "author", issue.Author
               "body", issue.Body ]
-    match askAI config.Models.SafetyCheck config.AiTimeoutMs prompt with
+    let messages = [ ChatMessage.system noToolsPrompt; ChatMessage.user prompt ]
+    match askChat config.Models.SafetyCheck config.AiTimeoutMs messages with
     | Result.Error err ->
         printfn $"  ✗ Safety check AI error: {err}"
         SafetyResult.Error $"AI error: {err}"
@@ -101,7 +116,8 @@ let runCommentSafetyCheck (config: PipelineConfig) (context: string) (author: st
             [ "context", context
               "author", author
               "body", commentBody ]
-    match askAI config.Models.SafetyCheck config.AiTimeoutMs prompt with
+    let messages = [ ChatMessage.system noToolsPrompt; ChatMessage.user prompt ]
+    match askChat config.Models.SafetyCheck config.AiTimeoutMs messages with
     | Result.Error err ->
         printfn $"  ✗ Comment safety check AI error: {err}"
         SafetyResult.Error $"AI error: {err}"
@@ -118,9 +134,10 @@ let runCommentSafetyCheck (config: PipelineConfig) (context: string) (author: st
 
 let extractIterationCount (config: PipelineConfig) (issueBody: string) =
     let prompt = renderPrompt "iteration-count.md" [ "default_iterations", string config.DefaultIterations; "description", issueBody ]
+    let messages = [ ChatMessage.system noToolsPrompt; ChatMessage.user prompt ]
     printfn "  Extracting iteration count..."
-    match askAI config.Models.Triage config.AiTimeoutMs prompt with
-    | Error err ->
+    match askChat config.Models.Triage config.AiTimeoutMs messages with
+    | Result.Error err ->
         printfn $"  ✗ Iteration extraction failed: {err}, defaulting to {config.DefaultIterations}"
         config.DefaultIterations
     | Ok response ->
@@ -137,17 +154,17 @@ let extractIterationCount (config: PipelineConfig) (issueBody: string) =
             printfn $"  ✗ Could not parse '{trimmed}', defaulting to {config.DefaultIterations}"
             config.DefaultIterations
 
-let determineNextAction (config: PipelineConfig) (maxIterations: int) (author: string) (conversation: string) =
-    let fullPrompt =
-        renderPrompt "triage.md"
+let determineNextAction (config: PipelineConfig) (maxIterations: int) (author: string) (conversationMessages: ChatMessage list) =
+    let systemPrompt =
+        renderSystemPrompt "triage.md"
             [ "admin", String.concat ", " config.Maintainers
               "author", author
-              "max_iterations", string maxIterations
-              "conversation", conversation ]
+              "max_iterations", string maxIterations ]
+    let messages = ChatMessage.system systemPrompt :: conversationMessages
 
     printfn "  Triage..."
-    match askAI config.Models.Triage config.AiTimeoutMs fullPrompt with
-    | Error err ->
+    match askChat config.Models.Triage config.AiTimeoutMs messages with
+    | Result.Error err ->
         printfn $"  ✗ Triage failed: {err}"
         Done $"Triage error: {err}"
     | Ok response ->
@@ -166,9 +183,10 @@ let determineNextAction (config: PipelineConfig) (maxIterations: int) (author: s
         else RunVisionary
 
 // ---------------------------------------------------------------------------
-// Agent calls: backend + prompt + conversation → response string
+// Agent calls: backend + system prompt + conversation messages → response
 // ---------------------------------------------------------------------------
 
-let callAgent (backend: SelectedBackend) (timeoutMs: int) (promptFile: string) (conversation: string) : Result<string, string> =
-    let prompt = renderPrompt promptFile [ "conversation", conversation ]
-    askAI backend timeoutMs prompt
+let callAgent (backend: SelectedBackend) (timeoutMs: int) (promptFile: string) (conversationMessages: ChatMessage list) : Result<string, string> =
+    let systemPrompt = renderSystemPrompt promptFile []
+    let messages = ChatMessage.system systemPrompt :: conversationMessages
+    askChat backend timeoutMs messages
