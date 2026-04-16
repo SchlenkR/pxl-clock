@@ -31,6 +31,7 @@ When a user or maintainer posts a comment after the last Implementor result **AN
 | **Specific technical request** ("make it bluer", "slow down the rotation", "add sparkles") | `IMPLEMENTOR` | Clear enough to implement directly |
 | **Vague or open-ended feedback** ("looks boring", "mach du mal", "I don't know what to change", "ganz okay aber irgendwie lame") | `MAVERICK` | Needs creative reinterpretation first |
 | **Strong rejection or request for a new direction** ("completely wrong", "start over", "ganz anderer Ansatz") | `VISIONARY` | Needs a fresh creative vision |
+| **Meta-instruction to run more iterations with no other direction** ("mach 3 selbstständige Iterationen", "iteriere noch 5 mal") | next Director in rotation (see rule 5/6) | The iteration-count bump is handled separately — treat the comment as "continue the normal rotation" |
 
 **Important:** Once a pipeline agent (Director) has responded after the user's comment, the feedback has been addressed. Do NOT re-route based on the same user comment again — instead, follow the normal pipeline rules (rules 3–6 below).
 

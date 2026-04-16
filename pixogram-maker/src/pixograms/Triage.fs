@@ -161,6 +161,37 @@ let extractIterationCount (config: PipelineConfig) (issueBody: string) =
             printfn $"  ✗ Could not parse '{trimmed}', defaulting to {config.DefaultIterations}"
             config.DefaultIterations
 
+/// Ask the Triage model whether a user/maintainer comment is a meta-instruction
+/// to run N more automatic iterations. Returns 0 if no such request was made.
+let extractIterationBump (config: PipelineConfig) (author: string) (commentBody: string) =
+    let prompt = renderPrompt "iteration-bump.md" [ "author", author; "body", commentBody ]
+    let messages = [ ChatMessage.system noToolsPrompt; ChatMessage.user prompt ]
+    printfn "  Checking for auto-iteration bump in comment..."
+    match askChat config.Models.Triage config.AiTimeoutMs messages with
+    | Result.Error err ->
+        printfn $"  ✗ Iteration bump extraction failed: {err}, treating as 0"
+        0
+    | Ok response ->
+        // Qwen-style models may emit prose before the number; take the last integer-only line.
+        let lines = response.Split('\n') |> Array.map (fun l -> l.Trim()) |> Array.filter (fun l -> l.Length > 0)
+        let parsed =
+            lines
+            |> Array.rev
+            |> Array.tryPick (fun l ->
+                match System.Int32.TryParse l with
+                | true, n when n >= 0 -> Some n
+                | _ -> None)
+        match parsed with
+        | Some 0 ->
+            printfn $"  → No auto-iteration bump detected."
+            0
+        | Some n ->
+            printfn $"  → Auto-iteration bump requested: +{n}"
+            n
+        | None ->
+            printfn $"  ✗ Could not parse bump response '{response.Trim()}', treating as 0"
+            0
+
 let determineNextAction (config: PipelineConfig) (maxIterations: int) (author: string) (conversationMessages: ChatMessage list) =
     let systemPrompt =
         renderSystemPrompt "triage.md"

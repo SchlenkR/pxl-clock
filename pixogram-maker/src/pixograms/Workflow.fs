@@ -549,7 +549,7 @@ let run (config: PipelineConfig) (issue: Issue) =
             printfn "  ─── Workflow aborted (not approved) ───"
         else
 
-        let maxIterations = extractIterationCount config issue.Body
+        let mutable maxIterations = extractIterationCount config issue.Body
         printfn $"  Max iterations: {maxIterations}"
 
         // Load existing compaction (if any)
@@ -592,6 +592,21 @@ let run (config: PipelineConfig) (issue: Issue) =
                     printfn $"  ✓ Comment safety check passed."
                     log protocol "CommentSafety" "PASSED"
                     lastSafetyCheckedCommentId <- Some userComment.Id
+
+                    // Check whether the comment asks for N more automatic iterations.
+                    // If so, raise the ceiling so the loop keeps going past the original max.
+                    let bump = extractIterationBump config userComment.Author userComment.Body
+                    if bump > 0 then
+                        let implCount = countImplementorComments current.Comments
+                        let desired = implCount + bump
+                        let newMax = min desired config.MaxIterationsCap
+                        if newMax > maxIterations then
+                            let cappedNote = if newMax < desired then $" (capped by MAX_ITERATIONS_CAP={config.MaxIterationsCap})" else ""
+                            printfn $"  ⤴ User requested +{bump} auto-iterations → maxIterations: {maxIterations} → {newMax}{cappedNote}"
+                            log protocol "Workflow" $"User bumped maxIterations: {maxIterations} → {newMax} (+{bump}, impl={implCount}){cappedNote}"
+                            maxIterations <- newMax
+                        else
+                            printfn $"  ⤴ User requested +{bump} but current max {maxIterations} already covers it — no change."
                 | SafetyResult.Failed reason ->
                     printfn $"  ✗ Comment safety check failed: {reason}"
                     log protocol "CommentSafety" $"FAILED: {reason}"
