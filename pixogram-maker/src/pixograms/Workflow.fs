@@ -217,6 +217,73 @@ let private commitArtifacts (issueNumber: int) (issueTitle: string) (iteration: 
         cleanupWorktree worktreePath
 
 // ---------------------------------------------------------------------------
+// Issue-body gallery (all pixograms from this issue, rendered in the body)
+// ---------------------------------------------------------------------------
+
+let private galleryStartMarker = "<!-- pixogram-gallery:start -->"
+let private galleryEndMarker = "<!-- pixogram-gallery:end -->"
+
+let private buildGalleryBlock (issueNumber: int) (issueTitle: string) : string option =
+    let folder = issueFolderName issueNumber issueTitle
+    let files = listBranchFolder artifactBranch folder
+    let gifs =
+        files
+        |> List.filter (fun f -> f.EndsWith(".gif", StringComparison.OrdinalIgnoreCase))
+        |> List.sort
+    if gifs.IsEmpty then None
+    else
+        let folderUrl = $"https://github.com/{owner}/{repoName}/tree/{artifactBranch}/{folder}"
+        let cell (gif: string) =
+            let trimmed = gif.Replace(".gif", "").TrimStart('0')
+            let iter = if trimmed = "" then "0" else trimmed
+            let url = $"https://github.com/{owner}/{repoName}/blob/{artifactBranch}/{folder}/{gif}?raw=true"
+            $"![#{iter}]({url})<br>**#{iter}**"
+        let rows =
+            gifs
+            |> List.chunkBySize 4
+            |> List.map (fun chunk ->
+                let padded = chunk @ List.replicate (4 - chunk.Length) ""
+                "| " + (padded |> List.map cell |> String.concat " | ") + " |")
+            |> String.concat "\n"
+        let header = "|  |  |  |  |\n|:-:|:-:|:-:|:-:|"
+        let block =
+            $"{galleryStartMarker}\n" +
+            $"> 🤖 Diese Galerie wird automatisch vom **pixogram-maker**-Bot aktualisiert.\n" +
+            $"> Sie enthält alle bisher erzeugten Pixogramme aus diesem Issue " +
+            $"(Branch [`{artifactBranch}/{folder}`]({folderUrl})).\n\n" +
+            $"{header}\n{rows}\n" +
+            $"{galleryEndMarker}"
+        Some block
+
+let private replaceOrAppendGallery (originalBody: string) (galleryBlock: string) : string =
+    let body = if isNull originalBody then "" else originalBody
+    let startIdx = body.IndexOf galleryStartMarker
+    let endIdx = body.IndexOf galleryEndMarker
+    if startIdx >= 0 && endIdx > startIdx then
+        let before = body.Substring(0, startIdx).TrimEnd()
+        let after = body.Substring(endIdx + galleryEndMarker.Length).TrimStart()
+        let tail = if after.Length > 0 then $"\n\n{after}" else ""
+        $"{before}\n\n{galleryBlock}{tail}"
+    else
+        $"{body.TrimEnd()}\n\n{galleryBlock}"
+
+let private updateIssueGallery (issueNumber: int) (issueTitle: string) =
+    try
+        match buildGalleryBlock issueNumber issueTitle with
+        | None ->
+            printfn $"    Gallery: no GIFs yet on {artifactBranch}, skipping."
+        | Some block ->
+            let oldBody = fetchIssueBody issueNumber
+            let newBody = replaceOrAppendGallery oldBody block
+            if newBody = oldBody then
+                printfn $"    Gallery: body unchanged."
+            else
+                updateIssueBody issueNumber newBody
+                printfn $"    Gallery: issue body updated with latest pixograms."
+    with ex ->
+        printfn $"    ⚠ Gallery update failed: {ex.Message}"
+
+// ---------------------------------------------------------------------------
 // Compaction (stored in issue folder on pixogram-maker branch)
 // ---------------------------------------------------------------------------
 
@@ -407,6 +474,7 @@ let private executeImplementor (config: PipelineConfig) (protocol: ProtocolLog) 
                 $"```csharp\n{code}\n```\n\n</details>"
             postComment issueNumber comment
             printfn $"  ✓ Implementor posted — iteration {iterationNumber} (attempt {attempt})."
+            updateIssueGallery issueNumber issueTitle
             success <- true
 
         | Result.Error err ->

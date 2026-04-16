@@ -117,6 +117,20 @@ let fetchIssueWithComments (issue: Issue) =
 let postComment issueNumber (body: string) =
     client.Issue.Comment.Create(owner, repoName, issueNumber, body).Result |> ignore
 
+let updateIssueBody issueNumber (body: string) =
+    let update = Octokit.IssueUpdate(Body = body)
+    client.Issue.Update(owner, repoName, issueNumber, update).Result |> ignore
+
+let fetchIssueBody issueNumber : string =
+    let issue = client.Issue.Get(owner, repoName, issueNumber).Result
+    if isNull issue.Body then "" else issue.Body
+
+let listBranchFolder (branch: string) (path: string) : string list =
+    try
+        let contents = client.Repository.Content.GetAllContentsByRef(owner, repoName, path, branch).Result
+        [ for c in contents -> c.Name ]
+    with _ -> []
+
 let addLabel issueNumber (label: string) =
     client.Issue.Labels.AddToIssue(owner, repoName, issueNumber, [| label |]).Result |> ignore
 
