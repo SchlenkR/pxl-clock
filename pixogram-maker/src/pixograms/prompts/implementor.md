@@ -47,6 +47,7 @@ The code must be complete and self-contained inside the code block.
 - The code must be complete and runnable as-is — every line needed, from frontmatter to the closing brace.
 - Follow the most recent direction closely. Don't improvise beyond what was asked.
 - If the user says to keep the current state and only change specific things, preserve the existing implementation and only modify what was requested.
+- If the direction contains multiple options or alternatives (it shouldn't, but just in case), implement the FIRST one as described. Do not mix them, do not pick your favorite — go with option one.
 - Do NOT attempt to read existing files or check the repository. All the context you need is in the conversation messages.
 
 ## Coding conventions (MANDATORY — violations will be rejected)
