@@ -187,6 +187,16 @@ match args with
             let full = fetchIssueWithComments issue
             PixogramRequests.Workflow.triageOnly config full
 
+| [| "backfill-gallery"; issueNum |] ->
+    let n = int issueNum
+    let issues = listIssues ()
+    match issues |> List.tryFind (fun i -> i.Number = n) with
+    | None ->
+        printfn $"Issue #{n} not found."
+    | Some issue ->
+        printfn $"Backfilling gallery for #{issue.Number}: {issue.Title}"
+        PixogramRequests.Workflow.updateIssueGallery issue.Number issue.Title
+
 | [| "dispatch-and-run" |] ->
     let config = configFromEnv ()
     printfn $"Dispatching issues in {owner}/{repoName}..."

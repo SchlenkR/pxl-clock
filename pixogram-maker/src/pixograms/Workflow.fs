@@ -187,7 +187,13 @@ let private cleanupWorktree (worktreePath: string) =
     if Directory.Exists worktreePath then
         runGit [ "worktree"; "remove"; worktreePath; "--force" ] |> ignore
 
-let private commitArtifacts (issueNumber: int) (issueTitle: string) (iteration: int) (csPath: string) (gifPath: string) : string =
+type ArtifactLinks = {
+    GifRaw: string
+    GifPage: string
+    CsPage: string
+}
+
+let private commitArtifacts (issueNumber: int) (issueTitle: string) (iteration: int) (csPath: string) (gifPath: string) : ArtifactLinks =
     let folder = issueFolderName issueNumber issueTitle
     let num = iteration.ToString("D3")
     let targetCs = $"{num}.cs"
@@ -210,9 +216,14 @@ let private commitArtifacts (issueNumber: int) (issueTitle: string) (iteration: 
         requireProcess "git commit" "git" [ "-C"; worktreePath; "commit"; "-m"; $"#{issueNumber} iteration {iteration}" ] [] |> ignore
         requireProcess "git push" "git" [ "-C"; worktreePath; "push"; "origin"; artifactBranch ] [] |> ignore
 
-        let gifUrl = $"https://github.com/{owner}/{repoName}/blob/{artifactBranch}/{folder}/{targetGif}?raw=true"
-        printfn $"    ✓ Committed to {artifactBranch}/{folder}/, GIF: {gifUrl}"
-        gifUrl
+        let baseUrl = $"https://github.com/{owner}/{repoName}/blob/{artifactBranch}/{folder}"
+        let links = {
+            GifRaw = $"{baseUrl}/{targetGif}?raw=true"
+            GifPage = $"{baseUrl}/{targetGif}"
+            CsPage = $"{baseUrl}/{targetCs}"
+        }
+        printfn $"    ✓ Committed to {artifactBranch}/{folder}/, GIF: {links.GifPage}"
+        links
     finally
         cleanupWorktree worktreePath
 
@@ -242,8 +253,9 @@ let private buildGalleryBlock (issueNumber: int) (issueTitle: string) : string o
             gifs
             |> List.chunkBySize 4
             |> List.map (fun chunk ->
-                let padded = chunk @ List.replicate (4 - chunk.Length) ""
-                "| " + (padded |> List.map cell |> String.concat " | ") + " |")
+                let cells = chunk |> List.map cell
+                let padded = cells @ List.replicate (4 - cells.Length) ""
+                "| " + (padded |> String.concat " | ") + " |")
             |> String.concat "\n"
         let header = "|  |  |  |  |\n|:-:|:-:|:-:|:-:|"
         let block =
@@ -267,7 +279,7 @@ let private replaceOrAppendGallery (originalBody: string) (galleryBlock: string)
     else
         $"{body.TrimEnd()}\n\n{galleryBlock}"
 
-let private updateIssueGallery (issueNumber: int) (issueTitle: string) =
+let updateIssueGallery (issueNumber: int) (issueTitle: string) =
     try
         match buildGalleryBlock issueNumber issueTitle with
         | None ->
@@ -452,26 +464,21 @@ let private executeImplementor (config: PipelineConfig) (protocol: ProtocolLog) 
         | Ok _ ->
             printfn $"    Render OK"
             log protocol "Render" $"OK: {gifPath}"
-            let gifUrl = commitArtifacts issueNumber issueTitle iterationNumber csPath gifPath
-            let gifMarkdown = $"\n\n![preview]({gifUrl})"
+            let links = commitArtifacts issueNumber issueTitle iterationNumber csPath gifPath
+            let gifMarkdown = $"\n\n![preview]({links.GifRaw})"
             let summary = generateSummary config fullConversationMessages
             let summaryLine = if summary <> "" then $"\n\n{summary}" else ""
-            let folder = issueFolderName issueNumber issueTitle
-            let folderUrl = $"https://github.com/{owner}/{repoName}/tree/{artifactBranch}/{folder}"
-            let vscodeUrl = $"https://vscode.dev/github/{owner}/{repoName}/tree/{artifactBranch}/{folder}"
-            let codespacesUrl = $"https://codespaces.new/{owner}/{repoName}/tree/{artifactBranch}?quickstart=1"
+            let vscodeUrl = $"https://vscode.dev/github/{owner}/{repoName}/blob/{artifactBranch}/{issueFolderName issueNumber issueTitle}"
             let openLinks =
-                $"\n\n[`{artifactBranch}/{folder}`]({folderUrl}) · " +
-                $"[Open in VS Code]({vscodeUrl}) · " +
-                $"[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)]({codespacesUrl})"
+                $"\n\n[GIF]({links.GifPage}) · " +
+                $"[C# code]({links.CsPage}) · " +
+                $"[Open in VS Code]({vscodeUrl})"
             let comment =
                 $"{roleTag Role.Implementor} — Iteration {iterationNumber}" +
                 summaryLine +
                 gifMarkdown +
-                $"\n\n" + openLinks +
-                configSetMarkdown config.Models +
-                $"\n\n<details>\n<summary>Code anzeigen</summary>\n\n" +
-                $"```csharp\n{code}\n```\n\n</details>"
+                openLinks +
+                configSetMarkdown config.Models
             postComment issueNumber comment
             printfn $"  ✓ Implementor posted — iteration {iterationNumber} (attempt {attempt})."
             updateIssueGallery issueNumber issueTitle
