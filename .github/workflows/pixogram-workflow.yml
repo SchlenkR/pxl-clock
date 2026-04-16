@@ -52,36 +52,13 @@ jobs:
       - name: Build
         run: dotnet build pixogram-maker/src/pixograms
 
-      - name: Verify Pxl.Render works
-        run: |
-          cat > /tmp/test-render.cs << 'CSEOF'
-          // ---
-          // app: TestRender
-          // displayName: Test
-          // author: Test
-          // ---
-          #:package Pxl@*
-          using Pxl.Ui.CSharp;
-          var scene = (DrawingContext ctx) =>
-          {
-              for (var x = 0; x < 24; x++)
-                  for (var y = 0; y < 24; y++)
-                      ctx.SetPixel(x, y, Colors.Red);
-          };
-          CSEOF
-          echo "=== Raw pixel test (RGB24, first 72 bytes = first 24 pixels) ==="
-          Pxl.Render /tmp/test-render.cs --stdout --duration 0.1 | od -A x -t x1 -N 72 | head -5
-          echo "=== GIF render test ==="
-          Pxl.Render /tmp/test-render.cs --output /tmp/test-render.gif --duration 1 --scale 10 --mode clock
-          echo "GIF size: $(stat -c%s /tmp/test-render.gif) bytes"
-          Pxl.Render /tmp/test-render.cs --output /tmp/test-render-raw.gif --duration 1 --scale 1 --mode raw
-          echo "RAW GIF size: $(stat -c%s /tmp/test-render-raw.gif) bytes"
-
       - name: Run
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CLAUDE_API_KEY: ${{ secrets.CLAUDE_API_KEY }}
           COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
+          OLLAMA1_URL: ${{ secrets.OLLAMA1_URL }}
+          OLLAMA1_API_KEY: ${{ secrets.OLLAMA1_API_KEY }}
           MAINTAINERS: ${{ vars.MAINTAINERS }}
           TRUSTED_AUTHORS: ${{ vars.TRUSTED_AUTHORS }}
           DEFAULT_ITERATIONS: ${{ vars.DEFAULT_ITERATIONS }}

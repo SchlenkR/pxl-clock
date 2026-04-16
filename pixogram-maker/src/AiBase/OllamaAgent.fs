@@ -11,7 +11,7 @@ type OllamaConfig =
     {
         BaseUrl: string
         Model: string
-        SystemPrompt: string option
+        ApiKey: string option
     }
 
 let listModels (baseUrl: string) : Async<string list> =
@@ -38,25 +38,19 @@ let listRunningModels (baseUrl: string) : Async<string list> =
 
 type OllamaAgent(config: OllamaConfig) =
     let client = new HttpClient(Timeout = TimeSpan.FromMinutes(10.0))
-    let history = ResizeArray<string * string>()
     let mutable disposed = false
 
-    do
-        match config.SystemPrompt with
-        | Some sp -> history.Add("system", sp)
-        | None -> ()
-
-    let buildRequestJson () =
+    let buildRequestJson (messages: ChatMessage list) =
         use stream = new MemoryStream()
         use writer = new Utf8JsonWriter(stream)
         writer.WriteStartObject()
         writer.WriteString("model", config.Model)
         writer.WritePropertyName("messages")
         writer.WriteStartArray()
-        for role, content in history do
+        for msg in messages do
             writer.WriteStartObject()
-            writer.WriteString("role", role)
-            writer.WriteString("content", content)
+            writer.WriteString("role", msg.Role)
+            writer.WriteString("content", msg.Content)
             writer.WriteEndObject()
         writer.WriteEndArray()
         writer.WriteBoolean("stream", true)
@@ -65,12 +59,15 @@ type OllamaAgent(config: OllamaConfig) =
         Encoding.UTF8.GetString(stream.ToArray())
 
     interface IAgent with
-        member _.Send(prompt, onEvent) =
+        member _.SendChat(messages, onEvent) =
             async {
-                history.Add("user", prompt)
-                let json = buildRequestJson()
+                let json = buildRequestJson messages
                 let content = new StringContent(json, Encoding.UTF8, "application/json")
                 use request = new HttpRequestMessage(HttpMethod.Post, $"{config.BaseUrl}/api/chat", Content = content)
+                match config.ApiKey with
+                | Some key when key <> "" ->
+                    request.Headers.Authorization <- System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", key)
+                | _ -> ()
 
                 let! response =
                     client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead)
@@ -110,7 +107,6 @@ type OllamaAgent(config: OllamaConfig) =
                         with _ -> ()
 
                 let result = fullResponse.ToString()
-                history.Add("assistant", result)
                 onEvent (Result result)
                 return result
             }

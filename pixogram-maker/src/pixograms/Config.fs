@@ -32,6 +32,30 @@ module AnthropicModels =
     let sonnet46 = "claude-sonnet-4-6"
     let haiku45 = "claude-haiku-4-5"
 
+module OllamaModels =
+    let gemma4_26b = "gemma4:26b-a4b-it-q8_0"
+    let gemma4_8b = "gemma4:latest"
+
+// ---------------------------------------------------------------------------
+// Ollama env helper — reads OLLAMA{N}_URL / OLLAMA{N}_API_KEY
+// ---------------------------------------------------------------------------
+
+let private ollamaBackend (envPrefix: string) (model: string) : SelectedBackend =
+    let url =
+        Environment.GetEnvironmentVariable($"{envPrefix}_URL")
+        |> Option.ofObj
+        |> Option.defaultValue ""
+    let apiKey =
+        Environment.GetEnvironmentVariable($"{envPrefix}_API_KEY")
+        |> Option.ofObj
+        |> Option.bind (fun s -> if String.IsNullOrWhiteSpace s then None else Some s)
+    Ollama(url, model, apiKey)
+
+let private hasOllamaEnv (envPrefix: string) =
+    Environment.GetEnvironmentVariable($"{envPrefix}_URL")
+    |> String.IsNullOrEmpty
+    |> not
+
 // ---------------------------------------------------------------------------
 // ConfigSet — which AI models to use for each pipeline role
 // ---------------------------------------------------------------------------
@@ -44,55 +68,81 @@ type ConfigSet =
         DirectorVisionary: SelectedBackend
         DirectorMaverick: SelectedBackend
         Implementor: SelectedBackend
+        ImplementorFallback: SelectedBackend option
         Compaction: SelectedBackend
         ContextLengthTokens: int
         CompactionThreshold: float
     }
 
-let configSets =
-    [
-        {
-            Name = "claude-sonnet-4.6/haiku-4.5"
-            SafetyCheck = Anthropic AnthropicModels.sonnet46
-            Triage = Anthropic AnthropicModels.sonnet46
-            DirectorVisionary = Anthropic AnthropicModels.sonnet46
-            DirectorMaverick = Anthropic AnthropicModels.sonnet46
-            Implementor = Anthropic AnthropicModels.sonnet46
-            Compaction = Anthropic AnthropicModels.haiku45
-            ContextLengthTokens = 180_000
-            CompactionThreshold = 0.8
-        }
+let configSets () =
+    let staticSets =
+        [
+            {
+                Name = "claude-sonnet-4.6/haiku-4.5"
+                SafetyCheck = Anthropic AnthropicModels.sonnet46
+                Triage = Anthropic AnthropicModels.sonnet46
+                DirectorVisionary = Anthropic AnthropicModels.sonnet46
+                DirectorMaverick = Anthropic AnthropicModels.sonnet46
+                Implementor = Anthropic AnthropicModels.sonnet46
+                ImplementorFallback = None
+                Compaction = Anthropic AnthropicModels.haiku45
+                ContextLengthTokens = 180_000
+                CompactionThreshold = 0.8
+            }
 
-        {
-            Name = "copilot-sonnet-4.6/haiku-4.5"
-            SafetyCheck = Copilot(CopilotModels.sonnet46, Medium)
-            Triage = Copilot(CopilotModels.sonnet46, Medium)
-            DirectorVisionary = Copilot(CopilotModels.sonnet46, Medium)
-            DirectorMaverick = Copilot(CopilotModels.sonnet46, Medium)
-            Implementor = Copilot(CopilotModels.sonnet46, Medium)
-            Compaction = Copilot(CopilotModels.haiku45, Low)
-            ContextLengthTokens = 180_000
-            CompactionThreshold = 0.8
-        }
+            {
+                Name = "copilot-sonnet-4.6/haiku-4.5"
+                SafetyCheck = Copilot(CopilotModels.sonnet46, Medium)
+                Triage = Copilot(CopilotModels.sonnet46, Medium)
+                DirectorVisionary = Copilot(CopilotModels.sonnet46, Medium)
+                DirectorMaverick = Copilot(CopilotModels.sonnet46, Medium)
+                Implementor = Copilot(CopilotModels.sonnet46, Medium)
+                ImplementorFallback = None
+                Compaction = Copilot(CopilotModels.haiku45, Low)
+                ContextLengthTokens = 180_000
+                CompactionThreshold = 0.8
+            }
 
-        {
-            Name = "copilot-gpt-5.4/gpt-5.4-mini"
-            SafetyCheck = Copilot(CopilotModels.gpt54, High)
-            Triage = Copilot(CopilotModels.gpt54, Medium)
-            DirectorVisionary = Copilot(CopilotModels.gpt54, Medium)
-            DirectorMaverick = Copilot(CopilotModels.gpt54, Medium)
-            Implementor = Copilot(CopilotModels.gpt54, Medium)
-            Compaction = Copilot(CopilotModels.gpt54Mini, Low)
-            ContextLengthTokens = 120_000
-            CompactionThreshold = 0.8
-        }
-    ]
+            {
+                Name = "copilot-gpt-5.4/gpt-5.4-mini"
+                SafetyCheck = Copilot(CopilotModels.gpt54, High)
+                Triage = Copilot(CopilotModels.gpt54, Medium)
+                DirectorVisionary = Copilot(CopilotModels.gpt54, Medium)
+                DirectorMaverick = Copilot(CopilotModels.gpt54, Medium)
+                Implementor = Copilot(CopilotModels.gpt54, Medium)
+                ImplementorFallback = Some (Copilot(CopilotModels.sonnet46, Medium))
+                Compaction = Copilot(CopilotModels.gpt54Mini, Low)
+                ContextLengthTokens = 120_000
+                CompactionThreshold = 0.8
+            }
+        ]
+
+    let ollamaSets =
+        [
+            if hasOllamaEnv "OLLAMA1" then
+                let o1 model = ollamaBackend "OLLAMA1" model
+                {
+                    Name = "ollama1-gemma4-26b"
+                    SafetyCheck = o1 OllamaModels.gemma4_26b
+                    Triage = o1 OllamaModels.gemma4_26b
+                    DirectorVisionary = o1 OllamaModels.gemma4_26b
+                    DirectorMaverick = o1 OllamaModels.gemma4_26b
+                    Implementor = o1 OllamaModels.gemma4_26b
+                    ImplementorFallback = None
+                    Compaction = o1 OllamaModels.gemma4_8b
+                    ContextLengthTokens = 128_000
+                    CompactionThreshold = 0.8
+                }
+        ]
+
+    staticSets @ ollamaSets
 
 let resolveConfigSet (name: string) : ConfigSet =
-    match configSets |> List.tryFind (fun cs -> cs.Name.Contains(name, StringComparison.OrdinalIgnoreCase)) with
+    let sets = configSets ()
+    match sets |> List.tryFind (fun cs -> cs.Name.Contains(name, StringComparison.OrdinalIgnoreCase)) with
     | Some cs -> cs
     | None ->
-        let available = configSets |> List.map (fun cs -> cs.Name) |> String.concat ", "
+        let available = sets |> List.map (fun cs -> cs.Name) |> String.concat ", "
         failwith $"Unknown CONFIG_SET '{name}'. Available: {available}"
 
 // ---------------------------------------------------------------------------
@@ -169,18 +219,19 @@ let private onEvent (event: AgentEvent) =
 // System prompt to prevent models (especially gpt-5.4) from attempting tool use.
 // These agents have no tools available — without this instruction, some models
 // produce empty responses because they try to call non-existent tools.
-let private noToolsPrompt =
+let noToolsPrompt =
     "You are a text-only AI. You have NO tools available. " +
     "You cannot read files, edit files, browse repositories, run commands, or access any external resources. " +
     "Output only text. Do not attempt to call tools or functions — they do not exist."
 
 let createAgent (backend: SelectedBackend) : IAgent =
-    agentFactory backend (Some noToolsPrompt) None []
+    agentFactory backend
 
-let sendToAgent (agent: IAgent) (timeoutMs: int) (prompt: string) : Result<string, string> =
-    printfn $"    [agent] Sending {prompt.Length} chars..."
+let sendChat (agent: IAgent) (timeoutMs: int) (messages: ChatMessage list) : Result<string, string> =
+    let totalChars = messages |> List.sumBy (fun m -> m.Content.Length)
+    printfn $"    [agent] Sending {messages.Length} messages ({totalChars} chars)..."
     try
-        let work = agent.Send(prompt, onEvent)
+        let work = agent.SendChat(messages, onEvent)
         let result = Async.RunSynchronously(work, timeout = timeoutMs)
         let trimmed = result.Trim()
         if String.IsNullOrWhiteSpace trimmed then
@@ -197,28 +248,29 @@ let sendToAgent (agent: IAgent) (timeoutMs: int) (prompt: string) : Result<strin
         printfn $"    [agent] ERROR: {ex.Message}"
         Result.Error $"AI call failed: {ex.Message}"
 
-let askAI (backend: SelectedBackend) (timeoutMs: int) (prompt: string) : Result<string, string> =
+let askChat (backend: SelectedBackend) (timeoutMs: int) (messages: ChatMessage list) : Result<string, string> =
     let name = backendDisplayName backend
-    printfn $"    [askAI] Backend: {name}"
-    printfn $"    [askAI] Prompt: {prompt.Length} chars, Timeout: {timeoutMs / 1000}s"
+    let totalChars = messages |> List.sumBy (fun m -> m.Content.Length)
+    printfn $"    [askChat] Backend: {name}"
+    printfn $"    [askChat] Messages: {messages.Length}, Total: {totalChars} chars, Timeout: {timeoutMs / 1000}s"
     try
-        printfn $"    [askAI] Creating agent..."
-        use agent = agentFactory backend (Some noToolsPrompt) None []
-        printfn $"    [askAI] Agent ready, sending prompt..."
-        let work = agent.Send(prompt, onEvent)
+        printfn $"    [askChat] Creating agent..."
+        use agent = agentFactory backend
+        printfn $"    [askChat] Agent ready, sending messages..."
+        let work = agent.SendChat(messages, onEvent)
         let result =
             Async.RunSynchronously(work, timeout = timeoutMs)
         let trimmed = result.Trim()
         if String.IsNullOrWhiteSpace trimmed then
-            printfn $"    [askAI] ERROR: empty response"
+            printfn $"    [askChat] ERROR: empty response"
             Result.Error "AI returned empty response"
         else
-            printfn $"    [askAI] OK: {trimmed.Length} chars"
+            printfn $"    [askChat] OK: {trimmed.Length} chars"
             Ok trimmed
     with
     | :? TimeoutException ->
-        printfn $"    [askAI] ERROR: timed out after {timeoutMs / 1000}s"
+        printfn $"    [askChat] ERROR: timed out after {timeoutMs / 1000}s"
         Result.Error $"AI call timed out after {timeoutMs / 1000}s"
     | ex ->
-        printfn $"    [askAI] ERROR: {ex.Message}"
+        printfn $"    [askChat] ERROR: {ex.Message}"
         Result.Error $"AI call failed: {ex.Message}"
