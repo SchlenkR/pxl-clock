@@ -248,7 +248,7 @@ let private buildGalleryBlock (issueNumber: int) (issueTitle: string) : string o
             let trimmed = gif.Replace(".gif", "").TrimStart('0')
             let iter = if trimmed = "" then "0" else trimmed
             let url = $"https://github.com/{owner}/{repoName}/blob/{artifactBranch}/{folder}/{gif}?raw=true"
-            $"![#{iter}]({url})<br>**#{iter}**"
+            $"![Iter {iter}]({url})<br>**Iter {iter}**"
         let rows =
             gifs
             |> List.chunkBySize 4
