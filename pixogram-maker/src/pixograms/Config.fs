@@ -35,6 +35,7 @@ module AnthropicModels =
 module OllamaModels =
     let gemma4_26b = "gemma4:26b-a4b-it-q8_0"
     let gemma4_8b = "gemma4:latest"
+    let qwen36_35b = "qwen3.6:35b-a3b-nvfp4"
 
 // ---------------------------------------------------------------------------
 // Ollama env helper — reads OLLAMA{N}_URL / OLLAMA{N}_API_KEY
@@ -130,6 +131,18 @@ let configSets () =
                     Implementor = o1 OllamaModels.gemma4_26b
                     ImplementorFallback = None
                     Compaction = o1 OllamaModels.gemma4_8b
+                    ContextLengthTokens = 128_000
+                    CompactionThreshold = 0.8
+                }
+                {
+                    Name = "ollama1-qwen36-35b"
+                    SafetyCheck = o1 OllamaModels.qwen36_35b
+                    Triage = o1 OllamaModels.qwen36_35b
+                    DirectorVisionary = o1 OllamaModels.qwen36_35b
+                    DirectorMaverick = o1 OllamaModels.qwen36_35b
+                    Implementor = o1 OllamaModels.qwen36_35b
+                    ImplementorFallback = None
+                    Compaction = o1 OllamaModels.qwen36_35b
                     ContextLengthTokens = 128_000
                     CompactionThreshold = 0.8
                 }

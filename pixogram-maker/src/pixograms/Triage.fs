@@ -33,6 +33,13 @@ let loadPrompt name =
 let private conversationFormatBlock =
     lazy (loadPrompt "conversation-format.md")
 
+/// API reference loaded from the repo-root llms.txt — single source of truth for the PXL API.
+let apiReference =
+    lazy (
+        let repoRoot = Path.Combine(projectDir, "..", "..", "..")
+        File.ReadAllText(Path.Combine(repoRoot, "llms.txt")).Trim()
+    )
+
 /// Render a prompt template as a system prompt (without conversation placeholder).
 /// The {{conversation}} placeholder is removed — conversation is passed as chat messages.
 let renderSystemPrompt (name: string) (vars: (string * string) list) =

@@ -14,6 +14,19 @@ open PixogramRequests.Triage
 // Helpers
 // ---------------------------------------------------------------------------
 
+let private extractCodeFromMarkdown (response: string) : string =
+    let codeBlockPattern = System.Text.RegularExpressions.Regex(@"```(?:csharp|cs)?\s*\n([\s\S]*?)```", System.Text.RegularExpressions.RegexOptions.Compiled)
+    let matches = codeBlockPattern.Matches(response)
+    if matches.Count > 0 then
+        // Prefer the block containing "// ---" (the full pixogram code), otherwise take the longest
+        let blocks = [ for m in matches -> m.Groups.[1].Value.Trim() ]
+        match blocks |> List.tryFind (fun b -> b.Contains("// ---")) with
+        | Some code -> code
+        | None -> blocks |> List.maxBy (fun b -> b.Length)
+    else
+        // Fallback: if no markdown block, treat entire response as code (backwards compat)
+        response.Trim()
+
 let private runProcess cmd (args: string list) (env: (string * string) list) =
     let psi = ProcessStartInfo(cmd)
     for a in args do psi.ArgumentList.Add a
@@ -145,6 +158,8 @@ let private setupWorktree () =
         runGit [ "worktree"; "remove"; worktreePath; "--force" ] |> ignore
     requireGit "fetch branch" [ "fetch"; "origin"; artifactBranch ] |> ignore
     requireGit "add worktree" [ "worktree"; "add"; worktreePath; artifactBranch ] |> ignore
+    // Sync local branch with remote (may be behind after local test runs)
+    requireProcess "git reset" "git" [ "-C"; worktreePath; "reset"; "--hard"; $"origin/{artifactBranch}" ] [] |> ignore
     // Configure git identity (not set by default in GitHub Actions)
     requireProcess "git config user.email" "git" [ "-C"; worktreePath; "config"; "user.email"; "github-actions[bot]@users.noreply.github.com" ] [] |> ignore
     requireProcess "git config user.name" "git" [ "-C"; worktreePath; "config"; "user.name"; "github-actions[bot]" ] [] |> ignore
@@ -272,7 +287,8 @@ let private executeDirector (config: PipelineConfig) (protocol: ProtocolLog) (ba
 
 let private generateSummary (config: PipelineConfig) (conversationMessages: ChatMessage list) =
     printfn "    Generating summary..."
-    let conversationText = renderConversationAsText conversationMessages
+    let stripped = stripDetailsFromMessages conversationMessages
+    let conversationText = renderConversationAsText stripped
     let prompt = renderPrompt "summary.md" [ "conversation", conversationText ]
     let messages = [ ChatMessage.system noToolsPrompt; ChatMessage.user prompt ]
     match askChat config.Models.Triage config.AiTimeoutMs messages with
@@ -288,18 +304,25 @@ let private executeImplementor (config: PipelineConfig) (protocol: ProtocolLog) 
     let iterationNumber = countImplementorComments comments + 1
     printfn $"    Iteration: #{iterationNumber}"
 
-    let systemPrompt = renderSystemPrompt "implementor.md" []
+    let implTokens = conversationMessages |> renderConversationAsText |> estimateTokens
+    printfn $"    Implementor conversation: ~{implTokens} tokens"
+
+    let systemPrompt = renderSystemPrompt "implementor.md" [ "api_reference", apiReference.Value ]
     let baseMessages = ChatMessage.system systemPrompt :: conversationMessages
 
     // Try primary model, fall back if response is empty or missing code marker
     let getInitialCode (backend: SelectedBackend) =
         printfn $"    [impl] Sending to {backendDisplayName backend}..."
         match askChat backend config.AiTimeoutMs baseMessages with
-        | Ok code when code.Contains("// ---") -> Some code
-        | Ok code ->
-            printfn $"  ⚠ Implementor response missing '// ---' marker ({code.Length} chars)"
-            log protocol "Implementor" $"INVALID (missing marker, {code.Length} chars): {code.[..min 200 (code.Length - 1)]}"
-            None
+        | Ok response ->
+            let code = extractCodeFromMarkdown response
+            if code.Contains("// ---") then
+                printfn $"    [impl] Code extracted ({code.Length} chars from {response.Length} chars response)"
+                Some code
+            else
+                printfn $"  ⚠ Implementor response missing '// ---' marker ({code.Length} chars)"
+                log protocol "Implementor" $"INVALID (missing marker, {code.Length} chars): {code.[..min 200 (code.Length - 1)]}"
+                None
         | Result.Error err ->
             printfn $"  ✗ Implementor AI failed: {err}"
             log protocol "Implementor" $"FAILED: {err}"
@@ -375,7 +398,7 @@ let private executeImplementor (config: PipelineConfig) (protocol: ProtocolLog) 
                 let feedback =
                     "The code failed to compile/render. Here is the error:\n\n" +
                     $"```\n{err}\n```\n\n" +
-                    "Please fix the code and output ONLY the corrected raw C# code. No markdown, no explanations."
+                    "Analyze what went wrong, then output the corrected complete C# code in a ```csharp block."
                 retryMessages <- retryMessages @ [ ChatMessage.user feedback ]
                 printfn $"    [impl] Sending error feedback (attempt {attempt})..."
                 match askChat config.Models.Implementor config.AiTimeoutMs retryMessages with
@@ -383,7 +406,9 @@ let private executeImplementor (config: PipelineConfig) (protocol: ProtocolLog) 
                     printfn $"  ✗ Implementor retry AI failed: {aiErr}"
                     log protocol "Implementor" $"RETRY AI FAILED: {aiErr}"
                     attempt <- config.MaxImplementorRetries // bail out
-                | Ok fixedCode ->
+                | Ok response ->
+                    let fixedCode = extractCodeFromMarkdown response
+                    printfn $"    [impl] Retry code extracted ({fixedCode.Length} chars from {response.Length} chars response)"
                     retryMessages <- retryMessages @ [ ChatMessage.assistant fixedCode ]
                     code <- fixedCode
 
@@ -575,9 +600,9 @@ let run (config: PipelineConfig) (issue: Issue) =
                     compaction <- Some summary
                     log protocol "Compaction" $"Compacted to {summary.Length} chars"
 
-            // Build conversations using compaction if available
+            // Build conversations: Full for Directors/Triage, Implementor view for code generation
             let fullConversation = buildConversation config ConversationView.Full compaction current
-            let implConversation = fullConversation // Implementor gets full context for better cache hits
+            let implConversation = buildConversation config ConversationView.Implementor compaction current
             printfn ""
 
             if implCount >= maxIterations && not (hasUserFeedbackAfterLastImplementor config current) then
@@ -607,7 +632,11 @@ let run (config: PipelineConfig) (issue: Issue) =
                         log protocol "Triage" $"CACHED: {lastTriageResult.Value}"
                         lastTriageResult.Value
                     else
-                        let triageAction = determineNextAction config maxIterations current.Author fullConversation
+                        // Strip code from Implementor messages — Triage only needs conversation structure
+                        let triageConversation = stripDetailsFromMessages fullConversation
+                        let triageTokens = triageConversation |> renderConversationAsText |> estimateTokens
+                        printfn $"  Triage conversation: ~{triageTokens} tokens (stripped code from Implementor messages)"
+                        let triageAction = determineNextAction config maxIterations current.Author triageConversation
                         log protocol "Triage" $"{triageAction}"
                         lastTriageCommentCount <- current.Comments.Length
                         lastTriageResult <- Some triageAction

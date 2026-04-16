@@ -37,7 +37,7 @@ let listRunningModels (baseUrl: string) : Async<string list> =
     }
 
 type OllamaAgent(config: OllamaConfig) =
-    let client = new HttpClient(Timeout = TimeSpan.FromMinutes(10.0))
+    let client = new HttpClient(Timeout = TimeSpan.FromMinutes(30.0))
     let mutable disposed = false
 
     let buildRequestJson (messages: ChatMessage list) =
@@ -94,6 +94,13 @@ type OllamaAgent(config: OllamaConfig) =
 
                             match root.TryGetProperty("message") with
                             | true, msg ->
+                                // Gemma 4 thinking mode: stream thinking tokens separately
+                                match msg.TryGetProperty("thinking") with
+                                | true, t ->
+                                    let token = t.GetString()
+                                    if not (String.IsNullOrEmpty token) then
+                                        onEvent (Thinking token)
+                                | _ -> ()
                                 match msg.TryGetProperty("content") with
                                 | true, c ->
                                     let token = c.GetString()
@@ -103,7 +110,20 @@ type OllamaAgent(config: OllamaConfig) =
                                 | _ -> ()
                             | _ -> ()
 
-                            if isFinished then isDone <- true
+                            if isFinished then
+                                // Extract performance metrics from final chunk
+                                let getInt64 (name: string) =
+                                    match root.TryGetProperty(name) with
+                                    | true, v -> v.GetInt64() | _ -> 0L
+                                let promptEvalCount = getInt64 "prompt_eval_count"
+                                let evalCount = getInt64 "eval_count"
+                                let promptEvalDur = getInt64 "prompt_eval_duration"
+                                let evalDur = getInt64 "eval_duration"
+                                let totalDur = getInt64 "total_duration"
+                                let promptTokPerSec = if promptEvalDur > 0L then float promptEvalCount / (float promptEvalDur / 1e9) else 0.0
+                                let evalTokPerSec = if evalDur > 0L then float evalCount / (float evalDur / 1e9) else 0.0
+                                eprintfn $"    [ollama] prompt_eval: {promptEvalCount} tokens ({promptTokPerSec:F1} tok/s), gen: {evalCount} tokens ({evalTokPerSec:F1} tok/s), total: {float totalDur / 1e9:F1}s"
+                                isDone <- true
                         with _ -> ()
 
                 let result = fullResponse.ToString()

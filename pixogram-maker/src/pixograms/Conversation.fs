@@ -290,6 +290,16 @@ let buildConversation (config: PipelineConfig) (view: ConversationView) (compact
 
     messages |> Seq.toList
 
+/// Strip <details>...</details> blocks from assistant (Implementor) messages.
+/// Used for Triage to reduce token count — routing decisions don't need full code.
+let stripDetailsFromMessages (messages: ChatMessage list) : ChatMessage list =
+    let detailsRegex = Regex(@"<details>[\s\S]*?</details>", RegexOptions.Compiled)
+    messages
+    |> List.map (fun m ->
+        if m.Role = "assistant" then
+            { m with Content = detailsRegex.Replace(m.Content, "[code omitted]").Trim() }
+        else m)
+
 /// Render a ChatMessage list as a single string (for token estimation, logging, etc.)
 let renderConversationAsText (messages: ChatMessage list) =
     messages
