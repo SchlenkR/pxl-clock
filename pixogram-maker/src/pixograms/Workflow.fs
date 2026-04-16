@@ -556,9 +556,9 @@ let run (config: PipelineConfig) (issue: Issue) =
         let mutable compaction = downloadCompaction issue.Number issue.Title
 
         // Safety valve: hard cap on loop iterations to prevent runaway loops.
-        // Normal cycle = Director + Implementor = 2 iterations.
-        // With user feedback cycles, maxIterations * 3 + 5 is generous.
-        let maxLoopSteps = maxIterations * 3 + 5
+        // Recomputed from *current* maxIterations each pass so that auto-iteration
+        // bumps (which raise maxIterations mid-run) also raise the loop-step ceiling.
+        // Normal cycle = Director + Implementor = 2 iterations; *3+5 is generous.
         let mutable loopStep = 0
         let mutable running = true
 
@@ -568,6 +568,7 @@ let run (config: PipelineConfig) (issue: Issue) =
         let mutable lastTriageResult: NextAction option = None
         while running do
             loopStep <- loopStep + 1
+            let maxLoopSteps = maxIterations * 3 + 5
             if loopStep > maxLoopSteps then
                 printfn $"  ⚠ Safety valve: {maxLoopSteps} loop steps exceeded — stopping to prevent runaway."
                 log protocol "Workflow" $"SAFETY VALVE: {maxLoopSteps} loop steps exceeded"
