@@ -217,6 +217,37 @@ Every pipeline function must be **composable** — callable directly in-process 
 
 **Why this matters:** We want the option to run pipeline steps as parallel GitHub Actions matrix jobs (one per issue), as separate containers, or as sub-agents — without rewriting the core logic. Composability is what makes this possible.
 
+## Open Problem: Ideation & Mode Collapse
+
+In practice, iterations within a single issue tend to look **visually similar** — and even fresh issues often land in the same stylistic neighborhood. The Maverick role was introduced to counteract this, but it hasn't produced the conceptual jumps we'd hoped for. A literature survey confirmed this is a structural property of current LLMs, not a prompting issue.
+
+### Why this happens (research-backed)
+
+- **Mode collapse** in RLHF-aligned models systematically narrows output distributions (Padmakumar & He 2024, Kirk et al. 2024, Mohammadi 2024). The very alignment that makes instruction-tuned models pleasant to use also compresses their stylistic range.
+- LLMs are strong in **exploratory** creativity (new points in the same conceptual space) but architecturally weak in **transformational** creativity — the kind that produces "Matrix-rain as a clock" or "Pac-Man drawing the digits" (Franceschelli & Musolesi 2024, based on Boden's taxonomy).
+- **Homogeneous multi-agent setups amplify priors rather than break them**. Visionary and Maverick running on the same backend end up reinforcing each other's assumptions instead of diverging (Zhang et al. 2024 on social conformity in LLM agents; Liang et al. 2024 on debate dynamics). This directly explains why our Maverick role underperforms — it shares a model with Visionary.
+
+### Approaches that could fit our scale
+
+Full Quality-Diversity machinery (MAP-Elites, OpenELM, 1024-cell behavior grids) is overkill for ~5 issues and ~10 users. But several validated ideas translate cleanly:
+
+- **Model heterogeneity** — different backends for different creative roles (ReConcile, Chen/Saha/Bansal 2023). Multiple Ollama models are already available; rotating them between Visionary/Maverick is a near-free change with strong literature support.
+- **External inspiration injection** — Wikidata concepts, Oblique Strategies cards, named palettes (Lospec), trope catalogs. Validated by the CMU Kittur lab (SOLVENT, BIOSPARK, Inkspire) for producing cross-domain analogies.
+- **Anti-archive / denial prompting** — showing the Director what already exists and forbidding its reuse (Lu et al. 2024 "Benchmarking LLM Creativity"). The per-issue gallery already provides the raw material.
+- **Behavior-space categorization** — the core idea from QDAIF (Bradley et al. 2023) and OMNI (Zhang et al. 2023) without the full QD framework: pick 3-4 coarse axes (motion type, time representation, figure presence, palette character), place existing iterations on the grid, and use **empty cells** as an explicit to-do list for the pipeline.
+
+### Directions we're considering
+
+Nothing committed yet, ordered by effort-to-impact:
+
+1. **Heterogeneous models per role** — Maverick on a different backend than Visionary. Cheapest and most literature-backed single change.
+2. **External seed injection for Directors** — each Director turn receives a random Oblique Strategy + Wikidata concept + named palette as a constraint.
+3. **Anti-archive in Director prompts** — attach existing iteration thumbnails with an explicit "do something visually different" instruction.
+4. **Denial prompting** — maintain an evolving ban-list of techniques already used ("no sine waves, no `hh:mm` digit matrices") to force exploration into unused regions.
+5. **Behavior-space categorization** — extract a few coarse axes from existing issues, then treat empty cells as prompts for targeted generation.
+
+The underlying reframing (from the QD literature): **reward the pipeline for filling empty cells in a behavior space, not just for producing "good" ideas.** That turns the convergence problem into a coverage problem — something algorithms are known to be able to solve.
+
 ## Configuration
 
 All configuration is via environment variables (loaded from `.env` locally, from GitHub repository variables in CI):
