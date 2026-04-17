@@ -82,6 +82,8 @@ let private log (protocol: ProtocolLog) (role: string) (text: string) =
     protocol.Writer.WriteLine text
     protocol.Writer.WriteLine()
 
+let private ts () = DateTime.Now.ToString "HH:mm:ss"
+
 let private configSetMarkdown (models: ConfigSet) =
     let impl = backendDisplayName models.Implementor
     let rows =
@@ -120,11 +122,11 @@ let private renderPixogram (config: PipelineConfig) (csPath: string) (gifPath: s
         proc.WaitForExit(120_000) |> ignore
         if proc.ExitCode = 0 then
             let fileSize = FileInfo(gifPath).Length / 1024L
-            printfn $"  Render OK ({fileSize} KB)"
+            printfn $"  [{ts ()}] Render OK ({fileSize} KB)"
             Ok gifPath
         else
             let output = (stdout + "\n" + stderr).Trim()
-            printfn $"  Render FAILED (exit {proc.ExitCode})"
+            printfn $"  [{ts ()}] Render FAILED (exit {proc.ExitCode})"
             Result.Error output
     with ex ->
         Result.Error ex.Message
@@ -326,7 +328,7 @@ let private uploadCompaction (issueNumber: int) (issueTitle: string) (summary: s
         cleanupWorktree worktreePath
 
 let private runCompaction (config: PipelineConfig) (protocol: ProtocolLog) (conversationMessages: ChatMessage list) (issueNumber: int) (issueTitle: string) : string =
-    printfn $"  ▶ Running compaction..."
+    printfn $"  [{ts ()}] ▶ Running compaction..."
     let conversationText = renderConversationAsText conversationMessages
     let systemPrompt = renderSystemPrompt "compaction.md" []
     let messages = [ ChatMessage.system systemPrompt; ChatMessage.user conversationText ]
@@ -359,7 +361,7 @@ let private executeDirector (config: PipelineConfig) (protocol: ProtocolLog) (ba
     let mutable attempt = 1
     let mutable posted = false
     while not posted && attempt <= config.MaxDirectorRetries do
-        printfn $"  ▶ Running {label} ({backendDisplayName backend}), attempt {attempt}/{config.MaxDirectorRetries}..."
+        printfn $"  [{ts ()}] ▶ Running {label} ({backendDisplayName backend}), attempt {attempt}/{config.MaxDirectorRetries}..."
         printfn $"    Prompt: {promptFile}"
         match callAgent backend config.AiTimeoutMs promptFile conversationMessages with
         | Result.Error err ->
@@ -379,7 +381,7 @@ let private executeDirector (config: PipelineConfig) (protocol: ProtocolLog) (ba
         printfn $"  ✗ {label} failed after {config.MaxDirectorRetries} attempts."
 
 let private generateSummary (config: PipelineConfig) (conversationMessages: ChatMessage list) =
-    printfn "    Generating summary..."
+    printfn $"    [{ts ()}] Generating summary..."
     let stripped = stripDetailsFromMessages conversationMessages
     let conversationText = renderConversationAsText stripped
     let prompt = renderPrompt "summary.md" [ "conversation", conversationText ]
@@ -391,7 +393,7 @@ let private generateSummary (config: PipelineConfig) (conversationMessages: Chat
         ""
 
 let private executeImplementor (config: PipelineConfig) (protocol: ProtocolLog) (conversationMessages: ChatMessage list) (fullConversationMessages: ChatMessage list) (comments: IssueComment list) (issueNumber: int) (issueTitle: string) : bool =
-    printfn $"  ▶ Running Implementor ({backendDisplayName config.Models.Implementor})..."
+    printfn $"  [{ts ()}] ▶ Running Implementor ({backendDisplayName config.Models.Implementor})..."
     printfn "    Prompt: implementor.md"
 
     let iterationNumber = countImplementorComments comments + 1
@@ -405,7 +407,7 @@ let private executeImplementor (config: PipelineConfig) (protocol: ProtocolLog) 
 
     // Try primary model, fall back if response is empty or missing code marker
     let getInitialCode (backend: SelectedBackend) =
-        printfn $"    [impl] Sending to {backendDisplayName backend}..."
+        printfn $"    [{ts ()}] [impl] Sending to {backendDisplayName backend}..."
         match askChat backend config.AiTimeoutMs baseMessages with
         | Ok response ->
             let code = extractCodeFromMarkdown response
@@ -448,7 +450,7 @@ let private executeImplementor (config: PipelineConfig) (protocol: ProtocolLog) 
     let mutable success = false
 
     while not success && attempt <= config.MaxImplementorRetries do
-        printfn $"    [impl] Render attempt {attempt}/{config.MaxImplementorRetries}..."
+        printfn $"    [{ts ()}] [impl] Render attempt {attempt}/{config.MaxImplementorRetries}..."
         log protocol "Implementor" $"ATTEMPT {attempt}:\n{code}"
 
         let timestamp = DateTime.Now.ToString "yyyy-MM-dd_HH-mm-ss"
@@ -477,7 +479,7 @@ let private executeImplementor (config: PipelineConfig) (protocol: ProtocolLog) 
                 openLinks +
                 configSetMarkdown config.Models
             postComment issueNumber comment
-            printfn $"  ✓ Implementor posted — iteration {iterationNumber} (attempt {attempt})."
+            printfn $"  [{ts ()}] ✓ Implementor posted — iteration {iterationNumber} (attempt {attempt})."
             updateIssueGallery issueNumber issueTitle
             success <- true
 
@@ -506,7 +508,7 @@ let private executeImplementor (config: PipelineConfig) (protocol: ProtocolLog) 
         attempt <- attempt + 1
 
     if not success then
-        printfn $"  ✗ Implementor failed after {attempt - 1} attempts, not posting to GitHub."
+        printfn $"  [{ts ()}] ✗ Implementor failed after {attempt - 1} attempts, not posting to GitHub."
         log protocol "Implementor" $"GAVE UP after {attempt - 1} attempts"
 
     success
