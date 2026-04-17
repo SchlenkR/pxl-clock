@@ -41,7 +41,7 @@ module OllamaModels =
 // Ollama env helper — reads OLLAMA{N}_URL / OLLAMA{N}_API_KEY
 // ---------------------------------------------------------------------------
 
-let private ollamaBackend (envPrefix: string) (model: string) : SelectedBackend =
+let private ollamaBackend (envPrefix: string) (model: string) (think: bool) : SelectedBackend =
     let url =
         Environment.GetEnvironmentVariable($"{envPrefix}_URL")
         |> Option.ofObj
@@ -50,7 +50,7 @@ let private ollamaBackend (envPrefix: string) (model: string) : SelectedBackend 
         Environment.GetEnvironmentVariable($"{envPrefix}_API_KEY")
         |> Option.ofObj
         |> Option.bind (fun s -> if String.IsNullOrWhiteSpace s then None else Some s)
-    Ollama(url, model, apiKey)
+    Ollama(url, model, apiKey, think)
 
 let private hasOllamaEnv (envPrefix: string) =
     Environment.GetEnvironmentVariable($"{envPrefix}_URL")
@@ -121,11 +121,14 @@ let configSets () =
     let ollamaSets =
         [
             if hasOllamaEnv "OLLAMA1" then
-                let o1 model = ollamaBackend "OLLAMA1" model
+                // Triage uses structured routing prompts that trigger qwen3.x self-reinforcement
+                // loops when thinking is on. All generation/reasoning roles keep thinking enabled.
+                let o1 model = ollamaBackend "OLLAMA1" model true
+                let o1NoThink model = ollamaBackend "OLLAMA1" model false
                 {
                     Name = "ollama1-gemma4-26b"
                     SafetyCheck = o1 OllamaModels.gemma4_26b
-                    Triage = o1 OllamaModels.gemma4_26b
+                    Triage = o1NoThink OllamaModels.gemma4_26b
                     DirectorVisionary = o1 OllamaModels.gemma4_26b
                     DirectorMaverick = o1 OllamaModels.gemma4_26b
                     Implementor = o1 OllamaModels.gemma4_26b
@@ -137,7 +140,7 @@ let configSets () =
                 {
                     Name = "ollama1-qwen36-35b"
                     SafetyCheck = o1 OllamaModels.qwen36_35b
-                    Triage = o1 OllamaModels.qwen36_35b
+                    Triage = o1NoThink OllamaModels.qwen36_35b
                     DirectorVisionary = o1 OllamaModels.qwen36_35b
                     DirectorMaverick = o1 OllamaModels.qwen36_35b
                     Implementor = o1 OllamaModels.qwen36_35b

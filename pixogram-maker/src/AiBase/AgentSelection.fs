@@ -16,7 +16,7 @@ open Spectre.Console
 type SelectedBackend =
     | Docker of image: string * model: Model * effort: Effort
     | Copilot of model: string * effort: Effort
-    | Ollama of baseUrl: string * model: string * apiKey: string option
+    | Ollama of baseUrl: string * model: string * apiKey: string option * think: bool
     | Anthropic of model: string
 
 type BackendOptions =
@@ -98,7 +98,7 @@ let selectBackend (label: string) (options: BackendOptions) : SelectedBackend =
         modelPrompt.AddChoices(displayNames) |> ignore
         let selected = AnsiConsole.Prompt(modelPrompt)
         let model = selected.Replace(" (running)", "")
-        Ollama(options.OllamaBaseUrl, model, None)
+        Ollama(options.OllamaBaseUrl, model, None, true)
     | _ ->
         let modelPrompt = SelectionPrompt<string>()
         modelPrompt.Title <- $"Choose Claude model for [bold]{label}[/]:"
@@ -136,7 +136,9 @@ let backendDisplayName (backend: SelectedBackend) =
     | Copilot(model, effort) ->
         let e = match effort with Low -> "Low" | Medium -> "Medium" | High -> "High" | Max -> "Max"
         $"Copilot {model} ({e})"
-    | Ollama(_, model, _) -> $"Ollama {model}"
+    | Ollama(_, model, _, think) ->
+        let t = if think then "think" else "no-think"
+        $"Ollama {model} ({t})"
     | Anthropic model -> $"Anthropic {model}"
 
 let agentFactory (backend: SelectedBackend) : IAgent =
@@ -152,12 +154,13 @@ let agentFactory (backend: SelectedBackend) : IAgent =
             { defaultCopilotSdkConfig with
                 Model = model
                 Effort = effort })
-    | Ollama(baseUrl, model, apiKey) ->
+    | Ollama(baseUrl, model, apiKey, think) ->
         new OllamaAgent(
             {
                 BaseUrl = baseUrl
                 Model = model
                 ApiKey = apiKey
+                Think = think
             })
     | Anthropic model ->
         let apiKey =

@@ -12,6 +12,9 @@ type OllamaConfig =
         BaseUrl: string
         Model: string
         ApiKey: string option
+        // Enables native reasoning (qwen3.x/gemma4 thinking mode). Disable for
+        // structured routing prompts where qwen3.x falls into self-reinforcement loops.
+        Think: bool
     }
 
 let listModels (baseUrl: string) : Async<string list> =
@@ -54,9 +57,10 @@ type OllamaAgent(config: OllamaConfig) =
             writer.WriteEndObject()
         writer.WriteEndArray()
         writer.WriteBoolean("stream", true)
-        // Disable reasoning: qwen3.x falls into self-reinforcement loops ("IMPLEMENTOR. Wait! ...")
-        // that never terminate on longer prompts. Direct answers are both faster and more reliable.
-        writer.WriteBoolean("think", false)
+        // Reasoning toggle: qwen3.x falls into self-reinforcement loops on structured
+        // routing prompts (e.g. Triage). For generation-heavy roles (Implementor, Director),
+        // thinking is essential for following multi-turn feedback. Caller decides per agent.
+        writer.WriteBoolean("think", config.Think)
         writer.WriteEndObject()
         writer.Flush()
         Encoding.UTF8.GetString(stream.ToArray())
