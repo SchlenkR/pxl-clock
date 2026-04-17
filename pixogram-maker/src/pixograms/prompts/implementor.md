@@ -40,7 +40,7 @@ After your analysis, output the complete C# code in a fenced markdown block:
 ```
 ~~~
 
-The code must be complete and self-contained inside the code block.
+**CRITICAL — the pipeline extracts the LAST `csharp` code block in your response and runs it as-is.** Intermediate versions, draft snippets, or partial blocks during your analysis are fine — but the final, runnable, self-contained version MUST be the last fenced `csharp` block. Nothing else may come after it: no explanatory text, no second code block, no commentary. The final code block ends your response.
 
 ## Rules
 

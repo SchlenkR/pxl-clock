@@ -18,11 +18,7 @@ let private extractCodeFromMarkdown (response: string) : string =
     let codeBlockPattern = System.Text.RegularExpressions.Regex(@"```(?:csharp|cs)?\s*\n([\s\S]*?)```", System.Text.RegularExpressions.RegexOptions.Compiled)
     let matches = codeBlockPattern.Matches(response)
     if matches.Count > 0 then
-        // Prefer the block containing "// ---" (the full pixogram code), otherwise take the longest
-        let blocks = [ for m in matches -> m.Groups.[1].Value.Trim() ]
-        match blocks |> List.tryFind (fun b -> b.Contains("// ---")) with
-        | Some code -> code
-        | None -> blocks |> List.maxBy (fun b -> b.Length)
+        matches.[matches.Count - 1].Groups.[1].Value.Trim()
     else
         // Fallback: if no markdown block, treat entire response as code (backwards compat)
         response.Trim()
