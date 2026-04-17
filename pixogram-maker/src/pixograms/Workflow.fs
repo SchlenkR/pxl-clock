@@ -390,7 +390,7 @@ let private generateSummary (config: PipelineConfig) (conversationMessages: Chat
         printfn $"    ✗ Summary failed: {err}"
         ""
 
-let private executeImplementor (config: PipelineConfig) (protocol: ProtocolLog) (conversationMessages: ChatMessage list) (fullConversationMessages: ChatMessage list) (comments: IssueComment list) (issueNumber: int) (issueTitle: string) =
+let private executeImplementor (config: PipelineConfig) (protocol: ProtocolLog) (conversationMessages: ChatMessage list) (fullConversationMessages: ChatMessage list) (comments: IssueComment list) (issueNumber: int) (issueTitle: string) : bool =
     printfn $"  ▶ Running Implementor ({backendDisplayName config.Models.Implementor})..."
     printfn "    Prompt: implementor.md"
 
@@ -438,6 +438,7 @@ let private executeImplementor (config: PipelineConfig) (protocol: ProtocolLog) 
     | None ->
         printfn $"  ✗ Implementor could not produce valid code."
         log protocol "Implementor" "GAVE UP: no valid code from primary or fallback"
+        false
     | Some initialCode ->
 
     // Render-retry loop: accumulate message history for each retry
@@ -507,6 +508,8 @@ let private executeImplementor (config: PipelineConfig) (protocol: ProtocolLog) 
     if not success then
         printfn $"  ✗ Implementor failed after {attempt - 1} attempts, not posting to GitHub."
         log protocol "Implementor" $"GAVE UP after {attempt - 1} attempts"
+
+    success
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -755,7 +758,11 @@ let run (config: PipelineConfig) (issue: Issue) =
             | RunMaverick ->
                 executeDirector config protocol config.Models.DirectorMaverick "director-maverick.md" "Director/Maverick" fullConversation current.Number
             | RunImplementor ->
-                executeImplementor config protocol implConversation fullConversation current.Comments current.Number current.Title
+                let succeeded = executeImplementor config protocol implConversation fullConversation current.Comments current.Number current.Title
+                if not succeeded then
+                    printfn "  Implementor exhausted retries — stopping workflow (re-run on next trigger)."
+                    log protocol "Workflow" "Implementor exhausted retries — stopping workflow"
+                    running <- false
             | Done reason ->
                 printfn $"  Done: {reason}"
                 running <- false
