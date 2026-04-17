@@ -54,6 +54,9 @@ type OllamaAgent(config: OllamaConfig) =
             writer.WriteEndObject()
         writer.WriteEndArray()
         writer.WriteBoolean("stream", true)
+        // Disable reasoning: qwen3.x falls into self-reinforcement loops ("IMPLEMENTOR. Wait! ...")
+        // that never terminate on longer prompts. Direct answers are both faster and more reliable.
+        writer.WriteBoolean("think", false)
         writer.WriteEndObject()
         writer.Flush()
         Encoding.UTF8.GetString(stream.ToArray())
