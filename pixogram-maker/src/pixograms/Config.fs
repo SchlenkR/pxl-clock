@@ -121,14 +121,14 @@ let configSets () =
     let ollamaSets =
         [
             if hasOllamaEnv "OLLAMA1" then
-                // Triage uses structured routing prompts that trigger qwen3.x self-reinforcement
-                // loops when thinking is on. All generation/reasoning roles keep thinking enabled.
+                // Thinking enabled for all roles. Earlier no-think for Triage avoided
+                // qwen3.x self-reinforcement loops but produced poor routing decisions
+                // (e.g. picking Maverick when feedback was a concrete Implementor spec).
                 let o1 model = ollamaBackend "OLLAMA1" model true
-                let o1NoThink model = ollamaBackend "OLLAMA1" model false
                 {
                     Name = "ollama1-gemma4-26b"
                     SafetyCheck = o1 OllamaModels.gemma4_26b
-                    Triage = o1NoThink OllamaModels.gemma4_26b
+                    Triage = o1 OllamaModels.gemma4_26b
                     DirectorVisionary = o1 OllamaModels.gemma4_26b
                     DirectorMaverick = o1 OllamaModels.gemma4_26b
                     Implementor = o1 OllamaModels.gemma4_26b
@@ -140,7 +140,7 @@ let configSets () =
                 {
                     Name = "ollama1-qwen36-35b"
                     SafetyCheck = o1 OllamaModels.qwen36_35b
-                    Triage = o1NoThink OllamaModels.qwen36_35b
+                    Triage = o1 OllamaModels.qwen36_35b
                     DirectorVisionary = o1 OllamaModels.qwen36_35b
                     DirectorMaverick = o1 OllamaModels.qwen36_35b
                     Implementor = o1 OllamaModels.qwen36_35b

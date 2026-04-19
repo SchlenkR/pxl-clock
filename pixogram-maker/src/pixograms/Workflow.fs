@@ -109,7 +109,9 @@ let private configSetMarkdown (models: ConfigSet) =
 let private renderPixogram (config: PipelineConfig) (csPath: string) (gifPath: string) : Result<string, string> =
     printfn $"  Rendering: {Path.GetFileName csPath} → {Path.GetFileName gifPath}"
     let psi = ProcessStartInfo "Pxl.Render"
-    for a in [ csPath; "--output"; gifPath; "--duration"; string config.GifDurationSeconds; "--scale"; string config.GifScale; "--mode"; "clock" ] do
+    // Fixed virtual start time so previews always show a minute rollover
+    // (13:05:50 + 30s window = renders 13:05 → 13:06 transition)
+    for a in [ csPath; "--output"; gifPath; "--duration"; string config.GifDurationSeconds; "--scale"; string config.GifScale; "--mode"; "clock"; "--start-time"; "13:05:50" ] do
         psi.ArgumentList.Add a
     psi.RedirectStandardOutput <- true
     psi.RedirectStandardError <- true
@@ -382,7 +384,7 @@ let private executeDirector (config: PipelineConfig) (protocol: ProtocolLog) (ba
 
 let private generateSummary (config: PipelineConfig) (conversationMessages: ChatMessage list) =
     printfn $"    [{ts ()}] Generating summary..."
-    let stripped = stripDetailsFromMessages conversationMessages
+    let stripped = conversationMessages |> sliceForSummary |> stripDetailsFromMessages
     let conversationText = renderConversationAsText stripped
     let prompt = renderPrompt "summary.md" [ "conversation", conversationText ]
     let messages = [ ChatMessage.system noToolsPrompt; ChatMessage.user prompt ]

@@ -290,6 +290,25 @@ let buildConversation (config: PipelineConfig) (view: ConversationView) (compact
 
     messages |> Seq.toList
 
+/// Slice the conversation to just what the summary prompt needs.
+/// Multi-implementor case: from the second-to-last Implementor message onward
+/// (so the diff between iterations N-1 and N is visible, plus all intermediate feedback).
+/// Single-implementor case: keep issue body + everything up to the first Implementor.
+let sliceForSummary (messages: ChatMessage list) : ChatMessage list =
+    let isImplementor (m: ChatMessage) =
+        m.Role = "assistant" && m.Content.Contains("**[Implementor]**")
+    let implIdx =
+        messages
+        |> List.mapi (fun i m -> i, m)
+        |> List.filter (fun (_, m) -> isImplementor m)
+        |> List.map fst
+    match implIdx with
+    | [] -> messages
+    | [single] -> messages |> List.take (single + 1)
+    | _ ->
+        let secondLast = implIdx |> List.rev |> List.item 1
+        messages |> List.skip secondLast
+
 /// Strip <details>...</details> blocks from assistant (Implementor) messages.
 /// Used for Triage to reduce token count — routing decisions don't need full code.
 let stripDetailsFromMessages (messages: ChatMessage list) : ChatMessage list =
