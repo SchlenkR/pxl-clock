@@ -36,6 +36,7 @@ module OllamaModels =
     let gemma4_26b = "gemma4:26b-a4b-it-q8_0"
     let gemma4_8b = "gemma4:latest"
     let qwen36_35b = "qwen3.6:35b-a3b-nvfp4"
+    let qwen35_27b_q8 = "qwen3.5:27b-q8_0"
 
 // ---------------------------------------------------------------------------
 // Ollama env helper — reads OLLAMA{N}_URL / OLLAMA{N}_API_KEY
@@ -146,6 +147,18 @@ let configSets () =
                     Implementor = o1 OllamaModels.qwen36_35b
                     ImplementorFallback = None
                     Compaction = o1 OllamaModels.qwen36_35b
+                    ContextLengthTokens = 128_000
+                    CompactionThreshold = 0.8
+                }
+                {
+                    Name = "ollama1-qwen3.5-27b-q8"
+                    SafetyCheck = o1 OllamaModels.qwen35_27b_q8
+                    Triage = o1 OllamaModels.qwen35_27b_q8
+                    DirectorVisionary = o1 OllamaModels.qwen35_27b_q8
+                    DirectorMaverick = o1 OllamaModels.qwen35_27b_q8
+                    Implementor = o1 OllamaModels.qwen35_27b_q8
+                    ImplementorFallback = None
+                    Compaction = o1 OllamaModels.qwen35_27b_q8
                     ContextLengthTokens = 128_000
                     CompactionThreshold = 0.8
                 }
