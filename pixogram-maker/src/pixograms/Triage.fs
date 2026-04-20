@@ -199,26 +199,43 @@ let determineNextAction (config: PipelineConfig) (maxIterations: int) (author: s
               "author", author
               "max_iterations", string maxIterations ]
     let messages = ChatMessage.system systemPrompt :: conversationMessages
+    let keywords = [| "VISIONARY"; "MAVERICK"; "IMPLEMENTOR"; "DONE" |]
 
-    printfn "  Triage..."
-    match askChat config.Models.Triage config.AiTimeoutMs messages with
-    | Result.Error err ->
-        printfn $"  ✗ Triage failed: {err}"
-        Done $"Triage error: {err}"
-    | Ok response ->
-        let keywords = [| "VISIONARY"; "MAVERICK"; "IMPLEMENTOR"; "DONE" |]
-        let line =
-            keywords
-            |> Array.tryPick (fun kw -> findLastLineMatching kw response)
-            |> Option.defaultValue ""
-        printfn $"  → {line}"
+    let attempts = max 1 config.MaxDirectorRetries
+    let mutable result : NextAction option = None
+    let mutable lastErr = ""
+    let mutable attempt = 1
+    while result.IsNone && attempt <= attempts do
+        printfn $"  Triage (attempt {attempt}/{attempts})..."
+        match askChat config.Models.Triage config.AiTimeoutMs messages with
+        | Result.Error err ->
+            printfn $"  ✗ Triage failed (attempt {attempt}): {err}"
+            lastErr <- err
+        | Ok response ->
+            let line =
+                keywords
+                |> Array.tryPick (fun kw -> findLastLineMatching kw response)
+                |> Option.defaultValue ""
+            if line = "" then
+                printfn $"  ✗ Triage response missing routing keyword (attempt {attempt})."
+                lastErr <- "no routing keyword in response"
+            else
+                printfn $"  → {line}"
+                let action =
+                    if line.StartsWith "VISIONARY" then RunVisionary
+                    elif line.StartsWith "MAVERICK" then RunMaverick
+                    elif line.StartsWith "CRAFTSMAN" then RunImplementor // legacy
+                    elif line.StartsWith "IMPLEMENTOR" then RunImplementor
+                    elif line.StartsWith "DONE" then Done (line.Replace("DONE:", "").Trim())
+                    else RunVisionary
+                result <- Some action
+        attempt <- attempt + 1
 
-        if line.StartsWith "VISIONARY" then RunVisionary
-        elif line.StartsWith "MAVERICK" then RunMaverick
-        elif line.StartsWith "CRAFTSMAN" then RunImplementor // legacy: treat as IMPLEMENTOR
-        elif line.StartsWith "IMPLEMENTOR" then RunImplementor
-        elif line.StartsWith "DONE" then Done (line.Replace("DONE:", "").Trim())
-        else RunVisionary
+    match result with
+    | Some action -> action
+    | None ->
+        printfn $"  ✗ Triage failed after {attempts} attempts, defaulting to DONE."
+        Done $"Triage error after {attempts} attempts: {lastErr}"
 
 // ---------------------------------------------------------------------------
 // Agent calls: backend + system prompt + conversation messages → response

@@ -145,6 +145,16 @@ match args with
         let full = fetchIssueWithComments issue
         printfn "%s" (buildConversation config ConversationView.Implementor None full |> renderConversationAsText)
 
+| [| "conversation"; issueNum; "narrative" |] ->
+    let config = configFromEnv ()
+    let n = int issueNum
+    let issues = listEligibleIssues ()
+    match issues |> List.tryFind (fun i -> i.Number = n) with
+    | None -> printfn $"Issue #{n} not found."
+    | Some issue ->
+        let full = fetchIssueWithComments issue
+        printfn "%s" (buildConversation config ConversationView.Narrative None full |> renderConversationAsText)
+
 | [| "dispatch" |] ->
     let config = configFromEnv ()
     let issues = PixogramRequests.Workflow.dispatch config

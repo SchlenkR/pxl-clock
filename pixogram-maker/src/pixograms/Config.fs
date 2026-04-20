@@ -36,6 +36,7 @@ module OllamaModels =
     let gemma4_26b = "gemma4:26b-a4b-it-q8_0"
     let gemma4_8b = "gemma4:latest"
     let qwen36_35b = "qwen3.6:35b-a3b-nvfp4"
+    let qwen36_coding_mxfp8 = "qwen3.6:35b-a3b-coding-mxfp8"
     let qwen35_27b_q8 = "qwen3.5:27b-q8_0"
 
 // ---------------------------------------------------------------------------
@@ -145,6 +146,20 @@ let configSets () =
                     DirectorVisionary = o1 OllamaModels.qwen36_35b
                     DirectorMaverick = o1 OllamaModels.qwen36_35b
                     Implementor = o1 OllamaModels.qwen36_35b
+                    ImplementorFallback = None
+                    Compaction = o1 OllamaModels.qwen36_35b
+                    ContextLengthTokens = 128_000
+                    CompactionThreshold = 0.8
+                }
+                {
+                    // General model for non-code roles, coding fine-tune for Implementor.
+                    // Both are 35B-A3B MoE so ~3B active → fast.
+                    Name = "ollama1-qwen36-coding-mxfp8"
+                    SafetyCheck = o1 OllamaModels.qwen36_35b
+                    Triage = o1 OllamaModels.qwen36_35b
+                    DirectorVisionary = o1 OllamaModels.qwen36_35b
+                    DirectorMaverick = o1 OllamaModels.qwen36_35b
+                    Implementor = o1 OllamaModels.qwen36_coding_mxfp8
                     ImplementorFallback = None
                     Compaction = o1 OllamaModels.qwen36_35b
                     ContextLengthTokens = 128_000

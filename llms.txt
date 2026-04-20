@@ -268,9 +268,29 @@ var scene = (DrawingContext ctx) =>   // MUST be named 'scene'
 **Structural rules:**
 - The drawing lambda **must** be named `scene` (not `myScene`, not `render` — exactly `scene`)
 - YAML frontmatter is required with `app`, `displayName`, and `author` fields
-- App name must be alphanumeric only: `MyClockFace123` is fine, `my-clock` is not
+- App name must be **ASCII letters and digits only** (PXL1102): `MyClockFace123` is fine; `my-clock`, `my_clock`, `Glühwürmchen` (umlauts), `クロック` (non-Latin), or anything with spaces/hyphens/underscores is **not**. Transliterate (`Gluehwuermchen`) or use an English variant.
 - Only single `.cs` script files are supported — no multi-file projects or `#:project` directives
 - The only allowed dependency is `#:package Pxl` (with optional `@version`) — no other package references, project references, or external dependencies are supported (PXL1103)
+
+### Single-File Script Rules (.NET 10 `dotnet run` style)
+
+Your `.cs` file is a **top-level program**, compiled as a single script file — not a classic `csproj`/`Program.cs` setup. The rules below are strict; violations will fail compilation.
+
+- **Top-level statements only.** Your state declarations, the `using`s, and the `var scene = ...` assignment live at the **file root**. Do **not** wrap them in `class Program { static void Main(...) { ... } }` and do not declare a `namespace { ... }` around them.
+- **Types declared inside the file are allowed** (classes, records, structs) — put them **after** the `var scene = ...` assignment at the file root, not around it.
+- **Directives:** exactly one `#:package Pxl@*` (or pinned version) is allowed. Do **not** use `#:project`, `#r`, `#load`, or any other directive.
+- **`using` directives** go at the top of the file. `global using` is not needed and is not supported.
+- **No `Main` method, no `return` at file root.** The script ends at the end of the file.
+- **Assets only via the documented helpers.** `Image.LoadSingleImage("assets/...")` / `Image.LoadAnimatedGif("assets/...")` with a **string literal** path — no variables, no concatenation, no interpolation.
+- **Only one `scene` lambda** is used as the entry point. Helper lambdas or methods are fine, but the pipeline picks up exactly the `scene` identifier.
+
+### Common C# Mistakes (avoid these — they fail to compile)
+
+- **Stick to APIs you can see.** Use only methods and types documented in the **API Reference** below (the `Pxl.Ui.CSharp` surface) and standard C# / BCL features you actually know. If a method name feels plausible but isn't in the reference, it doesn't exist — don't invent drawing helpers, color constructors, or extension methods. Prefer the exact spelling from the reference over a name that "sounds right".
+- **Typed lambda parameters use C# syntax.** Write `(int digit, double x) => ...` — type before name, no colon.
+- **Arrays of tuples need an explicit element type.** `new[] { (1, 2), (3, 4) }` fails to infer. Write `new (int, int)[] { (1, 2), (3, 4) }` or use `new List<(int, int)> { (1, 2), (3, 4) }`.
+- **Tuples (`ValueTuple`) are immutable.** `arr[i].Item1 += dx;` won't compile. Either rebuild the tuple (`arr[i] = (arr[i].Item1 + dx, arr[i].Item2);`) or use a mutable shape (a `class` with fields, or parallel arrays).
+- **ASCII-only app name** (see above). `// app: Glühwürmchen` fails with `PXL1102`.
 
 ### What IS Available
 

@@ -15,13 +15,29 @@ open PixogramRequests.Triage
 // ---------------------------------------------------------------------------
 
 let private extractCodeFromMarkdown (response: string) : string =
-    let codeBlockPattern = System.Text.RegularExpressions.Regex(@"```(?:csharp|cs)?\s*\n([\s\S]*?)```", System.Text.RegularExpressions.RegexOptions.Compiled)
-    let matches = codeBlockPattern.Matches(response)
-    if matches.Count > 0 then
-        matches.[matches.Count - 1].Groups.[1].Value.Trim()
+    // The implementor prompt illustrates nested fences (outer ~~~ wraps inner ```csharp),
+    // so models often produce that structure. We prefer the most specific match:
+    //   1) Innermost ```csharp / ```cs block (language tag present)
+    //   2) Otherwise last bare fence (``` or ~~~)
+    // NOTE: In .NET regex, named groups are numbered AFTER unnamed groups, so we name
+    // BOTH groups to avoid Groups[index] confusion.
+    let opts = System.Text.RegularExpressions.RegexOptions.Compiled
+    let csharpPattern =
+        System.Text.RegularExpressions.Regex(
+            @"```(?:csharp|cs)\s*\n(?<code>[\s\S]*?)```", opts)
+    let csharpMatches = csharpPattern.Matches(response)
+    if csharpMatches.Count > 0 then
+        csharpMatches.[csharpMatches.Count - 1].Groups.["code"].Value.Trim()
     else
-        // Fallback: if no markdown block, treat entire response as code (backwards compat)
-        response.Trim()
+        let anyFencePattern =
+            System.Text.RegularExpressions.Regex(
+                @"(?<fence>```|~~~)\s*\n(?<code>[\s\S]*?)\k<fence>", opts)
+        let matches = anyFencePattern.Matches(response)
+        if matches.Count > 0 then
+            matches.[matches.Count - 1].Groups.["code"].Value.Trim()
+        else
+            // Fallback: if no markdown block, treat entire response as code (backwards compat)
+            response.Trim()
 
 let private runProcess cmd (args: string list) (env: (string * string) list) =
     let psi = ProcessStartInfo(cmd)
@@ -251,13 +267,13 @@ let private buildGalleryBlock (issueNumber: int) (issueTitle: string) : string o
             $"![Iter {iter}]({url})<br>**Iter {iter}**"
         let rows =
             gifs
-            |> List.chunkBySize 4
+            |> List.chunkBySize 2
             |> List.map (fun chunk ->
                 let cells = chunk |> List.map cell
-                let padded = cells @ List.replicate (4 - cells.Length) ""
+                let padded = cells @ List.replicate (2 - cells.Length) ""
                 "| " + (padded |> String.concat " | ") + " |")
             |> String.concat "\n"
-        let header = "|  |  |  |  |\n|:-:|:-:|:-:|:-:|"
+        let header = "|  |  |\n|:-:|:-:|"
         let block =
             $"{galleryStartMarker}\n" +
             $"> 🤖 Diese Galerie wird automatisch vom **pixogram-maker**-Bot aktualisiert.\n" +
@@ -467,7 +483,12 @@ let private executeImplementor (config: PipelineConfig) (protocol: ProtocolLog) 
             log protocol "Render" $"OK: {gifPath}"
             let links = commitArtifacts issueNumber issueTitle iterationNumber csPath gifPath
             let gifMarkdown = $"\n\n![preview]({links.GifRaw})"
-            let summary = generateSummary config fullConversationMessages
+            // Include the just-produced code so the summary describes THIS iteration,
+            // not the previous one. Tag it so sliceForSummary recognises it as the latest Implementor.
+            let latestImplMessage =
+                ChatMessage.assistant $"**[Implementor]** — Iteration {iterationNumber}\n\n<details>\n\n```csharp\n{code}\n```\n\n</details>"
+            let summaryConversation = fullConversationMessages @ [ latestImplMessage ]
+            let summary = generateSummary config summaryConversation
             let summaryLine = if summary <> "" then $"\n\n{summary}" else ""
             let vscodeUrl = $"https://vscode.dev/github/{owner}/{repoName}/blob/{artifactBranch}/{issueFolderName issueNumber issueTitle}"
             let openLinks =
@@ -679,11 +700,19 @@ let run (config: PipelineConfig) (issue: Issue) =
                         let implCount = countImplementorComments current.Comments
                         let desired = implCount + bump
                         let newMax = min desired config.MaxIterationsCap
+                        let wasCapped = newMax < desired
+                        let cappedNote = if wasCapped then $" (capped by MAX_ITERATIONS_CAP={config.MaxIterationsCap})" else ""
                         if newMax > maxIterations then
-                            let cappedNote = if newMax < desired then $" (capped by MAX_ITERATIONS_CAP={config.MaxIterationsCap})" else ""
                             printfn $"  ⤴ User requested +{bump} auto-iterations → maxIterations: {maxIterations} → {newMax}{cappedNote}"
                             log protocol "Workflow" $"User bumped maxIterations: {maxIterations} → {newMax} (+{bump}, impl={implCount}){cappedNote}"
                             maxIterations <- newMax
+                            if wasCapped then
+                                let granted = newMax - implCount
+                                let comment =
+                                    "<!-- pixogram-bot-note -->\n" +
+                                    $"Requested +{bump} auto-iterations, but capped to +{granted} by `MAX_ITERATIONS_CAP={config.MaxIterationsCap}` " +
+                                    $"(current: {implCount}/{newMax}). Comment again with another bump to continue past the cap."
+                                postComment current.Number comment
                         else
                             printfn $"  ⤴ User requested +{bump} but current max {maxIterations} already covers it — no change."
                 | SafetyResult.Failed reason ->
@@ -713,9 +742,15 @@ let run (config: PipelineConfig) (issue: Issue) =
                     compaction <- Some summary
                     log protocol "Compaction" $"Compacted to {summary.Length} chars"
 
-            // Build conversations: Full for Directors/Triage, Implementor view for code generation
+            // Build conversations:
+            //   - Narrative: code-stripped transcript for analytical roles (Triage, Directors)
+            //   - Full: chat-message form, used for Summary
+            //   - Implementor: chat-message form filtered to the current cycle (for code generation)
+            let narrativeConversation = buildConversation config ConversationView.Narrative compaction current
             let fullConversation = buildConversation config ConversationView.Full compaction current
             let implConversation = buildConversation config ConversationView.Implementor compaction current
+            let narrativeTokens = narrativeConversation |> renderConversationAsText |> estimateTokens
+            printfn $"  Narrative conversation: ~{narrativeTokens} tokens (code-stripped transcript for Triage + Directors)"
             printfn ""
 
             if implCount >= maxIterations && not (hasUserFeedbackAfterLastImplementor config current) then
@@ -745,11 +780,10 @@ let run (config: PipelineConfig) (issue: Issue) =
                         log protocol "Triage" $"CACHED: {lastTriageResult.Value}"
                         lastTriageResult.Value
                     else
-                        // Strip code from Implementor messages — Triage only needs conversation structure
-                        let triageConversation = stripDetailsFromMessages fullConversation
-                        let triageTokens = triageConversation |> renderConversationAsText |> estimateTokens
-                        printfn $"  Triage conversation: ~{triageTokens} tokens (stripped code from Implementor messages)"
-                        let triageAction = determineNextAction config maxIterations current.Author triageConversation
+                        // Narrative transcript: code stripped, chronological, role-labeled.
+                        // Triage reasons about WHO said WHAT in which order, so this view is
+                        // clearer than the chat-message form with code omitted per-turn.
+                        let triageAction = determineNextAction config maxIterations current.Author narrativeConversation
                         log protocol "Triage" $"{triageAction}"
                         lastTriageCommentCount <- current.Comments.Length
                         lastTriageResult <- Some triageAction
@@ -758,9 +792,9 @@ let run (config: PipelineConfig) (issue: Issue) =
 
             match action with
             | RunVisionary ->
-                executeDirector config protocol config.Models.DirectorVisionary "director-visionary.md" "Director/Visionary" fullConversation current.Number
+                executeDirector config protocol config.Models.DirectorVisionary "director-visionary.md" "Director/Visionary" narrativeConversation current.Number
             | RunMaverick ->
-                executeDirector config protocol config.Models.DirectorMaverick "director-maverick.md" "Director/Maverick" fullConversation current.Number
+                executeDirector config protocol config.Models.DirectorMaverick "director-maverick.md" "Director/Maverick" narrativeConversation current.Number
             | RunImplementor ->
                 let succeeded = executeImplementor config protocol implConversation fullConversation current.Comments current.Number current.Title
                 if not succeeded then

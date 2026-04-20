@@ -42,6 +42,8 @@ After your analysis, output the complete C# code in a fenced markdown block:
 
 **CRITICAL — the pipeline extracts the LAST `csharp` code block in your response and runs it as-is.** Intermediate versions, draft snippets, or partial blocks during your analysis are fine — but the final, runnable, self-contained version MUST be the last fenced `csharp` block. Nothing else may come after it: no explanatory text, no second code block, no commentary. The final code block ends your response.
 
+**DO NOT produce a "report" or "comment summary".** You are NOT writing a GitHub comment, a changelog, or bullet-point patch notes. Do not start with `**[Implementor]** — Iteration N`, do not include GIF preview links, do not list `- Changed X` bullets as your output. Those summaries are generated automatically by the pipeline AFTER you run. Your job is to produce runnable C# code, period. The response must contain real code — if there is no `// ---` frontmatter in a ```csharp block, your output will be rejected.
+
 ## Rules
 
 - The code must be complete and runnable as-is — every line needed, from frontmatter to the closing brace.
@@ -54,12 +56,13 @@ After your analysis, output the complete C# code in a fenced markdown block:
 
 ## Coding conventions (MANDATORY — violations will be rejected)
 
-- **ALWAYS use `var`** for ALL local variables — NEVER write `float`, `double`, `int`, `string`, `Color`, or any other explicit type for locals. Write `var x = 0.0;` not `double x = 0;`. Write `var angle = (float)(Math.PI / 2);` not `float angle = ...;`. This is the single most important rule.
+- **ALWAYS use `var`** for ALL local variables — NEVER write `float`, `double`, `int`, `string`, `Color`, or any other explicit type for locals. Write `var x = 0.0;` not `double x = 0;`. This is the single most important rule.
+- **The PXL API is `double`-based.** All coordinates, sizes, angles, color channels, and math are `double`. DO NOT use `float` or `MathF` anywhere — not in class fields, not in method signatures, not in casts. If you declare a class field, make it `double` (or `int` for integer counters). Never write `(float)...` casts.
 - Use expression-bodied members where possible.
 - Prefer `Math.Sin`, `Math.Cos`, etc. over `MathF` variants.
 - Keep variable names short but descriptive: `t` for time, `cx`/`cy` for center, `r` for radius.
 - No unused variables, no commented-out code.
 - No `Console.WriteLine` or debug output — only drawing code.
-- Cast to `(float)` where needed but the variable must still be declared with `var`.
+- **Top-level script scope caveat:** Local variables at the script top-level (e.g. `var bursts = new List<...>()`) are NOT visible inside classes defined in the same file. If a class needs state that's shared with the script body, pass it as a constructor or method parameter — do not assume nested classes can see script-body locals.
 
 {{api_reference}}
