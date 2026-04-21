@@ -208,7 +208,7 @@ let buildCommentSafetyContext (config: PipelineConfig) (issue: Issue) : string =
         |> List.map (fun c ->
             let role = detectCommentRole config.Maintainers c.Body c.Author issue.Author
             commentRoleTag role)
-    let labels = String.Join(", ", issue.Labels)
+    let labels = String.Join(", ", issue.Labels |> List.sort)
     let sb = StringBuilder()
     let title = issue.Title
     sb.AppendLine $"Issue #{issue.Number}: \"{title}\"" |> ignore
@@ -288,7 +288,7 @@ let renderConversationAsNarrative (config: PipelineConfig) (compaction: string o
     sb.AppendLine "The most recent turn is at the end. Reason about the complete sequence — not just the last turn — when deciding what should happen next." |> ignore
     sb.AppendLine() |> ignore
 
-    let labels = if issue.Labels.IsEmpty then "(none)" else String.Join(", ", issue.Labels)
+    let labels = if issue.Labels.IsEmpty then "(none)" else String.Join(", ", issue.Labels |> List.sort)
     sb.AppendLine $"[1] @{issue.Author} (user, issue opener)" |> ignore
     sb.AppendLine $"    Title:  {issue.Title}" |> ignore
     sb.AppendLine $"    Labels: {labels}" |> ignore
@@ -376,7 +376,7 @@ let buildConversation (config: PipelineConfig) (view: ConversationView) (compact
         let names = bodyInjections |> List.map (fun m -> m.Pattern) |> String.concat ", "
         printfn $"  ⚠ Injection detected in issue body: {names}"
 
-    let labels = String.Join(", ", issue.Labels)
+    let labels = String.Join(", ", issue.Labels |> List.sort)
     let injectionWarning =
         if bodyInjections <> [] then
             let names = bodyInjections |> List.map (fun m -> m.Pattern) |> String.concat ", "

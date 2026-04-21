@@ -135,15 +135,28 @@ let private renderPixogram (config: PipelineConfig) (csPath: string) (gifPath: s
     psi.CreateNoWindow <- true
     try
         use proc = Process.Start psi
-        let stdout = proc.StandardOutput.ReadToEnd()
-        let stderr = proc.StandardError.ReadToEnd()
-        proc.WaitForExit(120_000) |> ignore
-        if proc.ExitCode = 0 then
+        // Async stream reads to avoid pipe-deadlock when child spams stderr
+        let out = System.Text.StringBuilder()
+        let err = System.Text.StringBuilder()
+        proc.OutputDataReceived.Add(fun e -> if isNull e.Data |> not then out.AppendLine e.Data |> ignore)
+        proc.ErrorDataReceived.Add(fun e -> if isNull e.Data |> not then err.AppendLine e.Data |> ignore)
+        proc.BeginOutputReadLine()
+        proc.BeginErrorReadLine()
+        // Pxl.Render is a simulation — complex scenes with many objects can render
+        // ~10× slower than wall-clock. 5 min is a safety-net for infinite loops; real
+        // crashes abort via Pxl.Render's fail-fast (0.0.68+) in a second or two.
+        let renderTimeoutMs = 300_000
+        let exited = proc.WaitForExit(renderTimeoutMs)
+        if not exited then
+            try proc.Kill(true) with _ -> ()
+            printfn $"  [{ts ()}] Render TIMEOUT (300s)"
+            Result.Error "Render timed out after 300s"
+        elif proc.ExitCode = 0 then
             let fileSize = FileInfo(gifPath).Length / 1024L
             printfn $"  [{ts ()}] Render OK ({fileSize} KB)"
             Ok gifPath
         else
-            let output = (stdout + "\n" + stderr).Trim()
+            let output = (out.ToString() + "\n" + err.ToString()).Trim()
             printfn $"  [{ts ()}] Render FAILED (exit {proc.ExitCode})"
             Result.Error output
     with ex ->
@@ -423,18 +436,31 @@ let private executeImplementor (config: PipelineConfig) (protocol: ProtocolLog) 
     let systemPrompt = renderSystemPrompt "implementor.md" [ "api_reference", apiReference.Value ]
     let baseMessages = ChatMessage.system systemPrompt :: conversationMessages
 
-    // Try primary model, fall back if response is empty or missing code marker
+    // Accept the response if it either carries the expected `// ---` frontmatter OR
+    // structurally looks like C# code (braces, semicolons, and at least one Pxl API
+    // reference). The frontmatter is the strict contract, but small models often drop
+    // it while still producing valid code — rendering will catch truly broken output
+    // via the retry loop, which is cheaper than a think-fallback round-trip.
+    let looksLikeCSharp (s: string) =
+        s.Length > 300
+        && s.Contains '{' && s.Contains '}' && s.Contains ';'
+        && (s.Contains "Renderer" || s.Contains "ctx." || s.Contains "void Frame"
+            || s.Contains "DrawingContext" || s.Contains "RenderCtx")
+
     let getInitialCode (backend: SelectedBackend) =
         printfn $"    [{ts ()}] [impl] Sending to {backendDisplayName backend}..."
         match askChat backend config.AiTimeoutMs baseMessages with
         | Ok response ->
             let code = extractCodeFromMarkdown response
-            if code.Contains("// ---") then
-                printfn $"    [impl] Code extracted ({code.Length} chars from {response.Length} chars response)"
+            let hasMarker = code.Contains("// ---")
+            let looksLikeCode = looksLikeCSharp code
+            if hasMarker || looksLikeCode then
+                let via = if hasMarker then "marker" else "heuristic"
+                printfn $"    [impl] Code extracted via {via} ({code.Length} chars from {response.Length} chars response)"
                 Some code
             else
-                printfn $"  ⚠ Implementor response missing '// ---' marker ({code.Length} chars)"
-                log protocol "Implementor" $"INVALID (missing marker, {code.Length} chars): {code.[..min 200 (code.Length - 1)]}"
+                printfn $"  ⚠ Implementor response is not C# code ({code.Length} chars)"
+                log protocol "Implementor" $"INVALID (no marker, not code-like, {code.Length} chars): {code.[..min 200 (code.Length - 1)]}"
                 None
         | Result.Error err ->
             printfn $"  ✗ Implementor AI failed: {err}"
@@ -461,11 +487,16 @@ let private executeImplementor (config: PipelineConfig) (protocol: ProtocolLog) 
         false
     | Some initialCode ->
 
-    // Render-retry loop: accumulate message history for each retry
-    let mutable retryMessages = baseMessages @ [ ChatMessage.assistant initialCode ]
+    // Render-retry loop. Append-only history: every attempt's [code, error] pair
+    // stays in the prompt across subsequent retries. This keeps the prompt prefix
+    // byte-identical between attempts so Ollama's KV-cache reuses the slot
+    // (Attempt N's prefix is fully a cache hit on Attempt N+1). Trimming to only
+    // "last code + last error" would be shorter but would invalidate the cache
+    // slot on every retry — smaller prompt, but far more tokens actually computed.
     let mutable code = initialCode
     let mutable attempt = 1
     let mutable success = false
+    let retryHistory = ResizeArray<ChatMessage>()
 
     while not success && attempt <= config.MaxImplementorRetries do
         printfn $"    [{ts ()}] [impl] Render attempt {attempt}/{config.MaxImplementorRetries}..."
@@ -512,11 +543,15 @@ let private executeImplementor (config: PipelineConfig) (protocol: ProtocolLog) 
 
             if attempt < config.MaxImplementorRetries then
                 let feedback =
-                    "The code failed to compile/render. Here is the error:\n\n" +
+                    "The previous attempt failed to compile/render with this error:\n\n" +
                     $"```\n{err}\n```\n\n" +
-                    "Analyze what went wrong, then output the corrected complete C# code in a ```csharp block."
-                retryMessages <- retryMessages @ [ ChatMessage.user feedback ]
-                printfn $"    [impl] Sending error feedback (attempt {attempt})..."
+                    "Focus on fixing THIS error. Output the corrected complete C# code in a ```csharp block."
+                // Append this attempt's [code, feedback] to the retry history. Prior
+                // attempts stay in the prompt — keeps the prefix stable for KV-cache hits.
+                retryHistory.Add(ChatMessage.assistant code)
+                retryHistory.Add(ChatMessage.user feedback)
+                let retryMessages = baseMessages @ List.ofSeq retryHistory
+                printfn $"    [impl] Sending error feedback (attempt {attempt}, history: {retryHistory.Count / 2} pairs)..."
                 match askChat config.Models.Implementor config.AiTimeoutMs retryMessages with
                 | Result.Error aiErr ->
                     printfn $"  ✗ Implementor retry AI failed: {aiErr}"
@@ -525,7 +560,6 @@ let private executeImplementor (config: PipelineConfig) (protocol: ProtocolLog) 
                 | Ok response ->
                     let fixedCode = extractCodeFromMarkdown response
                     printfn $"    [impl] Retry code extracted ({fixedCode.Length} chars from {response.Length} chars response)"
-                    retryMessages <- retryMessages @ [ ChatMessage.assistant fixedCode ]
                     code <- fixedCode
 
         attempt <- attempt + 1

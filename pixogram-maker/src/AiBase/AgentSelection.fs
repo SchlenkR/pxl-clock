@@ -161,6 +161,10 @@ let agentFactory (backend: SelectedBackend) : IAgent =
                 Model = model
                 ApiKey = apiKey
                 Think = think
+                // 40k covers our ~15k prompts plus ~20k think-mode generation with
+                // headroom. Keeping it constant across calls lets Ollama reuse the
+                // same KV-cache slot → prefix-cache hits across Implementor retries.
+                NumCtx = 40_960
             })
     | Anthropic model ->
         let apiKey =

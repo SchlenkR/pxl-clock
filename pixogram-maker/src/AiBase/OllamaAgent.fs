@@ -15,6 +15,10 @@ type OllamaConfig =
         // Enables native reasoning (qwen3.x/gemma4 thinking mode). Disable for
         // structured routing prompts where qwen3.x falls into self-reinforcement loops.
         Think: bool
+        // Context window size (num_ctx). Must be sent explicitly so the server allocates
+        // a stable KV-cache slot — without it, Ollama uses a tiny default (2–4k) that
+        // truncates our ~15k prompts AND invalidates prefix-cache hits across calls.
+        NumCtx: int
     }
 
 let listModels (baseUrl: string) : Async<string list> =
@@ -61,6 +65,10 @@ type OllamaAgent(config: OllamaConfig) =
         // routing prompts (e.g. Triage). For generation-heavy roles (Implementor, Director),
         // thinking is essential for following multi-turn feedback. Caller decides per agent.
         writer.WriteBoolean("think", config.Think)
+        writer.WritePropertyName("options")
+        writer.WriteStartObject()
+        writer.WriteNumber("num_ctx", config.NumCtx)
+        writer.WriteEndObject()
         writer.WriteEndObject()
         writer.Flush()
         Encoding.UTF8.GetString(stream.ToArray())
@@ -127,9 +135,13 @@ type OllamaAgent(config: OllamaConfig) =
                                 let promptEvalDur = getInt64 "prompt_eval_duration"
                                 let evalDur = getInt64 "eval_duration"
                                 let totalDur = getInt64 "total_duration"
-                                let promptTokPerSec = if promptEvalDur > 0L then float promptEvalCount / (float promptEvalDur / 1e9) else 0.0
+                                // prompt_eval_count is the TOTAL prompt size, not tokens actually recomputed —
+                                // on a cache hit, the cached prefix is skipped but still counted. So tok/s is
+                                // meaningless as a cache-hit indicator. Log prompt_eval_duration directly: that
+                                // shrinks toward zero on a warm cache and grows with new-token work.
+                                let promptDurSec = float promptEvalDur / 1e9
                                 let evalTokPerSec = if evalDur > 0L then float evalCount / (float evalDur / 1e9) else 0.0
-                                eprintfn $"    [ollama] prompt_eval: {promptEvalCount} tokens ({promptTokPerSec:F1} tok/s), gen: {evalCount} tokens ({evalTokPerSec:F1} tok/s), total: {float totalDur / 1e9:F1}s"
+                                eprintfn $"    [ollama] prompt_eval: {promptEvalCount} tok in {promptDurSec:F2}s, gen: {evalCount} tok @ {evalTokPerSec:F1} tok/s, total: {float totalDur / 1e9:F1}s"
                                 isDone <- true
                         with _ -> ()
 

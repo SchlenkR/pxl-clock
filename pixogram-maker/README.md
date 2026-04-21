@@ -217,6 +217,220 @@ Every pipeline function must be **composable** — callable directly in-process 
 
 **Why this matters:** We want the option to run pipeline steps as parallel GitHub Actions matrix jobs (one per issue), as separate containers, or as sub-agents — without rewriting the core logic. Composability is what makes this possible.
 
+## Field Notes: Making a Local-LLM Pipeline Actually Fast
+
+The pipeline runs entirely on a local Mac Studio (Ollama, qwen3.x models). No cloud APIs, no throttling, no per-token billing — but the naive setup was roughly **11 minutes per issue** for three iterations. A day of careful instrumentation brought this down to **~7–8 minutes** with several surprising findings along the way. These notes document what we found, in case it helps others building similar pipelines.
+
+### Finding 1: The classic pipe deadlock, hiding in plain sight
+
+**Symptom:** `Pxl.Render` would occasionally hang forever when invoked as a subprocess — no progress, no exit.
+
+**Root cause:** The wrapper was reading the subprocess streams synchronously:
+
+```fsharp
+let stdout = p.StandardOutput.ReadToEnd()  // blocks here
+let stderr = p.StandardError.ReadToEnd()
+```
+
+When the child filled its stderr buffer (e.g. a broken script throwing an exception every frame → 1200+ log lines), stderr blocked waiting for the parent to drain it, while the parent was stuck reading stdout. Deadlock.
+
+**Fix:** Async stream reads via event handlers — [`OutputDataReceived`](src/pixograms/Workflow.fs#L141) / [`BeginOutputReadLine`](src/pixograms/Workflow.fs#L143). Both streams drain in parallel, no blocking.
+
+**Lesson:** Any time you `ReadToEnd()` on a subprocess that can produce unbounded output, you have a deadlock-in-waiting. Use async readers or pre-declare the expected volume.
+
+### Finding 2: Fail-fast is a library concern, not a caller concern
+
+**Symptom:** Even after fixing the deadlock, `Pxl.Render` would run to completion on hopelessly broken scripts — emitting "Index out of bounds" on every single frame of a 30s render (1200 frames × noise = wasted wall-time).
+
+**Initial (wrong) fix:** Caller-side — the `Pxl.Render` CLI caught `OnError` into a mutable, signaled a `ManualResetEventSlim`, and checked the flag from `OnFrameRendered`. It worked, but only because we owned both sides. Any other caller hitting the same class of script would hang the same way.
+
+**Real fix:** Extend the Pxl library API itself. The underlying `Evaluation.startScene` already had a `FrameAction = Continue | Stop` type for `OnFrameRendered`. We extended it to `OnError` too:
+
+```fsharp
+// Before: OnError: exn -> unit
+// After:  OnError: exn -> FrameAction
+```
+
+Now any caller — our CLI, the daemon, the simulator host — can simply return `Stop` from their error handler. The evaluation loop respects it and exits cleanly. `Pxl.Render`'s 25-line mutable-plus-event dance collapsed to three lines.
+
+**Lesson:** When the workaround needs to be repeated at every call site, the API is wrong. Fix the library.
+
+### Finding 3: The fail-fast / fail-safe distinction
+
+A subtle but important categorization became clear only after the fail-fast work:
+
+- **Fail-fast errors** — Per-frame exceptions. The scene is broken; every subsequent frame will throw too. Stopping immediately is correct.
+- **Fail-safe hangs** — Infinite loops, busy-waits, allocation storms. No exception is thrown — the scene just never returns. Only an external timeout can catch these.
+
+Both exist. A naive "one timeout to rule them all" treats both the same way, and the timeout has to be generous enough for the slowest legitimate render. That window is also how long a broken script wastes before being killed.
+
+**Fix:** Two independent mechanisms. Fail-fast via `FrameAction.Stop` (reacts in <1s). Fail-safe via a 5-minute process timeout (only kicks in for true hangs).
+
+**Lesson:** Not all "script broken" states look the same from outside. Design for both.
+
+### Finding 4: Think mode is slow — and the fallback is slower
+
+qwen3.x models have a native "thinking" mode that streams internal reasoning before the final answer. It dramatically improves multi-turn adherence but costs real time: our Implementor with thinking was 80–150s per call; without thinking, the same model ran at 35–40s.
+
+Turning thinking off sounds like a free 3x speedup. In practice:
+
+- **When it worked (~2/3 of calls):** 38s single-shot. Net 9× faster than the baseline's 355s-per-iteration (which retried 4× in think mode).
+- **When it failed (~1/3 of calls):** The no-think model imitated the comment format from earlier conversation turns and emitted bullet-list summaries without any code block. The pipeline then had to fall back to think-mode, which took 155s for a call that would have taken 80s with thinking on from the start.
+
+Total: ~30% faster on average, but noisier. Worth it for our workload; likely not worth it if failures dominate.
+
+**Lesson:** Measure the fallback path, not just the happy path. A 3× speedup with a 4× fallback is only a win if fallbacks are rare.
+
+### Finding 5: The `// ---` marker check was too strict
+
+The original code-extraction logic required responses to contain a literal `// ---` frontmatter marker (our prompt's contract). Missing marker → immediate fallback to think-mode.
+
+But small models sometimes drop the marker while still producing valid C# code. Every such case triggered a 155s fallback for a response that would have compiled just fine.
+
+**Fix:** A cheap heuristic *in addition to* the strict check. If the extracted text looks like C# code — has `{` and `}` and `;`, references `Renderer` / `ctx.` / `void Frame` / `DrawingContext`, is at least 300 chars — accept it anyway. If it's actually broken, the render-retry loop will catch it for ~40s, which is still ~3x cheaper than a think-fallback.
+
+```fsharp
+let looksLikeCSharp (s: string) =
+    s.Length > 300
+    && s.Contains '{' && s.Contains '}' && s.Contains ';'
+    && (s.Contains "Renderer" || s.Contains "ctx." || ...)
+```
+
+**Lesson:** When the strict check is cheap and the fallback is expensive, be lenient.
+
+### Finding 6: Retry prompts grow unbounded if you're not careful
+
+The Implementor retry loop originally accumulated all previous attempts + errors into the next prompt:
+
+```
+[system]
+[user:conversation]
+[assistant:attempt-1]
+[user:error-1]
+[assistant:attempt-2]
+[user:error-2]
+...
+```
+
+After 3-4 retries, the prompt ballooned to 15k+ tokens, much of it failed code the model should ignore anyway. Worse, the accumulator state leaked between iterations via a mutable variable.
+
+**Fix:** Stateless retry — send only `baseMessages + [last_code; last_error]`. The model sees: "here's the task, here's what you just wrote, here's the error, fix it."
+
+**Lesson:** More context isn't automatically more signal. For error-correction, only the most recent attempt matters.
+
+### Finding 7: `prompt_eval tok/s` is a lying metric
+
+This is the finding we had to undo. We had initially diagnosed a "cache miss" pattern from Ollama's `prompt_eval_count` divided by `prompt_eval_duration` — values like `200,000 tok/s` looked like cache hits and `8,000 tok/s` looked like cache misses. A 30× difference.
+
+Then we actually read the Ollama docs: `prompt_eval_count` reports the **total prompt size**, not the number of tokens actually re-evaluated. On a cache hit, the cached prefix is skipped by the model but still counted in the response. Divide that by a tiny `duration` and the apparent throughput explodes to meaningless numbers. Divide it by a moderate duration and it looks like a cache miss, even when most of the prefix was cached.
+
+**Lesson:** The right metric is `prompt_eval_duration` directly — that's the actual wall-clock spent on the prefill. We changed the log format to:
+
+```
+prompt_eval: 13998 tok in 2.87s, gen: 3159 tok @ 71.6 tok/s
+```
+
+Once we logged `duration` instead of `tok/s`, the cache behavior became legible. More on what we actually found below.
+
+### Finding 8: The retry history was secretly cache-hostile
+
+After we rejected the first "num_ctx fix" story, we started looking at *what* our retry loop was actually sending. Here's what it did:
+
+```
+Attempt 1:  [system, ...conv]                               (~10k tokens)
+Attempt 2:  [system, ...conv, code1, err1]                  (~14k tokens)
+Attempt 3:  [system, ...conv, code2, err2]    ← replaced!   (~14k tokens)
+```
+
+The comment above this block read: *"Trim retry context: send only the last code attempt + this error. Keeps prompt small (cache-friendly) and avoids confusing the model with prior failed attempts."*
+
+That comment was wrong. "Small prompt" is **not** the same as "cache-friendly." For llama.cpp-style prefix caching, the only thing that matters is whether the byte prefix of this call matches the byte prefix of a previous call. Swapping `code1+err1` for `code2+err2` at the same position invalidates the cache from that point on. The prompt was shorter, sure, but every call was a fresh re-evaluation.
+
+**Fix:** make the retry history append-only:
+
+```
+Attempt 2:  [system, ...conv, code1, err1]
+Attempt 3:  [system, ...conv, code1, err1, code2, err2]
+Attempt 4:  [system, ...conv, code1, err1, code2, err2, code3, err3]
+```
+
+Now every attempt's prefix is a byte-strict extension of the previous attempt's prompt. Cache hits become deterministic.
+
+The measured effect, with the corrected duration metric:
+
+| Attempt | Total tokens | `prompt_eval_duration` | New tokens processed |
+|---|---|---|---|
+| 1 | 10250 | 0.37s | (mostly warm from prior runs) |
+| 2 | 13998 | 2.87s | ~3700 (at ~1300 tok/s) |
+| 3 | 17162 | 2.71s | ~3200 (at ~1200 tok/s) |
+| 4 | 19907 | 2.35s | ~2700 (at ~1200 tok/s) |
+
+Total prompt grows 2× but duration stays flat — exactly the shape you'd expect if only the appended tail is actually being computed.
+
+Without this fix, Attempt 4 would have been ~19k tokens × ~1200 tok/s = **~16 seconds** of prefill. With append-only: **2.35 seconds**. That's a ~7× speedup per retry, for free, once you stop trying to be clever.
+
+**Lesson:** Shorter prompts are not automatically faster prompts. For a cache, *stability* of the prefix beats *size* of the whole.
+
+### Finding 9: Byte-stable prefix — even GitHub label order matters
+
+Once append-only was in place, we also had to audit everything else in the prompt prefix for *byte* stability. Anything that shifts between calls — even by one character — kills the cache hit at that offset.
+
+What we audited:
+- **System prompt templates** (lazy-loaded from disk once): stable. ✅
+- **`llms.txt` API reference** (injected into the system prompt, also lazy): stable. ✅
+- **Issue body, comment bodies**: stable (GitHub returns them verbatim). ✅
+- **Issue header line** — this one bit us:
+
+```fsharp
+let labels = String.Join(", ", issue.Labels)  // order not guaranteed
+messages.Add(ChatMessage.user $"[Issue #{number} by @{author}, labels: {labels}]\n...")
+```
+
+GitHub's REST API does not guarantee label order across calls. If the order flips between iteration N and iteration N+1, every byte after this line mismatches the cache. **Fix:**
+
+```fsharp
+let labels = String.Join(", ", issue.Labels |> List.sort)
+```
+
+Three lines in one file. One-character change in terms of behavior. Easy to miss — and the kind of thing no prompt-engineering guide will tell you to look for, because it's a consequence of the *server-side cache semantics*, not of the model.
+
+**Also worth setting on the Ollama host:**
+- `OLLAMA_NUM_PARALLEL=4` — four independent KV-cache slots. Triage, Visionary, Maverick, and Implementor each get their own slot, so they don't evict each other.
+- `OLLAMA_KEEP_ALIVE=-1` — never unload. A 5-minute default means the first call after a compile failure can dump the slot.
+- `OLLAMA_MULTIUSER_CACHE=true` — enables cache forking across slots.
+- `OLLAMA_FLASH_ATTENTION=1`, `OLLAMA_KV_CACHE_TYPE=q8_0` — smaller KV footprint so more slots fit.
+
+With these set, the non-Implementor calls (Triage, Directors, Summary) all ran at 0.3–0.7s per call regardless of prompt size — their slots stayed hot across iterations.
+
+**Lesson:** When you're running local, *configure your inference server* first. Then worry about prompt engineering. The ratio of wins available from server-side config is much higher than most people think.
+
+### Finding 10: Render-timeout tuning matters more than you'd think
+
+A 60-second render timeout sounded generous — until a legitimately complex scene (pixel dragon with 400+ entities) needed 2m03s to simulate 30 seconds of animation at 40fps (1200 frames × ~100ms each). The workflow killed it every time and retried 5 times, all of which also timed out. Issue abandoned with zero output.
+
+**Fix:** Bump the timeout to 5 minutes. Infinite loops still get killed eventually; complex-but-working scenes finish. The window opened up because Finding 2 made per-frame exceptions fail-fast in <1s regardless of timeout — the timeout now protects only against true hangs, not error floods.
+
+**Lesson:** After you add a fast-path, your safety timeouts can be much more generous. Tighten only what still needs tightening.
+
+### Summary: What moved the needle
+
+| Change | Before | After | Mechanism |
+|---|---|---|---|
+| Async pipe reads | hang forever | 1–2s exit | No stderr buffer stall |
+| `OnError: exn -> FrameAction` | 30s wasted on broken scripts | <1s exit | Fail-fast at library level |
+| Thinking off for Implementor | 80–150s/call | 35–40s/call | ~3x fewer tokens in reasoning phase |
+| Code-block heuristic | expensive fallbacks | cheap accept | Avoid unnecessary retry |
+| Stateless retry | 15k+ tokens/call | ~12k tokens/call | Drop failed-attempt accumulator |
+| Append-only retry history | Attempt 4 = ~16s prefill | Attempt 4 = ~2.3s prefill | Byte-stable prefix, cache hits |
+| Sorted label order + byte audit | Random cache evictions | Deterministic cache reuse | Prefix bytes stable across calls |
+| `num_ctx=40960` | Prompts > default were truncated | Full prompt fits in one slot | Still required — not a speedup, a correctness fix |
+| `OLLAMA_NUM_PARALLEL=4`, `KEEP_ALIVE=-1` | Agents evicted each other's slots | Each agent keeps its own slot | Server-side config, not prompt work |
+| 300s render timeout | complex scenes died | complex scenes finish | Fail-fast made room for this |
+
+The retry prefill number (16s → 2.3s per retry) is the clearest per-call win. Total wall-clock improvements on any given issue are dominated by render success rate, not Ollama throughput — so the *combined* headline is harder to pin down than it first looks. What we can say: the Ollama side is no longer the bottleneck. When a run takes long now, it's because the generated C# needs 3 minutes to render, not because the model is slow.
+
+**The deepest takeaway, worth calling out:** the single most useful instrument wasn't a fix, it was the logging change in Finding 7. For the entire first bench cycle we were debugging with `tok/s` and chasing phantom cache behavior. The real picture only emerged once we logged `prompt_eval_duration` directly. When you're optimizing against a black box, invest in making your metrics *honest* before you invest in the fix.
+
 ## Open Problem: Ideation & Mode Collapse
 
 In practice, iterations within a single issue tend to look **visually similar** — and even fresh issues often land in the same stylistic neighborhood. The Maverick role was introduced to counteract this, but it hasn't produced the conceptual jumps we'd hoped for. A literature survey confirmed this is a structural property of current LLMs, not a prompting issue.

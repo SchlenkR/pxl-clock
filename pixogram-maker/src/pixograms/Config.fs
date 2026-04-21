@@ -166,6 +166,23 @@ let configSets () =
                     CompactionThreshold = 0.8
                 }
                 {
+                    // Same as qwen36-coding-mxfp8 but with Implementor thinking OFF.
+                    // Tests whether the "THINK FIRST" prompt section alone (plaintext analysis)
+                    // can replace internal <think> tokens — saving ~85% of Implementor gen time.
+                    Name = "ollama1-qwen36-coding-nothink"
+                    SafetyCheck = o1 OllamaModels.qwen36_35b
+                    Triage = o1 OllamaModels.qwen36_35b
+                    DirectorVisionary = o1 OllamaModels.qwen36_35b
+                    DirectorMaverick = o1 OllamaModels.qwen36_35b
+                    Implementor = ollamaBackend "OLLAMA1" OllamaModels.qwen36_coding_mxfp8 false
+                    // If no-think produces a non-code response (e.g. imitates comment format from
+                    // the conversation), retry same model with thinking ON.
+                    ImplementorFallback = Some (ollamaBackend "OLLAMA1" OllamaModels.qwen36_coding_mxfp8 true)
+                    Compaction = o1 OllamaModels.qwen36_35b
+                    ContextLengthTokens = 128_000
+                    CompactionThreshold = 0.8
+                }
+                {
                     Name = "ollama1-qwen3.5-27b-q8"
                     SafetyCheck = o1 OllamaModels.qwen35_27b_q8
                     Triage = o1 OllamaModels.qwen35_27b_q8
