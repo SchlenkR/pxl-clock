@@ -91,21 +91,36 @@ const initialView: View = (['grid', 'panel', 'flat'] as const).includes(
 ) ? (location.hash.slice(1) as View) : 'grid';
 setView(initialView);
 
-/* ─── Flat-view model filter ────────────────────────────────────────
+/* ─── Global model filter ────────────────────────────────────────
    Each .model-toggle in the sticky filter bar carries its model name in
-   data-model. Each .flat-cell also carries its model. Clicking a toggle
-   flips its `.active` class and we show/hide every matching cell via
-   `display: none`. Purely local DOM manipulation, no re-render. */
+   data-model. Clicking a toggle flips its `.active` class and we show/hide
+   every matching element across all views:
+     - flat view: .flat-cell[data-model]
+     - panel view: .panel-row[data-model]
+     - ideas list: .idea-card[data-model]
+     - grid view: per-shootout refresh (recomputes grid-template-columns
+       and hides col-head + cells for excluded models — see the shootout
+       loop below, which registers an apply() fn into shootoutRefreshFns). */
 const activeModels = new Set<string>();
 for (const btn of document.querySelectorAll<HTMLButtonElement>('.model-toggle')) {
   const m = btn.dataset.model;
   if (m) activeModels.add(m);
 }
+const shootoutRefreshFns: (() => void)[] = [];
 const applyModelFilter = () => {
   for (const cell of document.querySelectorAll<HTMLElement>('.flat-cell[data-model]')) {
     const m = cell.dataset.model!;
     cell.style.display = activeModels.has(m) ? '' : 'none';
   }
+  for (const row of document.querySelectorAll<HTMLElement>('.panel-row[data-model]')) {
+    const m = row.dataset.model!;
+    row.style.display = activeModels.has(m) ? '' : 'none';
+  }
+  for (const card of document.querySelectorAll<HTMLElement>('.idea-card[data-model]')) {
+    const m = card.dataset.model!;
+    card.style.display = activeModels.has(m) ? '' : 'none';
+  }
+  for (const fn of shootoutRefreshFns) fn();
 };
 for (const btn of document.querySelectorAll<HTMLButtonElement>('.model-toggle')) {
   btn.addEventListener('click', () => {
@@ -139,21 +154,32 @@ for (const shootout of document.querySelectorAll<HTMLElement>('.shootout')) {
   const collapsed = new Set<string>();
 
   const apply = () => {
-    const cols = models
+    // Only visible (globally-active) models get a column track. Cells and
+    // col-heads for excluded models are `display:none`d; since `display:none`
+    // takes an element out of grid flow entirely, the remaining cells fall
+    // into the remaining tracks in order — no empty gaps.
+    const visibleModels = models.filter((m) => activeModels.has(m));
+    const cols = visibleModels
       .map((m) => (collapsed.has(m) ? '36px' : 'var(--col-width)'))
       .join(' ');
     for (const row of gridRows) {
       row.style.gridTemplateColumns = cols;
     }
     for (const btn of toggleBtns) {
-      btn.classList.toggle('collapsed', collapsed.has(btn.dataset.model!));
+      const m = btn.dataset.model!;
+      btn.classList.toggle('collapsed', collapsed.has(m));
+      btn.style.display = activeModels.has(m) ? '' : 'none';
     }
     for (const cell of body.querySelectorAll<HTMLElement>('.shootout-row .cell[data-model]')) {
-      cell.classList.toggle('col-collapsed', collapsed.has(cell.dataset.model!));
+      const m = cell.dataset.model!;
+      cell.classList.toggle('col-collapsed', collapsed.has(m));
+      cell.style.display = activeModels.has(m) ? '' : 'none';
     }
-    // Recompute overflow state — collapsed columns change scroll width.
+    // Recompute overflow state — collapsed/hidden columns change scroll width.
     for (const fn of overflowUpdaters) fn();
   };
+
+  shootoutRefreshFns.push(apply);
 
   for (const btn of toggleBtns) {
     btn.addEventListener('click', () => {

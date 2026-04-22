@@ -147,7 +147,7 @@ const shootoutCard = (g: ShootoutGroup): string => {
         })
         .join('');
       return `
-        <div class="panel-row">
+        <div class="panel-row" data-model="${escape(m)}">
           <header class="panel-row-head">
             <a class="badge ${modelBadgeClass(m)}" href="${escape(headUrl)}" target="_blank" rel="noopener">${escape(shortModel(m))}</a>
           </header>
@@ -222,7 +222,7 @@ const singleCard = (i: Issue): string => {
     .join('');
 
   return `
-    <article class="idea-card">
+    <article class="idea-card"${i.model ? ` data-model="${escape(i.model)}"` : ''}>
       <header class="idea-card-head">
         <h3><a class="title-link" href="${escape(i.url)}" target="_blank" rel="noopener">${escape(i.cleanTitle)}</a></h3>
         <div class="idea-card-sub">
@@ -243,12 +243,13 @@ export function render(data: IssuesData): string {
   const totalIters = data.issues.reduce((n, i) => n + i.iterations.length, 0);
   const renderableSingles = data.singles.filter((i) => i.iterations.length > 0);
 
-  // All distinct models across all iterations — used to build the flat-view
-  // sticky filter row (one toggle chip per model).
+  // All distinct models across all iterations (shootout issues + singles) —
+  // used to build the global sticky filter row (one toggle chip per model).
   const allModels = [
-    ...new Set(
-      data.issues.flatMap((i) => i.iterations.map((it) => it.model ?? i.model ?? 'unknown')),
-    ),
+    ...new Set([
+      ...data.issues.flatMap((i) => i.iterations.map((it) => it.model ?? i.model ?? 'unknown')),
+      ...data.singles.flatMap((i) => i.iterations.map((it) => it.model ?? i.model ?? 'unknown')),
+    ]),
   ].sort();
 
   return `
@@ -282,7 +283,7 @@ export function render(data: IssuesData): string {
     <button type="button" class="view-btn" data-view="flat" aria-label="Flat view (all pixograms, newest first)" title="Flat view">▤</button>
   </div>
 
-  <section id="flat" class="view-only-flat">
+  <div class="global-filter">
     <div class="container">
       <div class="flat-filter" role="group" aria-label="Filter by model">
         <span class="flat-filter-label">Models</span>
@@ -295,6 +296,11 @@ export function render(data: IssuesData): string {
           )
           .join('')}
       </div>
+    </div>
+  </div>
+
+  <section id="flat" class="view-only-flat">
+    <div class="container">
       <div class="flat-grid">
         ${data.issues
           .flatMap((issue) =>

@@ -140,10 +140,9 @@ section { padding: 5rem 0 4rem; position: relative; }
    left + lead-secondary right) so we don't waste vertical space. */
 .hero {
   position: relative;
-  padding: 4rem 0 3.5rem;
+  padding: 3rem 0 1.25rem;
   border-top: none;
   overflow: visible;
-  min-height: 540px;
 }
 .hero-inner {
   position: relative;
@@ -231,7 +230,7 @@ footer {
   grid-template-columns: 1fr 1fr;
   gap: 2rem 2.5rem;
   max-width: 1000px;
-  margin: 1rem 0 1.75rem;
+  margin: 1rem 0 1.25rem;
 }
 
 .hero-lead {
@@ -833,20 +832,23 @@ body[data-view="panel"] .iter-comment { display: none; }
 body[data-view="flat"] #shootout,
 body[data-view="flat"] #ideas { display: none; }
 
-/* Flat-view sticky model filter — same badge language as the grid/panel
-   column heads, but these are toggleable. `.active` = model included;
-   no class = model excluded (greyed out). Sits sticky at the top of the
-   viewport above the flat grid. */
-.flat-filter {
+/* Global sticky model filter wrapper — lives outside any section so the
+   same filter bar hovers above grid/panel/flat/ideas views alike. */
+.global-filter {
   position: sticky;
   top: 0;
   z-index: 15;
+  padding: 0.5rem 0 0.75rem;
+}
+
+/* The filter pill itself — `.active` = model included; no class = excluded
+   (greyed out). Sticks to the top of the viewport above every view. */
+.flat-filter {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 0.4rem;
   padding: 0.75rem 1rem;
-  margin-bottom: 1rem;
   background: rgba(13, 13, 16, 0.92);
   backdrop-filter: blur(10px);
   border: 1px solid var(--hairline);
