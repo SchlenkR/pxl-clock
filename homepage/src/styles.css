@@ -453,18 +453,6 @@ footer {
   margin-bottom: 2rem;
   position: relative;
   box-shadow: var(--shadow-md);
-  transition: box-shadow 0.2s;
-}
-.shootout:hover { box-shadow: var(--shadow-lg); }
-.shootout::before {
-  content: '';
-  position: absolute;
-  top: 1rem;
-  left: 1rem;
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--muted-soft);
 }
 
 /* Flanking chevrons inside the sticky head strip — absolutely positioned so
@@ -586,6 +574,22 @@ footer {
 }
 .shootout-head h3 .title-link { color: var(--ink); text-decoration: none; transition: color 0.2s; }
 .shootout-head h3 .title-link:hover { color: var(--accent); }
+
+/* Issue number(s) inline before the shootout title. Visually a kicker:
+   smaller, uppercase, muted — rendered at the same baseline as the title so
+   it reads "#101 · #102  Title" without wrapping awkwardly on narrow widths. */
+.shootout-head h3 .shootout-num {
+  display: inline;
+  margin-right: 0.55em;
+  font-size: 0.62em;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-feature-settings: 'tnum';
+  vertical-align: 0.12em;
+  white-space: nowrap;
+}
 .shootout-head .desc {
   color: var(--ink-soft);
   font-size: 1rem;
@@ -600,11 +604,12 @@ footer {
 }
 
 /* Sticky head strip: chevron ‹, horizontally-scrollable model badges, chevron ›.
-   Sticks to top of viewport while the user scrolls the page vertically so the
-   model columns stay labelled even deep inside a tall shootout. */
+   Sticks below the global model filter (`--sticky-offset` is measured in JS)
+   so the shootout's model column labels stay visible without overlapping the
+   outer filter bar. */
 .head-strip {
   position: sticky;
-  top: 0;
+  top: var(--sticky-offset, 0px);
   z-index: 10;
   /* 44px horizontal padding reserves space for the absolutely-positioned
      chevrons so they sit beside the grid, not on top of it. */
@@ -833,13 +838,22 @@ body[data-view="flat"] #shootout,
 body[data-view="flat"] #ideas { display: none; }
 
 /* Global sticky model filter wrapper — lives outside any section so the
-   same filter bar hovers above grid/panel/flat/ideas views alike. */
+   same filter bar hovers above grid/panel/flat/ideas views alike. Wrapper
+   itself is transparent (no background) so nothing paints beyond the pill's
+   own rounded edges — the pill handles its own opacity/blur. Height is
+   measured in JS and exposed as `--sticky-offset` so any inner sticky
+   element (e.g. the shootout head strip in grid view) can stack cleanly
+   below this bar. `pointer-events:none` on the wrapper lets clicks on the
+   bare padding area pass through to content underneath; the pill itself
+   re-enables pointer events for its buttons. */
 .global-filter {
   position: sticky;
   top: 0;
   z-index: 15;
-  padding: 0.5rem 0 0.75rem;
+  padding: 0 0 0.75rem;
+  pointer-events: none;
 }
+.global-filter .flat-filter { pointer-events: auto; }
 
 /* The filter pill itself — `.active` = model included; no class = excluded
    (greyed out). Sticks to the top of the viewport above every view. */
@@ -861,6 +875,35 @@ body[data-view="flat"] #ideas { display: none; }
   text-transform: uppercase;
   color: var(--muted);
   margin-right: 0.3rem;
+}
+
+/* "All" / "None" shortcut buttons. Different visual language from the model
+   badges (outlined, neutral) so they don't read as another model chip. */
+.filter-action {
+  font-family: var(--font-body);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 0.32em 0.85em;
+  border-radius: 999px;
+  background: transparent;
+  border: 1px solid var(--hairline-strong);
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.filter-action:hover {
+  background: var(--hairline-strong);
+  color: var(--ink);
+  border-color: var(--ink-soft);
+}
+
+/* Vertical divider between the "All/None" controls and the model chips. */
+.flat-filter-sep {
+  width: 1px;
+  align-self: stretch;
+  background: var(--hairline-strong);
+  margin: 0.15rem 0.4rem;
 }
 .model-toggle {
   cursor: pointer;
@@ -895,110 +938,57 @@ body[data-view="flat"] #ideas { display: none; }
 
 .flat-cell { position: relative; }
 
-/* Meta block under the pixogram: issue number + 2-line description. Capped
-   at half the pixogram height so the meta never grows taller than the GIF
-   itself, regardless of zoom level. */
+/* Meta block under the pixogram: issue number + model badge + title. Sized
+   at two-thirds the GIF's square height so the cell stays tall-ish without
+   the meta square dominating the image. */
 .flat-cell .cell-meta {
-  margin-top: 0.45rem;
+  margin-top: 0.6rem;
   text-align: left;
-  max-height: calc(var(--col-width) / 2);
-  overflow: hidden;
-}
-.flat-cell .cell-num {
-  display: block;
-  font-size: 0.65rem;
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--muted);
-  margin-bottom: 0.25rem;
-  font-feature-settings: 'tnum';
-}
-.flat-cell .cell-desc {
-  margin: 0;
-  font-size: 0.78rem;
-  line-height: 1.35;
-  color: var(--ink-soft);
-  /* Clamp to 2 lines with ellipsis. word-wrap so long words don't overflow. */
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  overflow-wrap: anywhere;
-}
-
-/* Hover tooltip — title + model badge. Default above the cell, switches
-   below via `.tip-below` class set by JS when there's no room above. */
-.cell-tip {
-  position: absolute;
-  bottom: calc(100% + 10px);
-  left: 50%;
-  transform: translate(-50%, 4px);
-  z-index: 30;
-  width: max-content;
-  max-width: min(320px, 90vw);
-  padding: 0.7rem 0.85rem;
-  background: var(--bg-elev);
-  border: 1px solid var(--hairline-strong);
-  border-radius: 10px;
-  box-shadow: 0 14px 38px rgba(0, 0, 0, 0.6);
+  height: calc(var(--col-width) * 2 / 3);
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-  transition: opacity 0.15s ease-out, transform 0.15s ease-out, visibility 0.15s;
+  gap: 0.5rem;
+  overflow: hidden;
 }
-.cell-tip::after {
-  /* arrow pointing down at the cell */
-  content: '';
-  position: absolute;
-  top: 100%;
-  left: 50%;
-  margin-left: -6px;
-  border: 6px solid transparent;
-  border-top-color: var(--bg-elev);
-  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.4));
-}
-
-.flat-cell.tip-below .cell-tip {
-  bottom: auto;
-  top: calc(100% + 10px);
-  transform: translate(-50%, -4px);
-}
-.flat-cell.tip-below .cell-tip::after {
-  top: auto;
-  bottom: 100%;
-  border-top-color: transparent;
-  border-bottom-color: var(--bg-elev);
-}
-
-.flat-cell:hover .cell-tip,
-.flat-cell:focus-visible .cell-tip {
-  opacity: 1;
-  visibility: visible;
-  transform: translate(-50%, 0);
-}
-
-.cell-tip-title {
-  font-family: var(--font-body);
-  font-size: 0.92rem;
-  font-weight: 600;
-  color: var(--ink);
-  line-height: 1.3;
-}
-.cell-tip-meta {
+.flat-cell .cell-meta-row {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   flex-wrap: wrap;
 }
-.cell-tip-num {
-  font-size: 0.72rem;
+/* Meta text scales linearly with --col-width so it stays proportional to
+   the tile at every zoom level. Ranges across the 4 zoom steps (110px,
+   150px, 190px, 230px):
+     cell-num:  ~9.7px → ~11.5px
+     cell-desc: ~9.5px → ~13.2px
+   Tuned to stay readable at zoom 1 without dominating at zoom 4. */
+.flat-cell .cell-num {
+  display: block;
+  font-size: calc(0.5rem + var(--col-width) * 0.015);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
   color: var(--muted);
   font-feature-settings: 'tnum';
 }
+.flat-cell .cell-desc {
+  margin: 0;
+  font-size: calc(0.35rem + var(--col-width) * 0.025);
+  line-height: 1.35;
+  color: var(--ink-soft);
+  /* Clamp so long titles stay inside the square. word-wrap so long words
+     don't overflow. Line count is generous — the meta square gives room. */
+  display: -webkit-box;
+  -webkit-line-clamp: 5;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+
+/* The in-cell meta block already carries issue number, model, and title,
+   so the former hover tooltip is redundant — hide it. The element is still
+   rendered for accessibility fallback but not shown. */
+.cell-tip { display: none; }
 
 /* Panel view body — pure stack of model rows, no sticky header, no scroll
    chevrons. Each row is a film-strip of all iterations for one model. */
@@ -1053,22 +1043,6 @@ body[data-view="flat"] #ideas { display: none; }
   padding: 1.5rem 1.75rem;
   position: relative;
   box-shadow: var(--shadow-sm);
-  transition: box-shadow 0.2s, transform 0.2s, border-color 0.2s;
-}
-.idea-card:hover {
-  box-shadow: var(--shadow-md);
-  transform: translateY(-1px);
-  border-color: var(--hairline-strong);
-}
-.idea-card::before {
-  content: '';
-  position: absolute;
-  top: 1rem;
-  left: 1rem;
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: var(--muted-soft);
 }
 
 .idea-card-head { margin-bottom: 1.25rem; padding-left: 1rem; }
@@ -1257,7 +1231,6 @@ footer {
   .hero-row { flex-direction: column; align-items: flex-start; gap: 1.25rem; }
   .hero-logo { height: 48px; }
   .idea-card, .shootout { padding: 1.25rem; }
-  .idea-card::before, .shootout::before { display: none; }
 }
 
 @media (max-width: 600px) {

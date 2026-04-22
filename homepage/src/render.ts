@@ -156,10 +156,18 @@ const shootoutCard = (g: ShootoutGroup): string => {
     })
     .join('');
 
+  // Shootouts collect multiple variants (one GitHub issue per model), so
+  // "the issue number" is ambiguous — we use the lowest number as the
+  // canonical one (it's the original issue the others branched from).
+  const primaryIssueNumber = Math.min(...g.variants.map((v) => v.number));
+
   return `
     <article class="shootout">
       <header class="shootout-head">
-        <h3><a class="title-link" href="${escape(firstIssueUrl)}" target="_blank" rel="noopener">${escape(g.cleanTitle)}</a></h3>
+        <h3>
+          <span class="shootout-num">#${primaryIssueNumber}</span>
+          <a class="title-link" href="${escape(firstIssueUrl)}" target="_blank" rel="noopener">${escape(g.cleanTitle)}</a>
+        </h3>
         <p class="desc">${escape(g.description)}</p>
         <div class="stats">
           <span class="badge ok">${modelKeys.length} models</span>
@@ -287,6 +295,9 @@ export function render(data: IssuesData): string {
     <div class="container">
       <div class="flat-filter" role="group" aria-label="Filter by model">
         <span class="flat-filter-label">Models</span>
+        <button type="button" class="filter-action" data-filter-action="all">All</button>
+        <button type="button" class="filter-action" data-filter-action="none">None</button>
+        <span class="flat-filter-sep" aria-hidden="true"></span>
         ${allModels
           .map(
             (m) => `

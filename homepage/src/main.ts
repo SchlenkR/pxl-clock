@@ -8,7 +8,7 @@ if (app) app.innerHTML = render(data as IssuesData);
 
 /* ─── Zoom (4 sizes) — sticky bar at top of the shootout section ─── */
 const ZOOM_SIZES = [110, 150, 190, 230]; // px
-const DEFAULT_ZOOM = 2; // 190px
+const DEFAULT_ZOOM = 1; // 150px (label "2/4")
 let zoomIdx = DEFAULT_ZOOM;
 
 const applyZoom = () => {
@@ -65,6 +65,25 @@ for (const body of document.querySelectorAll<HTMLElement>('.shootout-body[data-s
 }
 
 applyZoom();
+
+/* ─── Sticky offset for stacked sticky bars ─────────────────────────
+   The global model filter at the top of the page is sticky (top:0). Inside
+   grid-view shootouts, each card has its own sticky head-strip that would
+   otherwise pin at top:0 too and overlap the filter. We measure the filter's
+   rendered height and expose it as `--sticky-offset`; the head-strip reads
+   it as its `top` value and stacks neatly underneath. */
+const globalFilter = document.querySelector<HTMLElement>('.global-filter');
+if (globalFilter) {
+  const updateStickyOffset = () => {
+    document.documentElement.style.setProperty(
+      '--sticky-offset',
+      `${globalFilter.offsetHeight}px`,
+    );
+  };
+  updateStickyOffset();
+  window.addEventListener('resize', updateStickyOffset);
+  new ResizeObserver(updateStickyOffset).observe(globalFilter);
+}
 
 /* ─── View toggle: grid vs panel ───────────────────────────────────
    Both views are rendered in the DOM; CSS hides the inactive one based on
@@ -136,6 +155,23 @@ for (const btn of document.querySelectorAll<HTMLButtonElement>('.model-toggle'))
     applyModelFilter();
   });
 }
+for (const btn of document.querySelectorAll<HTMLButtonElement>('[data-filter-action]')) {
+  btn.addEventListener('click', () => {
+    const enable = btn.dataset.filterAction === 'all';
+    for (const toggle of document.querySelectorAll<HTMLButtonElement>('.model-toggle')) {
+      const m = toggle.dataset.model;
+      if (!m) continue;
+      if (enable) {
+        activeModels.add(m);
+        toggle.classList.add('active');
+      } else {
+        activeModels.delete(m);
+        toggle.classList.remove('active');
+      }
+    }
+    applyModelFilter();
+  });
+}
 
 /* ─── Grid-view column collapse ──────────────────────────────────────
    Click a .col-toggle header → that column in every row of THIS shootout
@@ -190,24 +226,6 @@ for (const shootout of document.querySelectorAll<HTMLElement>('.shootout')) {
       apply();
     });
   }
-}
-
-/* ─── Flat-view tooltip: pick above/below based on viewport room ───
-   On hover, measure the cell's distance from the top of the viewport vs.
-   the tooltip's height. If there isn't enough room above, drop a
-   `.tip-below` class so CSS flips the tooltip under the cell. */
-const TOOLTIP_RESERVE = 110; // approximate tooltip height + arrow + gap
-for (const cell of document.querySelectorAll<HTMLElement>('.flat-cell')) {
-  cell.addEventListener('mouseenter', () => {
-    const rect = cell.getBoundingClientRect();
-    const tip = cell.querySelector<HTMLElement>('.cell-tip');
-    const tipHeight = tip?.offsetHeight || TOOLTIP_RESERVE;
-    if (rect.top < tipHeight + 16) {
-      cell.classList.add('tip-below');
-    } else {
-      cell.classList.remove('tip-below');
-    }
-  });
 }
 
 /* ─── GIF load/unload on viewport entry ──────────────────────────────
