@@ -277,7 +277,7 @@ export function render(data: IssuesData): string {
   ].sort();
 
   return `
-  <div class="hero-scene" aria-hidden="true"></div>
+  <div class="hero-scene" aria-hidden="true" style="background-image:url(hero-scene.jpg)"></div>
   <header class="hero">
     <div class="container hero-inner">
       <h1>Program <img class="hero-logo-inline" src="logo.svg" alt="PXL" /> in<br/><span class="accent-csharp">C#</span> or with <span class="accent-ai">AI</span>.</h1>

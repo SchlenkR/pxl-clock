@@ -161,7 +161,6 @@ section { padding: 5rem 0 4rem; position: relative; }
   height: 100vh;
   z-index: 0;
   pointer-events: none;
-  background-image: url(hero-scene.jpg);
   background-size: cover;
   background-position: right center;
   background-repeat: no-repeat;
