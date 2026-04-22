@@ -26,6 +26,8 @@ const API = 'https://api.github.com';
 
 const TITLE_SUFFIX_RE = /\s*[\[\(]\s*(model-)?[a-zA-Z0-9._\/-]+\s*[\]\)]\s*$/;
 const MACH_N_RE = /Mach\s+(\d+)\s+Iterationen?/i;
+// Pipeline-appended footer: `🤖 **Config Set:** \`opus-4.7\`` → "opus-4.7"
+const CONFIGSET_RE = /Config Set:\*\*\s*`([^`]+)`/;
 
 // Pipeline role tags — a comment containing any of these is from the bot,
 // not a user trigger.
@@ -188,6 +190,27 @@ const stripComment = (body: string): string => {
 };
 
 /**
+ * Walk comments chronologically, find each Implementor comment (these
+ * correspond in order to iteration index 1, 2, 3…) and extract its
+ * Config Set → model mapping from the footer. Iterations that predate
+ * the Config Set marker era stay unmapped.
+ */
+function extractIterModels(comments: RawComment[]): Map<number, string> {
+  const sorted = [...comments].sort(
+    (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+  );
+  let implIndex = 0;
+  const map = new Map<number, string>();
+  for (const c of sorted) {
+    if (!c.body.includes('**[Implementor]**')) continue;
+    implIndex++;
+    const m = c.body.match(CONFIGSET_RE);
+    if (m) map.set(implIndex, m[1]!);
+  }
+  return map;
+}
+
+/**
  * Walk comments chronologically. Whenever an Implementor comment is hit,
  * check the iteration index: if > autoCount, find the most recent
  * non-pipeline human comment since the last Implementor — that is the trigger.
@@ -246,21 +269,30 @@ async function main() {
 
     const files = await listFolder(folder);
     const gifs = files.filter((f) => f.endsWith('.gif')).sort();
+
+    // Always pull comments: we need per-iteration model extraction from the
+    // ConfigSet footer. `feedback` mapping is a free byproduct.
+    let feedback: FeedbackComment[] = [];
+    let iterModels = new Map<number, string>();
+    if (gifs.length > 0) {
+      const comments = await listComments(raw.number);
+      iterModels = extractIterModels(comments);
+      if (gifs.length > autoCount) {
+        feedback = matchFeedbackToIters(comments, autoCount);
+      }
+    }
+
     const iterations: Iteration[] = gifs.map((gif) => {
       const base = gif.replace(/\.gif$/, '');
+      const index = parseInt(base, 10);
       return {
-        index: parseInt(base, 10),
+        index,
         gifUrl: branchRaw(folder, gif),
         csUrl: branchBlob(folder, `${base}.cs`),
+        // Specific model that produced this iter. Null if pre-marker era.
+        model: iterModels.get(index) ?? null,
       };
     });
-
-    // Only pull comments if we need feedback matching.
-    let feedback: FeedbackComment[] = [];
-    if (iterations.length > autoCount) {
-      const comments = await listComments(raw.number);
-      feedback = matchFeedbackToIters(comments, autoCount);
-    }
 
     return {
       number: raw.number,

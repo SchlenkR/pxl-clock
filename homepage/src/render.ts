@@ -53,62 +53,90 @@ const iterCell = (issue: Issue, iterIndex: number): string => {
  *   - ...repeats per feedback round
  */
 const shootoutCard = (g: ShootoutGroup): string => {
-  const colCount = g.variants.length;
   const firstIssueUrl = g.variants[0]?.url ?? 'https://github.com/SchlenkR/pxl-clock/issues';
 
+  // Flatten iterations with their actual generating model (from the Implementor
+  // comment's Config Set marker). Rows = iteration index; columns = distinct
+  // models. Cell (model, iter) = that specific GIF. If multiple issues in the
+  // cluster have the same (model, iter), we keep the one with the highest
+  // issue number (most recent).
+  type IterRef = { gifUrl: string; issueUrl: string; issueTitle: string; issueNumber: number; iterIndex: number };
+  const cellMap = new Map<string, IterRef>();  // key = `${model}|${iterIndex}`
+  const modelSet = new Set<string>();
+  const iterSet = new Set<number>();
+  for (const issue of g.variants) {
+    for (const it of issue.iterations) {
+      const model = it.model ?? issue.model ?? 'unknown';
+      modelSet.add(model);
+      iterSet.add(it.index);
+      const key = `${model}|${it.index}`;
+      const existing = cellMap.get(key);
+      if (!existing || issue.number > existing.issueNumber) {
+        cellMap.set(key, {
+          gifUrl: it.gifUrl,
+          issueUrl: issue.url,
+          issueTitle: issue.cleanTitle,
+          issueNumber: issue.number,
+          iterIndex: it.index,
+        });
+      }
+    }
+  }
+
+  const modelKeys = [...modelSet].sort();
+  const iterKeys = [...iterSet].sort((a, b) => a - b);
+  const colCount = modelKeys.length;
   const styleAttr = `style="--col-count:${colCount}"`;
 
-  // Header row: model badges (clickable → issue)
+  // Column header: one badge per distinct model. Click → first issue that used it.
   const headRow = `
     <div class="shootout-headrow" ${styleAttr}>
-      ${g.variants
-        .map(
-          (v) => `
-        <a class="col-head badge ${modelBadgeClass(v.model)}" href="${escape(v.url)}" target="_blank" rel="noopener" title="Issue #${v.number}">
-          ${escape(shortModel(v.model))}
-        </a>`,
-        )
+      ${modelKeys
+        .map((m) => {
+          const firstRef = iterKeys
+            .map((n) => cellMap.get(`${m}|${n}`))
+            .find((r): r is IterRef => r !== undefined);
+          const url = firstRef?.issueUrl ?? g.variants[0]?.url ?? '#';
+          return `
+        <a class="col-head badge ${modelBadgeClass(m)}" href="${escape(url)}" target="_blank" rel="noopener">
+          ${escape(shortModel(m))}
+        </a>`;
+        })
         .join('')}
     </div>`;
 
-  // Helper: one iter-row (grid of variant cells for the given iter index)
-  const row = (idx: number) => `
-    <div class="shootout-row" ${styleAttr}>
-      ${g.variants.map((v) => iterCell(v, idx)).join('')}
-    </div>`;
+  const rows: string[] = [];
+  for (const n of iterKeys) {
+    // Insert the full-width feedback banner immediately before the iteration
+    // it triggered. Feedback rounds are collected across variants during fetch.
+    const round = g.feedbackRounds.find((r) => r.iterIndex === n);
+    if (round) {
+      rows.push(`
+        <div class="feedback-bar">
+          <span class="feedback-label">💬 Feedback for iter ${round.iterIndex}</span>
+          <p class="feedback-text">${escape(round.text)}</p>
+        </div>`);
+    }
 
-  const blocks: string[] = [headRow];
-
-  // Auto-iter rows
-  for (let i = 1; i <= g.autoCount; i++) blocks.push(row(i));
-
-  // Feedback banners full-width, followed by that round's iter row
-  for (const rnd of g.feedbackRounds) {
-    blocks.push(`
-      <div class="feedback-bar">
-        <span class="feedback-label">💬 Feedback for iter ${rnd.iterIndex}</span>
-        <p class="feedback-text">${escape(rnd.text)}</p>
-      </div>`);
-    blocks.push(row(rnd.iterIndex));
+    const cells = modelKeys
+      .map((m) => {
+        const ref = cellMap.get(`${m}|${n}`);
+        if (!ref) return `
+          <div class="cell empty" aria-hidden="true">
+            ${pendingFrame('not rendered')}
+            <span class="cell-label muted">iter ${n}</span>
+          </div>`;
+        return `
+          <a class="cell" href="${escape(ref.issueUrl)}" target="_blank" rel="noopener" title="#${ref.issueNumber} · iter ${ref.iterIndex}">
+            ${frame(ref.gifUrl, `${ref.issueTitle} iter ${ref.iterIndex} (${shortModel(m)})`)}
+            <span class="cell-label">iter ${ref.iterIndex}</span>
+          </a>`;
+      })
+      .join('');
+    rows.push(`<div class="shootout-row" ${styleAttr}>${cells}</div>`);
   }
 
-  // Any iterations beyond our known rounds (user-bumped) get a minimal banner
-  const accountedFor = new Set<number>([
-    ...Array.from({ length: g.autoCount }, (_, k) => k + 1),
-    ...g.feedbackRounds.map((r) => r.iterIndex),
-  ]);
-  const extraIters = Array.from(
-    new Set(g.variants.flatMap((v) => v.iterations.map((it) => it.index))),
-  )
-    .filter((idx) => !accountedFor.has(idx))
-    .sort((a, b) => a - b);
-  for (const idx of extraIters) {
-    blocks.push(`
-      <div class="feedback-bar extra">
-        <span class="feedback-label">↳ iter ${idx}</span>
-      </div>`);
-    blocks.push(row(idx));
-  }
+  const totalIters = cellMap.size;
 
   return `
     <article class="shootout">
@@ -116,13 +144,22 @@ const shootoutCard = (g: ShootoutGroup): string => {
         <h3><a class="title-link" href="${escape(firstIssueUrl)}" target="_blank" rel="noopener">${escape(g.cleanTitle)}</a></h3>
         <p class="desc">${escape(g.description)}</p>
         <div class="stats">
-          <span class="badge ok">${g.variants.length} models</span>
-          <span class="badge">${g.variants.reduce((n, v) => n + v.iterations.length, 0)} iterations</span>
-          <span class="badge">${g.autoCount} auto · ${g.feedbackRounds.length} feedback</span>
+          <span class="badge ok">${modelKeys.length} models</span>
+          <span class="badge">${totalIters} iterations</span>
+          <span class="badge">${g.variants.length} issue${g.variants.length === 1 ? '' : 's'}</span>
         </div>
       </header>
-      <div class="shootout-body">
-        ${blocks.join('')}
+      <div class="shootout-body" data-scroller>
+        <div class="head-strip">
+          <button class="scroll-chev prev" type="button" aria-label="Scroll left">‹</button>
+          <div class="head-clip">
+            ${headRow}
+          </div>
+          <button class="scroll-chev next" type="button" aria-label="Scroll right">›</button>
+        </div>
+        <div class="shootout-viewport">
+          ${rows.join('')}
+        </div>
       </div>
     </article>`;
 };
@@ -198,34 +235,37 @@ export function render(data: IssuesData): string {
 
   return `
   <header class="hero">
-    <div class="hero-backdrop" aria-hidden="true">${backdropTiles}</div>
     <div class="container hero-inner">
-      <div class="hero-row">
+      <div class="hero-copy">
         <img class="hero-logo" src="logo.svg" alt="PXL" width="150" height="50" />
-        <div class="hero-text">
-          <p class="kicker">24×24 LEDs · glass · wood · programmable in C#</p>
-          <h1>Same prompt. Seven AI models. <span class="accent">One pixel canvas.</span></h1>
+        <h1>24×24 pixels. Real glass. <span class="accent">Programmable in C#.</span></h1>
+        <p class="hero-lead">
+          PXL Clock is a 27×27&nbsp;cm LED frame for your shelf. You write the animations yourself in C# — or you describe what you want and let an AI do it.
+        </p>
+        <p class="hero-lead">
+          The AI part lives on <a href="https://github.com/SchlenkR/pxl-clock">GitHub</a>. Open an issue with your idea, an agent picks it up, runs it through several models, and posts back what each of them made. Everything below is what came out — same prompt, model by model.
+        </p>
+        <div class="ctas">
+          <a class="btn" href="https://www.pxlclock.com/?ref=RONALD">Get the real clock →</a>
+          <a class="btn secondary" href="${escape(submitUrl)}">Submit an idea</a>
+          <a class="btn secondary" href="https://discord.gg/KDbVdKQh5j">Discord</a>
         </div>
       </div>
-      <div class="ctas">
-        <a class="btn" href="https://www.pxlclock.com/?ref=RONALD">Get the clock →</a>
-        <a class="btn secondary" href="${escape(submitUrl)}">Submit an idea</a>
-        <a class="btn secondary" href="https://discord.gg/KDbVdKQh5j">Discord</a>
-      </div>
+      <figure class="hero-visual">
+        <img src="hero-main.jpg" alt="PXL Clock displaying a colourful pixel animation" loading="eager" />
+        <figcaption>The real thing — Cumin &amp; Potato GmbH, hand-assembled.</figcaption>
+      </figure>
     </div>
   </header>
 
+  <div class="zoom-bar" data-zoom-bar>
+    <button type="button" class="zoom-btn" data-zoom-in aria-label="Larger">+</button>
+    <span class="zoom-label"><span data-zoom-level>3</span>/4</span>
+    <button type="button" class="zoom-btn" data-zoom-out aria-label="Smaller">−</button>
+  </div>
+
   <section id="shootout">
     <div class="container">
-      <div class="section-head">
-        <span class="kicker">🤖 shootout</span>
-        <h2>Same prompt. Seven different AI models.</h2>
-        <p class="lead">
-          We asked seven language models to turn the same description into a 24×24 animation.
-          Each column is one model, each row one iteration. The two feedback comments are exactly
-          the same for every model. Click any tile (or model badge) for the full issue thread.
-        </p>
-      </div>
       ${
         data.shootouts.length === 0
           ? '<p class="empty">Shootout data still being generated — check back soon.</p>'

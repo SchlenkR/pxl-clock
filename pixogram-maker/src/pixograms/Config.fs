@@ -42,6 +42,8 @@ module OllamaModels =
     let gptOss_20b = "gpt-oss:20b"
     let nemotronCascade2 = "nemotron-cascade-2:latest"
     let nemotron3Super = "nemotron-3-super:latest"
+    // Feb 2026 addition
+    let glm47Flash = "glm-4.7-flash:q8_0"                       // 30B/3B MoE, coding + agentic
 
 // ---------------------------------------------------------------------------
 // Ollama env helper — reads OLLAMA{N}_URL / OLLAMA{N}_API_KEY
@@ -268,6 +270,20 @@ let configSets () =
                     Implementor = o1 OllamaModels.nemotronCascade2
                     ImplementorFallback = None
                     Compaction = o1 OllamaModels.nemotronCascade2
+                    ContextLengthTokens = 128_000
+                    CompactionThreshold = 0.8
+                }
+                {
+                    // Zhipu GLM-4.7-Flash: 30B total / 3B active MoE, Q8_0, ~32 GB.
+                    // Strong coding + agentic (SWE-bench 59%). 198K native context.
+                    Name = "ollama1-glm-4.7-flash"
+                    SafetyCheck = o1 OllamaModels.glm47Flash
+                    Triage = o1 OllamaModels.glm47Flash
+                    DirectorVisionary = o1 OllamaModels.glm47Flash
+                    DirectorMaverick = o1 OllamaModels.glm47Flash
+                    Implementor = o1 OllamaModels.glm47Flash
+                    ImplementorFallback = None
+                    Compaction = o1 OllamaModels.glm47Flash
                     ContextLengthTokens = 128_000
                     CompactionThreshold = 0.8
                 }

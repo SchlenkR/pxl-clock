@@ -2,6 +2,10 @@ export interface Iteration {
   index: number;
   gifUrl: string;
   csUrl: string;
+  /** The ConfigSet/model that produced this specific iteration, parsed
+      from the "Config Set: `xxx`" marker in its Implementor comment.
+      Null if the iteration predates the marker (older runs). */
+  model: string | null;
 }
 
 /** User/maintainer comment that triggered a feedback iteration. */

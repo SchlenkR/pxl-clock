@@ -13,13 +13,20 @@
       property="og:description"
       content="24×24 LEDs. Programmable in C#. See what seven AI models make of the same prompt."
     />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://api.fontshare.com" crossorigin />
+    <!-- General Sans only. Modern geometric sans, no serifs, no script. -->
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+      href="https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap"
       rel="stylesheet"
     />
   </head>
   <body>
+    <!-- Subtle three-tile product photo collage, heavily dimmed + blurred, fixed behind everything -->
+    <div class="bg-collage" aria-hidden="true">
+      <div class="bg-tile" style="background-image:url(bg-1.jpg)"></div>
+      <div class="bg-tile" style="background-image:url(bg-2.jpg)"></div>
+      <div class="bg-tile" style="background-image:url(bg-3.jpg)"></div>
+    </div>
     <div id="app"></div>
     <script type="module" src="/src/main.ts"></script>
   </body>
