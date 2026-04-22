@@ -133,20 +133,25 @@ section { padding: 5rem 0 4rem; position: relative; }
 /* First content section sits tight after the compact hero. */
 #shootout { padding-top: 2rem; }
 
-/* ─── hero — compact, product photo alongside the pitch ────── */
+/* ─── hero — copy on the left, photo collage faded in from top-right ─── */
 .hero {
   position: relative;
-  padding: 3.5rem 0 3rem;
+  padding: 4rem 0 3.5rem;
   border-top: none;
+  overflow: hidden;
+  min-height: 520px;
 }
 .hero-inner {
-  display: grid;
-  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
-  gap: 3rem;
-  align-items: center;
+  position: relative;
+  z-index: 2;
 }
 
-.hero-copy { min-width: 0; }
+.hero-copy {
+  min-width: 0;
+  max-width: 60ch;
+  position: relative;
+  z-index: 2;
+}
 
 .hero-logo {
   width: auto;
@@ -161,39 +166,69 @@ section { padding: 5rem 0 4rem; position: relative; }
   font-size: 1rem;
   line-height: 1.55;
   max-width: 56ch;
-  margin: 1rem 0 1.75rem;
+  margin: 1rem 0 1.5rem;
 }
 
-/* Product photo on the right: hand-framed, on its own. */
-.hero-visual {
-  margin: 0;
-  position: relative;
+/* Magazine-style overlapping photo collage, anchored to the top-right of
+   the hero. A radial fade-mask blends it into the background toward the
+   text on the left, so it never fights with the copy. */
+.hero-collage {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 62%;
+  height: 100%;
+  z-index: 1;
+  pointer-events: none;
+  -webkit-mask-image: radial-gradient(ellipse 90% 100% at 90% 10%, #000 22%, rgba(0, 0, 0, 0.55) 55%, transparent 90%);
+          mask-image: radial-gradient(ellipse 90% 100% at 90% 10%, #000 22%, rgba(0, 0, 0, 0.55) 55%, transparent 90%);
 }
-.hero-visual img {
-  display: block;
-  width: 100%;
-  height: auto;
-  max-height: 400px;
-  object-fit: contain;
-  border-radius: 8px;
+
+.hero-tile {
+  position: absolute;
+  background-size: cover;
+  background-position: center;
+  border-radius: 14px;
   box-shadow:
-    0 4px 8px rgba(0, 0, 0, 0.5),
-    0 24px 48px -12px rgba(0, 0, 0, 0.6);
-}
-.hero-visual figcaption {
-  margin-top: 0.75rem;
-  font-size: 0.8rem;
-  color: var(--muted);
-  text-align: center;
-  letter-spacing: 0.02em;
+    0 6px 16px rgba(0, 0, 0, 0.5),
+    0 28px 60px -10px rgba(0, 0, 0, 0.7);
 }
 
-@media (max-width: 820px) {
-  .hero-inner {
-    grid-template-columns: 1fr;
-    gap: 2rem;
-  }
-  .hero-visual img { max-height: 320px; }
+/* Biggest tile, top-right — the visual anchor. */
+.hero-tile-1 {
+  top: 2%;
+  right: 4%;
+  width: 56%;
+  aspect-ratio: 1;
+  z-index: 3;
+}
+
+/* Mid-size, lower-left of the collage, slight tilt for energy. */
+.hero-tile-2 {
+  top: 38%;
+  left: 4%;
+  width: 42%;
+  aspect-ratio: 1;
+  z-index: 2;
+  transform: rotate(-2.5deg);
+}
+
+/* Small accent tile, top-left of the collage, opposite tilt. */
+.hero-tile-3 {
+  top: -3%;
+  left: 28%;
+  width: 30%;
+  aspect-ratio: 1;
+  z-index: 1;
+  transform: rotate(3deg);
+}
+
+@media (max-width: 900px) {
+  /* On narrow viewports the collage overlays the copy and gets in the way —
+     just hide it and let the copy stand on its own. */
+  .hero { min-height: 0; }
+  .hero-collage { display: none; }
+  .hero-copy { max-width: none; }
 }
 
 .kicker {
@@ -504,7 +539,6 @@ section { padding: 5rem 0 4rem; position: relative; }
 .head-clip {
   width: 100%;
   overflow: hidden;
-  mask-image: linear-gradient(90deg, transparent 0, #000 12px, #000 calc(100% - 12px), transparent 100%);
 }
 .head-clip .shootout-headrow {
   display: grid;
@@ -526,7 +560,6 @@ section { padding: 5rem 0 4rem; position: relative; }
   display: flex;
   flex-direction: column;
   gap: var(--col-gap);
-  mask-image: linear-gradient(90deg, transparent 0, #000 16px, #000 calc(100% - 16px), transparent 100%);
 }
 .shootout-viewport::-webkit-scrollbar { display: none; }
 
@@ -559,10 +592,13 @@ section { padding: 5rem 0 4rem; position: relative; }
 }
 
 .cell {
-  display: block;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
   color: inherit;
   text-decoration: none;
   transition: transform 0.15s ease-out;
+  min-width: 0;
 }
 .cell.empty {
   width: 100%;

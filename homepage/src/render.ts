@@ -235,6 +235,11 @@ export function render(data: IssuesData): string {
 
   return `
   <header class="hero">
+    <div class="hero-collage" aria-hidden="true">
+      <div class="hero-tile hero-tile-1" style="background-image:url(hero-1.jpg)"></div>
+      <div class="hero-tile hero-tile-2" style="background-image:url(hero-2.jpg)"></div>
+      <div class="hero-tile hero-tile-3" style="background-image:url(hero-3.jpg)"></div>
+    </div>
     <div class="container hero-inner">
       <div class="hero-copy">
         <img class="hero-logo" src="logo.svg" alt="PXL" width="150" height="50" />
@@ -251,10 +256,6 @@ export function render(data: IssuesData): string {
           <a class="btn secondary" href="https://discord.gg/KDbVdKQh5j">Discord</a>
         </div>
       </div>
-      <figure class="hero-visual">
-        <img src="hero-main.jpg" alt="PXL Clock displaying a colourful pixel animation" loading="eager" />
-        <figcaption>The real thing — Cumin &amp; Potato GmbH, hand-assembled.</figcaption>
-      </figure>
     </div>
   </header>
 
