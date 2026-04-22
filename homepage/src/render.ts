@@ -15,32 +15,19 @@ const modelBadgeClass = (model: string | null): string => {
   return '';
 };
 
+// Lazy-GIF frame: ship a tiny 1×1 transparent placeholder in `src`, stash the
+// real URL in `data-src`. An IntersectionObserver in main.ts swaps `src` when
+// the image enters the viewport and wipes it back out when it leaves, so only
+// the handful of currently-visible GIFs are decoded/animated at any time.
+// Browsers keep every animated GIF running in a hidden buffer, so without this
+// 500+ GIFs absolutely crush scroll performance.
+const BLANK_PX =
+  'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
 const frame = (url: string, alt: string) =>
-  `<div class="frame"><img src="${escape(url)}" alt="${escape(alt)}" loading="lazy" /></div>`;
+  `<div class="frame"><img class="lazy-gif" src="${BLANK_PX}" data-src="${escape(url)}" alt="${escape(alt)}" loading="lazy" decoding="async" /></div>`;
 
 const pendingFrame = (label = 'TODO') =>
   `<div class="frame"><div class="pending">${escape(label)}</div></div>`;
-
-/**
- * One cell in the shootout grid or ideas grid — a single iteration GIF.
- * Wrapped in a link to the issue. Pending cells have no link.
- */
-const iterCell = (issue: Issue, iterIndex: number): string => {
-  const it = issue.iterations.find((i) => i.index === iterIndex);
-  const label = iterIndex.toString().padStart(3, '0');
-  if (it) {
-    return `
-      <a class="cell" href="${escape(issue.url)}" target="_blank" rel="noopener" title="#${issue.number} iter ${iterIndex}">
-        ${frame(it.gifUrl, `${issue.cleanTitle} iter ${iterIndex}`)}
-        <span class="cell-label">iter ${iterIndex}</span>
-      </a>`;
-  }
-  return `
-    <div class="cell pending-cell">
-      ${pendingFrame('TODO')}
-      <span class="cell-label muted">iter ${iterIndex}</span>
-    </div>`;
-};
 
 /**
  * Shootout card: columns-per-model layout.
@@ -88,20 +75,19 @@ const shootoutCard = (g: ShootoutGroup): string => {
   const colCount = modelKeys.length;
   const styleAttr = `style="--col-count:${colCount}"`;
 
-  // Column header: one badge per distinct model. Click → first issue that used it.
+  // Column header: one toggle button per distinct model. Click collapses
+  // the column to a narrow circle; click again expands. The model name is
+  // stashed in data-model so the JS can find all cells belonging to the
+  // column and recompute the row's grid-template-columns.
   const headRow = `
     <div class="shootout-headrow" ${styleAttr}>
       ${modelKeys
-        .map((m) => {
-          const firstRef = iterKeys
-            .map((n) => cellMap.get(`${m}|${n}`))
-            .find((r): r is IterRef => r !== undefined);
-          const url = firstRef?.issueUrl ?? g.variants[0]?.url ?? '#';
-          return `
-        <a class="col-head badge ${modelBadgeClass(m)}" href="${escape(url)}" target="_blank" rel="noopener">
-          ${escape(shortModel(m))}
-        </a>`;
-        })
+        .map(
+          (m) => `
+        <button type="button" class="col-head col-toggle badge ${modelBadgeClass(m)}" data-model="${escape(m)}" title="Click to collapse/expand column">
+          <span class="col-head-label">${escape(shortModel(m))}</span>
+        </button>`,
+        )
         .join('')}
     </div>`;
 
@@ -122,12 +108,12 @@ const shootoutCard = (g: ShootoutGroup): string => {
       .map((m) => {
         const ref = cellMap.get(`${m}|${n}`);
         if (!ref) return `
-          <a class="cell empty" aria-hidden="true">
+          <a class="cell empty" aria-hidden="true" data-model="${escape(m)}">
             ${pendingFrame('not rendered')}
             <span class="cell-label muted">iter ${n}</span>
           </a>`;
         return `
-          <a class="cell" href="${escape(ref.issueUrl)}" target="_blank" rel="noopener" title="#${ref.issueNumber} · iter ${ref.iterIndex}">
+          <a class="cell" href="${escape(ref.issueUrl)}" target="_blank" rel="noopener" title="#${ref.issueNumber} · iter ${ref.iterIndex}" data-model="${escape(m)}">
             ${frame(ref.gifUrl, `${ref.issueTitle} iter ${ref.iterIndex} (${shortModel(m)})`)}
             <span class="cell-label">iter ${ref.iterIndex}</span>
           </a>`;
@@ -253,27 +239,23 @@ const submitUrl =
   'https://github.com/SchlenkR/pxl-clock/issues/new?labels=pixogram-idea&body=Beschreib%20deine%20Pixogram-Idee%20hier...%0A%0AMach%203%20Iterationen.';
 
 export function render(data: IssuesData): string {
-  const backdropTiles = data.issues
-    .filter((i) => i.iterations.length > 0)
-    .slice()
-    .sort(() => Math.random() - 0.5)
-    .slice(0, 18)
-    .map((i) => {
-      const g = i.iterations.at(-1)!;
-      return `<img src="${escape(g.gifUrl)}" alt="" loading="lazy" />`;
-    })
-    .join('');
-
   const builtAt = new Date(data.generatedAt).toISOString().slice(0, 19).replace('T', ' ');
   const totalIters = data.issues.reduce((n, i) => n + i.iterations.length, 0);
   const renderableSingles = data.singles.filter((i) => i.iterations.length > 0);
+
+  // All distinct models across all iterations — used to build the flat-view
+  // sticky filter row (one toggle chip per model).
+  const allModels = [
+    ...new Set(
+      data.issues.flatMap((i) => i.iterations.map((it) => it.model ?? i.model ?? 'unknown')),
+    ),
+  ].sort();
 
   return `
   <div class="hero-scene" aria-hidden="true"></div>
   <header class="hero">
     <div class="container hero-inner">
-      <img class="hero-logo" src="logo.svg" alt="PXL" width="150" height="50" />
-      <h1>24×24 LED Frame — Programmable in <span class="accent-csharp">C#</span> or with <span class="accent-ai">AI</span>, just by opening a GitHub Issue.</h1>
+      <h1>Program <img class="hero-logo-inline" src="logo.svg" alt="PXL" /> in<br/><span class="accent-csharp">C#</span> or with <span class="accent-ai">AI</span>.</h1>
       <div class="hero-copy">
         <p class="hero-lead primary">
           PXL Clock is a 27×27&nbsp;cm LED frame for your shelf. You write the animations yourself in <span class="accent-csharp">C#</span> — or you describe what you want and let an <span class="accent-ai">AI</span> do it.
@@ -302,6 +284,17 @@ export function render(data: IssuesData): string {
 
   <section id="flat" class="view-only-flat">
     <div class="container">
+      <div class="flat-filter" role="group" aria-label="Filter by model">
+        <span class="flat-filter-label">Models</span>
+        ${allModels
+          .map(
+            (m) => `
+          <button type="button" class="badge model-toggle ${modelBadgeClass(m)} active" data-model="${escape(m)}">
+            ${escape(shortModel(m))}
+          </button>`,
+          )
+          .join('')}
+      </div>
       <div class="flat-grid">
         ${data.issues
           .flatMap((issue) =>
@@ -310,14 +303,14 @@ export function render(data: IssuesData): string {
           .sort((a, b) => b.sortKey.localeCompare(a.sortKey))
           .map(({ issue, it }) => {
             const model = it.model ?? issue.model ?? 'unknown';
-            return `<a class="cell flat-cell" href="${escape(issue.url)}" target="_blank" rel="noopener">
+            return `<a class="cell flat-cell" href="${escape(issue.url)}" target="_blank" rel="noopener" data-model="${escape(model)}">
               ${frame(it.gifUrl, `${issue.cleanTitle} iter ${it.index}`)}
               <div class="cell-meta">
                 <span class="cell-meta-row">
                   <span class="cell-num">#${issue.number} · iter ${it.index}</span>
                   <span class="badge ${modelBadgeClass(model)}">${escape(shortModel(model))}</span>
                 </span>
-                <p class="cell-desc">${escape(issue.description || issue.cleanTitle)}</p>
+                <p class="cell-desc">${escape(issue.cleanTitle)}</p>
               </div>
               <div class="cell-tip" role="tooltip">
                 <span class="cell-tip-title">${escape(issue.cleanTitle)}</span>

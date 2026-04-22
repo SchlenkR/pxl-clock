@@ -79,9 +79,92 @@ const setView = (view: View) => {
   for (const fn of overflowUpdaters) fn();
 };
 document.querySelectorAll<HTMLButtonElement>('.view-btn').forEach((b) => {
-  b.addEventListener('click', () => setView((b.dataset.view as View) ?? 'grid'));
+  b.addEventListener('click', () => {
+    const v = (b.dataset.view as View) ?? 'grid';
+    setView(v);
+    history.replaceState(null, '', `#${v}`);
+  });
 });
-setView('grid');
+// Initial view: respect URL hash (#grid / #panel / #flat), default to grid.
+const initialView: View = (['grid', 'panel', 'flat'] as const).includes(
+  location.hash.slice(1) as View,
+) ? (location.hash.slice(1) as View) : 'grid';
+setView(initialView);
+
+/* ─── Flat-view model filter ────────────────────────────────────────
+   Each .model-toggle in the sticky filter bar carries its model name in
+   data-model. Each .flat-cell also carries its model. Clicking a toggle
+   flips its `.active` class and we show/hide every matching cell via
+   `display: none`. Purely local DOM manipulation, no re-render. */
+const activeModels = new Set<string>();
+for (const btn of document.querySelectorAll<HTMLButtonElement>('.model-toggle')) {
+  const m = btn.dataset.model;
+  if (m) activeModels.add(m);
+}
+const applyModelFilter = () => {
+  for (const cell of document.querySelectorAll<HTMLElement>('.flat-cell[data-model]')) {
+    const m = cell.dataset.model!;
+    cell.style.display = activeModels.has(m) ? '' : 'none';
+  }
+};
+for (const btn of document.querySelectorAll<HTMLButtonElement>('.model-toggle')) {
+  btn.addEventListener('click', () => {
+    const m = btn.dataset.model;
+    if (!m) return;
+    if (activeModels.has(m)) {
+      activeModels.delete(m);
+      btn.classList.remove('active');
+    } else {
+      activeModels.add(m);
+      btn.classList.add('active');
+    }
+    applyModelFilter();
+  });
+}
+
+/* ─── Grid-view column collapse ──────────────────────────────────────
+   Click a .col-toggle header → that column in every row of THIS shootout
+   shrinks to a narrow circle (~36px). Collapsed state is tracked per-
+   shootout (different shootouts may have different model sets, and
+   collapsing should only affect the one clicked). */
+for (const shootout of document.querySelectorAll<HTMLElement>('.shootout')) {
+  const body = shootout.querySelector<HTMLElement>('.shootout-body[data-scroller]');
+  if (!body) continue;
+
+  const gridRows = body.querySelectorAll<HTMLElement>('.shootout-headrow, .shootout-row');
+  const toggleBtns = body.querySelectorAll<HTMLButtonElement>('.col-toggle');
+
+  // Ordered list of this shootout's models — drives grid-template-columns.
+  const models = [...toggleBtns].map((b) => b.dataset.model!).filter(Boolean);
+  const collapsed = new Set<string>();
+
+  const apply = () => {
+    const cols = models
+      .map((m) => (collapsed.has(m) ? '36px' : 'var(--col-width)'))
+      .join(' ');
+    for (const row of gridRows) {
+      row.style.gridTemplateColumns = cols;
+    }
+    for (const btn of toggleBtns) {
+      btn.classList.toggle('collapsed', collapsed.has(btn.dataset.model!));
+    }
+    for (const cell of body.querySelectorAll<HTMLElement>('.shootout-row .cell[data-model]')) {
+      cell.classList.toggle('col-collapsed', collapsed.has(cell.dataset.model!));
+    }
+    // Recompute overflow state — collapsed columns change scroll width.
+    for (const fn of overflowUpdaters) fn();
+  };
+
+  for (const btn of toggleBtns) {
+    btn.addEventListener('click', () => {
+      const m = btn.dataset.model;
+      if (!m) return;
+      if (collapsed.has(m)) collapsed.delete(m);
+      else collapsed.add(m);
+      apply();
+    });
+  }
+}
 
 /* ─── Flat-view tooltip: pick above/below based on viewport room ───
    On hover, measure the cell's distance from the top of the viewport vs.
@@ -99,4 +182,34 @@ for (const cell of document.querySelectorAll<HTMLElement>('.flat-cell')) {
       cell.classList.remove('tip-below');
     }
   });
+}
+
+/* ─── GIF load/unload on viewport entry ──────────────────────────────
+   Each .lazy-gif starts with a 1×1 placeholder in `src` and the real URL in
+   `data-src`. An IntersectionObserver with a generous rootMargin loads GIFs
+   just before they scroll in and unloads them (swap back to placeholder)
+   once they're well out of view. Browsers keep every animated GIF running in
+   the background; without this, 500+ GIFs on-page destroy scroll perf. */
+const GIF_ROOT_MARGIN = '400px 0px 400px 0px';
+const gifObserver = new IntersectionObserver(
+  (entries) => {
+    for (const e of entries) {
+      const img = e.target as HTMLImageElement;
+      const real = img.dataset.src;
+      if (!real) continue;
+      if (e.isIntersecting) {
+        if (img.src !== real) img.src = real;
+      } else {
+        // Swap back to the blank placeholder → stops the GIF animating.
+        if (img.src === real) {
+          img.src =
+            'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
+        }
+      }
+    }
+  },
+  { rootMargin: GIF_ROOT_MARGIN, threshold: 0.01 },
+);
+for (const img of document.querySelectorAll<HTMLImageElement>('img.lazy-gif')) {
+  gifObserver.observe(img);
 }

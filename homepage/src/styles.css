@@ -64,11 +64,10 @@ body {
   font-size: 16px;
   line-height: 1.55;
   letter-spacing: -0.003em;
-  background-image:
-    radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.025) 1px, transparent 0);
-  background-size: 24px 24px;
-  background-attachment: fixed;
   position: relative;
+  /* Dropped the dot-grid + background-attachment:fixed: with lots of GIFs
+     in the page, the fixed attachment forces the browser to repaint the
+     entire page each scroll frame. Tangible jank. */
 }
 
 /* Product photo collage behind everything — heavily blurred + dimmed,
@@ -151,31 +150,45 @@ section { padding: 5rem 0 4rem; position: relative; }
   z-index: 2;
 }
 
-/* Sticky scene layer — fixed to viewport, anchored top-right. Stays put
-   while the user scrolls the hero; the content sections below have their
-   own solid bg and higher z-index so they cover the scene cleanly once
-   scrolled past. Diagonal mask fades from the solid top-right corner down
-   to transparent at the bottom-left so the copy on the left side stays
-   readable and there is never a visible edge. */
+/* Sticky scene layer — fixed to the full viewport so the left edge of the
+   image box always sits INSIDE the transparent region of the mask (no hard
+   vertical cut). Background-position: right keeps the product shot anchored
+   right; the radial mask at the top-right corner feathers it out in every
+   direction at once. */
 .hero-scene {
   position: fixed;
-  top: 0;
-  right: 0;
-  width: 58vw;
+  inset: 0;
+  width: 100vw;
   height: 100vh;
   z-index: 0;
   pointer-events: none;
   background-image: url(hero-scene.jpg);
   background-size: cover;
-  background-position: center right;
-  -webkit-mask-image: linear-gradient(220deg, #000 0%, rgba(0, 0, 0, 0.85) 22%, rgba(0, 0, 0, 0.3) 55%, transparent 80%);
-          mask-image: linear-gradient(220deg, #000 0%, rgba(0, 0, 0, 0.85) 22%, rgba(0, 0, 0, 0.3) 55%, transparent 80%);
+  background-position: right center;
+  background-repeat: no-repeat;
+  -webkit-mask-image: radial-gradient(
+    ellipse 62% 105% at 100% 8%,
+    #000 0%,
+    rgba(0, 0, 0, 0.9) 22%,
+    rgba(0, 0, 0, 0.45) 50%,
+    rgba(0, 0, 0, 0.15) 75%,
+    transparent 92%
+  );
+          mask-image: radial-gradient(
+    ellipse 62% 105% at 100% 8%,
+    #000 0%,
+    rgba(0, 0, 0, 0.9) 22%,
+    rgba(0, 0, 0, 0.45) 50%,
+    rgba(0, 0, 0, 0.15) 75%,
+    transparent 92%
+  );
 }
 
-/* Stacking: the fixed scene sits at z-index 0. Hero copy goes above it at
-   z-index 1 so it's readable. All downstream sections + footer are z-index
-   2 with a solid background, so they fully cover the scene once the user
-   scrolls past the hero. */
+/* Stacking: fixed scene z=0; hero copy z=1; content sections z=2. The
+   content sections need their top edge to feather INTO the dark page
+   rather than cut over the scene. Single-layer vertical gradient — no
+   solid fallback underneath, because a solid fallback cancels the
+   transparent top and re-creates the hard cut. */
 .hero-inner { z-index: 1; }
 #flat,
 #shootout,
@@ -183,7 +196,12 @@ section { padding: 5rem 0 4rem; position: relative; }
 footer {
   position: relative;
   z-index: 2;
-  background: var(--bg);
+  background: linear-gradient(
+    180deg,
+    transparent 0,
+    rgba(13, 13, 16, 0.6) 120px,
+    var(--bg) 280px
+  );
 }
 
 .hero-logo {
@@ -192,6 +210,17 @@ footer {
   margin-bottom: 1.5rem;
   display: block;
   filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.4));
+}
+
+/* Inline PXL logo inside the h1: sized to the cap height of the h1 text so
+   it sits on the same baseline as "Program / in …" and reads as the word. */
+.hero-logo-inline {
+  display: inline-block;
+  height: 0.78em;
+  width: auto;
+  vertical-align: baseline;
+  margin: 0 0.08em 0 0.05em;
+  transform: translateY(0.04em);
 }
 
 /* Two-column copy under the h1: primary paragraph on the left, secondary
@@ -358,7 +387,11 @@ footer {
   display: block;
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  /* Both frame and source GIF are 1:1, so `fill` produces the same visual
+     result as `contain` but avoids the sub-pixel rounding issue in Chrome
+     that was chopping half of the top pixel row off the pixogram. */
+  object-fit: fill;
+  object-position: center;
   background: #000;
   image-rendering: pixelated;
   image-rendering: crisp-edges;
@@ -642,6 +675,61 @@ footer {
   font-weight: 500;
   padding: 0.4em 0.6em;
   text-decoration: none;
+  cursor: pointer;
+  font-family: var(--font-body);
+  transition: padding 0.2s, min-width 0.2s;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+/* Collapsed column: the header badge shrinks to a circle the size of the
+   scroll chevrons. The label text hides; a tiny vertical bar hint shows
+   where the column still exists. */
+.col-head.col-toggle.collapsed {
+  width: 36px;
+  height: 36px;
+  min-height: 36px;
+  min-width: 36px;
+  padding: 0;
+  border-radius: 50%;
+  justify-self: center;
+}
+.col-head.col-toggle.collapsed .col-head-label {
+  width: 0;
+  opacity: 0;
+  overflow: hidden;
+  display: inline-block;
+}
+.col-head.col-toggle::before {
+  content: '';
+  display: none;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.col-head.col-toggle.collapsed::before { display: block; }
+
+/* Cells in a collapsed column shrink to the same 36px width and become
+   a small dim placeholder — the GIF disappears, only a slim bar remains so
+   the column still takes up a clickable sliver. */
+.cell.col-collapsed {
+  width: 36px;
+  min-width: 36px;
+  justify-self: center;
+}
+.cell.col-collapsed .frame,
+.cell.col-collapsed .cell-label {
+  display: none;
+}
+.cell.col-collapsed::after {
+  content: '';
+  display: block;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--bg-elev);
+  border: 1px solid var(--hairline);
 }
 
 .cell {
@@ -745,19 +833,64 @@ body[data-view="panel"] .iter-comment { display: none; }
 body[data-view="flat"] #shootout,
 body[data-view="flat"] #ideas { display: none; }
 
-/* Flat view: one big grid of every pixogram, sized by --col-width, wrapping
-   responsively to fit the container. */
+/* Flat-view sticky model filter — same badge language as the grid/panel
+   column heads, but these are toggleable. `.active` = model included;
+   no class = model excluded (greyed out). Sits sticky at the top of the
+   viewport above the flat grid. */
+.flat-filter {
+  position: sticky;
+  top: 0;
+  z-index: 15;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  background: rgba(13, 13, 16, 0.92);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--hairline);
+  border-radius: 14px;
+}
+.flat-filter-label {
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-right: 0.3rem;
+}
+.model-toggle {
+  cursor: pointer;
+  font-family: var(--font-body);
+  transition: opacity 0.15s, border-color 0.15s, background 0.15s;
+  opacity: 0.35;
+  filter: grayscale(0.6);
+}
+.model-toggle.active {
+  opacity: 1;
+  filter: none;
+}
+.model-toggle:hover { opacity: 1; }
+
+/* Flat view: ONE surrounding card holds the whole grid (same paper bg +
+   hairline + rounded corners as idea-cards / shootouts). Cells themselves
+   stay unboxed — they only need positioning context for the hover tooltip. */
 .flat-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, var(--col-width));
   gap: var(--col-gap);
   justify-content: start;
   align-items: start;
+  background: var(--bg-paper);
+  border: 1px solid var(--hairline);
+  border-radius: 16px;
+  padding: 1.75rem 1.75rem 1.5rem;
+  box-shadow: var(--shadow-md);
 }
 
 #flat { padding-top: 2rem; }
 
-/* Flat-view cells need positioning context for the hover tooltip. */
 .flat-cell { position: relative; }
 
 /* Meta block under the pixogram: issue number + 2-line description. Capped
