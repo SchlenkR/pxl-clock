@@ -245,3 +245,8 @@ let callAgent (backend: SelectedBackend) (timeoutMs: int) (promptFile: string) (
     let systemPrompt = renderSystemPrompt promptFile []
     let messages = ChatMessage.system systemPrompt :: conversationMessages
     askChat backend timeoutMs messages
+
+let callAgentEx (backend: SelectedBackend) (timeoutMs: int) (promptFile: string) (conversationMessages: ChatMessage list) : Result<string * CallStats, string> =
+    let systemPrompt = renderSystemPrompt promptFile []
+    let messages = ChatMessage.system systemPrompt :: conversationMessages
+    askChatEx backend timeoutMs messages

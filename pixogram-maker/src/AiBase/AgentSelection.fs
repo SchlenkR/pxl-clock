@@ -17,7 +17,7 @@ type SelectedBackend =
     | Docker of image: string * model: Model * effort: Effort
     | Copilot of model: string * effort: Effort
     | Ollama of baseUrl: string * model: string * apiKey: string option * think: bool
-    | Anthropic of model: string
+    | Anthropic of model: string * effort: Effort
 
 type BackendOptions =
     {
@@ -139,7 +139,9 @@ let backendDisplayName (backend: SelectedBackend) =
     | Ollama(_, model, _, think) ->
         let t = if think then "think" else "no-think"
         $"Ollama {model} ({t})"
-    | Anthropic model -> $"Anthropic {model}"
+    | Anthropic(model, effort) ->
+        let e = match effort with Low -> "Low" | Medium -> "Medium" | High -> "High" | Max -> "Max"
+        $"Anthropic {model} ({e})"
 
 let agentFactory (backend: SelectedBackend) : IAgent =
     match backend with
@@ -166,14 +168,30 @@ let agentFactory (backend: SelectedBackend) : IAgent =
                 // same KV-cache slot → prefix-cache hits across Implementor retries.
                 NumCtx = 40_960
             })
-    | Anthropic model ->
+    | Anthropic(model, effort) ->
         let apiKey =
             System.Environment.GetEnvironmentVariable("CLAUDE_API_KEY")
             |> Option.ofObj
             |> Option.defaultValue ""
+        // Opus 4.7+ rejects the budget-style thinking and requires adaptive thinking
+        // plus `output_config.effort`. Older models (sonnet-4.6, haiku-4.5) still use
+        // the budget style. Routing by model family rather than effort alone.
+        let isAdaptiveModel =
+            model.StartsWith("claude-opus-4-7") || model.StartsWith("claude-sonnet-4-7")
+        let thinking, maxTokens =
+            match effort, isAdaptiveModel with
+            | Low, true -> AdaptiveThinking "low", 16_384
+            | Medium, true -> AdaptiveThinking "medium", 32_768
+            | High, true -> AdaptiveThinking "high", 32_768
+            | Max, true -> AdaptiveThinking "high", 64_000
+            | Low, false -> NoThinking, 8_192
+            | Medium, false -> BudgetThinking 4_000, 16_384
+            | High, false -> BudgetThinking 16_000, 32_768
+            | Max, false -> BudgetThinking 32_000, 64_000
         new AnthropicAgent(
             {
                 ApiKey = apiKey
                 Model = model
-                MaxTokens = 8192
+                MaxTokens = maxTokens
+                Thinking = thinking
             })

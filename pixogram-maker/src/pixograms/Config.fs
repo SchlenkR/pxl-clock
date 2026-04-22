@@ -28,7 +28,7 @@ module CopilotModels =
     let gpt41 = "gpt-4.1"
 
 module AnthropicModels =
-    let opus46 = "claude-opus-4-6"
+    let opus47 = "claude-opus-4-7"
     let sonnet46 = "claude-sonnet-4-6"
     let haiku45 = "claude-haiku-4-5"
 
@@ -38,6 +38,10 @@ module OllamaModels =
     let qwen36_35b = "qwen3.6:35b-a3b-nvfp4"
     let qwen36_coding_mxfp8 = "qwen3.6:35b-a3b-coding-mxfp8"
     let qwen35_27b_q8 = "qwen3.5:27b-q8_0"
+    let gptOss_120b = "gpt-oss:120b"
+    let gptOss_20b = "gpt-oss:20b"
+    let nemotronCascade2 = "nemotron-cascade-2:latest"
+    let nemotron3Super = "nemotron-3-super:latest"
 
 // ---------------------------------------------------------------------------
 // Ollama env helper — reads OLLAMA{N}_URL / OLLAMA{N}_API_KEY
@@ -82,13 +86,44 @@ let configSets () =
         [
             {
                 Name = "claude-sonnet-4.6/haiku-4.5"
-                SafetyCheck = Anthropic AnthropicModels.sonnet46
-                Triage = Anthropic AnthropicModels.sonnet46
-                DirectorVisionary = Anthropic AnthropicModels.sonnet46
-                DirectorMaverick = Anthropic AnthropicModels.sonnet46
-                Implementor = Anthropic AnthropicModels.sonnet46
+                SafetyCheck = Anthropic(AnthropicModels.sonnet46, Medium)
+                Triage = Anthropic(AnthropicModels.sonnet46, Medium)
+                DirectorVisionary = Anthropic(AnthropicModels.sonnet46, Medium)
+                DirectorMaverick = Anthropic(AnthropicModels.sonnet46, Medium)
+                Implementor = Anthropic(AnthropicModels.sonnet46, Medium)
                 ImplementorFallback = None
-                Compaction = Anthropic AnthropicModels.haiku45
+                Compaction = Anthropic(AnthropicModels.haiku45, Low)
+                ContextLengthTokens = 180_000
+                CompactionThreshold = 0.8
+            }
+
+            {
+                // Sonnet 4.6 across all roles with High budget-style extended thinking
+                // (16k tokens). Direct counterpart to claude-opus-4.7 for A/B comparison.
+                Name = "claude-sonnet-4.6-high"
+                SafetyCheck = Anthropic(AnthropicModels.sonnet46, High)
+                Triage = Anthropic(AnthropicModels.sonnet46, High)
+                DirectorVisionary = Anthropic(AnthropicModels.sonnet46, High)
+                DirectorMaverick = Anthropic(AnthropicModels.sonnet46, High)
+                Implementor = Anthropic(AnthropicModels.sonnet46, High)
+                ImplementorFallback = None
+                Compaction = Anthropic(AnthropicModels.haiku45, Low)
+                ContextLengthTokens = 180_000
+                CompactionThreshold = 0.8
+            }
+
+            {
+                // Claude Opus 4.7 across all roles with High extended-thinking budget
+                // (16k tokens). Compaction uses Haiku 4.5 to save cost — the summary
+                // task doesn't need deep reasoning.
+                Name = "claude-opus-4.7"
+                SafetyCheck = Anthropic(AnthropicModels.opus47, High)
+                Triage = Anthropic(AnthropicModels.opus47, High)
+                DirectorVisionary = Anthropic(AnthropicModels.opus47, High)
+                DirectorMaverick = Anthropic(AnthropicModels.opus47, High)
+                Implementor = Anthropic(AnthropicModels.opus47, High)
+                ImplementorFallback = None
+                Compaction = Anthropic(AnthropicModels.haiku45, Low)
                 ContextLengthTokens = 180_000
                 CompactionThreshold = 0.8
             }
@@ -194,6 +229,48 @@ let configSets () =
                     ContextLengthTokens = 128_000
                     CompactionThreshold = 0.8
                 }
+                {
+                    // OpenAI GPT-OSS 120B: 117B total / 5.1B active MoE, MXFP4, ~65 GB resident.
+                    // Compaction on the smaller 20B sibling (13 GB) to keep the big model warm.
+                    Name = "ollama1-gpt-oss-120b"
+                    SafetyCheck = o1 OllamaModels.gptOss_120b
+                    Triage = o1 OllamaModels.gptOss_120b
+                    DirectorVisionary = o1 OllamaModels.gptOss_120b
+                    DirectorMaverick = o1 OllamaModels.gptOss_120b
+                    Implementor = o1 OllamaModels.gptOss_120b
+                    ImplementorFallback = None
+                    Compaction = o1 OllamaModels.gptOss_20b
+                    ContextLengthTokens = 128_000
+                    CompactionThreshold = 0.8
+                }
+                {
+                    // NVIDIA Nemotron 3 Super: 120B total / 12B active MoE, q4_K_M GGUF, ~87 GB.
+                    // No NVFP4 variant on Ollama (llama.cpp limitation).
+                    Name = "ollama1-nemotron-3-super"
+                    SafetyCheck = o1 OllamaModels.nemotron3Super
+                    Triage = o1 OllamaModels.nemotron3Super
+                    DirectorVisionary = o1 OllamaModels.nemotron3Super
+                    DirectorMaverick = o1 OllamaModels.nemotron3Super
+                    Implementor = o1 OllamaModels.nemotron3Super
+                    ImplementorFallback = None
+                    Compaction = o1 OllamaModels.nemotron3Super
+                    ContextLengthTokens = 128_000
+                    CompactionThreshold = 0.8
+                }
+                {
+                    // NVIDIA Nemotron Cascade 2: 30B total / 3B active MoE, Q4_K_M, ~24 GB.
+                    // 256K native context but we cap at 128K to match other sets.
+                    Name = "ollama1-nemotron-cascade-2"
+                    SafetyCheck = o1 OllamaModels.nemotronCascade2
+                    Triage = o1 OllamaModels.nemotronCascade2
+                    DirectorVisionary = o1 OllamaModels.nemotronCascade2
+                    DirectorMaverick = o1 OllamaModels.nemotronCascade2
+                    Implementor = o1 OllamaModels.nemotronCascade2
+                    ImplementorFallback = None
+                    Compaction = o1 OllamaModels.nemotronCascade2
+                    ContextLengthTokens = 128_000
+                    CompactionThreshold = 0.8
+                }
         ]
 
     staticSets @ ollamaSets
@@ -276,6 +353,7 @@ let private onEvent (event: AgentEvent) =
         Console.ForegroundColor <- ConsoleColor.Red
         eprintfn "    [ERROR] %s" e
         Console.ResetColor()
+    | Metrics _ -> ()
 
 // System prompt to prevent models (especially gpt-5.4) from attempting tool use.
 // These agents have no tools available — without this instruction, some models
@@ -309,25 +387,45 @@ let sendChat (agent: IAgent) (timeoutMs: int) (messages: ChatMessage list) : Res
         printfn $"    [agent] ERROR: {ex.Message}"
         Result.Error $"AI call failed: {ex.Message}"
 
-let askChat (backend: SelectedBackend) (timeoutMs: int) (messages: ChatMessage list) : Result<string, string> =
+type CallStats =
+    {
+        Metrics: CallMetrics option
+        ThinkingChars: int
+        TextChars: int
+    }
+
+let emptyCallStats = { Metrics = None; ThinkingChars = 0; TextChars = 0 }
+
+let askChatEx (backend: SelectedBackend) (timeoutMs: int) (messages: ChatMessage list) : Result<string * CallStats, string> =
     let name = backendDisplayName backend
     let totalChars = messages |> List.sumBy (fun m -> m.Content.Length)
     printfn $"    [askChat] Backend: {name}"
     printfn $"    [askChat] Messages: {messages.Length}, Total: {totalChars} chars, Timeout: {timeoutMs / 1000}s"
+    let metricsRef = ref None
+    let thinkingChars = ref 0
+    let textChars = ref 0
+    let wrapped (e: AgentEvent) =
+        match e with
+        | Metrics m -> metricsRef.Value <- Some m
+        | Thinking t -> thinkingChars.Value <- thinkingChars.Value + t.Length
+        | Text t -> textChars.Value <- textChars.Value + t.Length
+        | _ -> ()
+        onEvent e
     try
         printfn $"    [askChat] Creating agent..."
         use agent = agentFactory backend
         printfn $"    [askChat] Agent ready, sending messages..."
-        let work = agent.SendChat(messages, onEvent)
+        let work = agent.SendChat(messages, wrapped)
         let result =
             Async.RunSynchronously(work, timeout = timeoutMs)
         let trimmed = result.Trim()
+        let stats = { Metrics = metricsRef.Value; ThinkingChars = thinkingChars.Value; TextChars = textChars.Value }
         if String.IsNullOrWhiteSpace trimmed then
             printfn $"    [askChat] ERROR: empty response"
             Result.Error "AI returned empty response"
         else
             printfn $"    [askChat] OK: {trimmed.Length} chars"
-            Ok trimmed
+            Ok (trimmed, stats)
     with
     | :? TimeoutException ->
         printfn $"    [askChat] ERROR: timed out after {timeoutMs / 1000}s"
@@ -335,3 +433,6 @@ let askChat (backend: SelectedBackend) (timeoutMs: int) (messages: ChatMessage l
     | ex ->
         printfn $"    [askChat] ERROR: {ex.Message}"
         Result.Error $"AI call failed: {ex.Message}"
+
+let askChat (backend: SelectedBackend) (timeoutMs: int) (messages: ChatMessage list) : Result<string, string> =
+    askChatEx backend timeoutMs messages |> Result.map fst

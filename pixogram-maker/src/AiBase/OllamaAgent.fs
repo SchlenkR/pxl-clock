@@ -142,6 +142,13 @@ type OllamaAgent(config: OllamaConfig) =
                                 let promptDurSec = float promptEvalDur / 1e9
                                 let evalTokPerSec = if evalDur > 0L then float evalCount / (float evalDur / 1e9) else 0.0
                                 eprintfn $"    [ollama] prompt_eval: {promptEvalCount} tok in {promptDurSec:F2}s, gen: {evalCount} tok @ {evalTokPerSec:F1} tok/s, total: {float totalDur / 1e9:F1}s"
+                                onEvent (Metrics {
+                                    PromptEvalCount = promptEvalCount
+                                    EvalCount = evalCount
+                                    PromptEvalDurNs = promptEvalDur
+                                    EvalDurNs = evalDur
+                                    TotalDurNs = totalDur
+                                })
                                 isDone <- true
                         with _ -> ()
 

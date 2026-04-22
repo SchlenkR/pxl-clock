@@ -103,6 +103,7 @@ let printEvent (index: int) (name: string) (color: ConsoleColor) =
         | Error e ->
             endStreamIfNeeded()
             coloredLn ConsoleColor.Red $"{pad}  [{name} ERROR] {e}"
+        | Metrics _ -> ()
 
 let private formatEvent (name: string) (event: AgentEvent) =
     match event with
@@ -112,6 +113,7 @@ let private formatEvent (name: string) (event: AgentEvent) =
     | ToolResult output -> $"[{name} <- result] {output}"
     | Result t -> $"[{name} result] {t}"
     | Error e -> $"[{name} ERROR] {e}"
+    | Metrics m -> $"[{name} metrics] prompt={m.PromptEvalCount} gen={m.EvalCount}"
 
 let logEvent (logPath: string) (index: int) (name: string) (color: ConsoleColor) =
     let consoleFn = printEvent index name color

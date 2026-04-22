@@ -11,11 +11,22 @@ open AiBase.Agent
 // Config
 // ---------------------------------------------------------------------------
 
+/// Thinking mode for the Anthropic Messages API.
+///
+/// - `NoThinking`: no thinking block.
+/// - `BudgetThinking`: `thinking: { type: enabled, budget_tokens: N }` — pre-4.7 API.
+/// - `AdaptiveThinking`: `thinking: { type: adaptive }` + `output_config: { effort: "low"|"medium"|"high" }` — required for Opus 4.7+.
+type ThinkingMode =
+    | NoThinking
+    | BudgetThinking of budget: int
+    | AdaptiveThinking of effort: string
+
 type AnthropicConfig =
     {
         ApiKey: string
         Model: string
         MaxTokens: int
+        Thinking: ThinkingMode
     }
 
 let defaultAnthropicConfig =
@@ -23,6 +34,7 @@ let defaultAnthropicConfig =
         ApiKey = ""
         Model = "claude-sonnet-4-5-20241022"
         MaxTokens = 8192
+        Thinking = NoThinking
     }
 
 // ---------------------------------------------------------------------------
@@ -55,6 +67,24 @@ type AnthropicAgent(config: AnthropicConfig) =
         writer.WriteString("model", config.Model)
         writer.WriteNumber("max_tokens", config.MaxTokens)
         writer.WriteBoolean("stream", true)
+
+        match config.Thinking with
+        | NoThinking -> ()
+        | BudgetThinking budget ->
+            writer.WritePropertyName("thinking")
+            writer.WriteStartObject()
+            writer.WriteString("type", "enabled")
+            writer.WriteNumber("budget_tokens", (budget: int))
+            writer.WriteEndObject()
+        | AdaptiveThinking effort ->
+            writer.WritePropertyName("thinking")
+            writer.WriteStartObject()
+            writer.WriteString("type", "adaptive")
+            writer.WriteEndObject()
+            writer.WritePropertyName("output_config")
+            writer.WriteStartObject()
+            writer.WriteString("effort", effort)
+            writer.WriteEndObject()
 
         if systemText <> "" then
             writer.WritePropertyName("system")
@@ -109,6 +139,20 @@ type AnthropicAgent(config: AnthropicConfig) =
                 let mutable currentBlockType = ""
                 let mutable currentToolName = ""
                 let toolInput = StringBuilder()
+                let stopwatch = System.Diagnostics.Stopwatch.StartNew()
+                let mutable inputTokens = 0L
+                let mutable outputTokens = 0L
+                let mutable firstTokenAtMs = 0L
+                let readUsageTokens (el: JsonElement) (propIn: string) (propOut: string) =
+                    match el.TryGetProperty("usage") with
+                    | true, usage ->
+                        match usage.TryGetProperty(propIn) with
+                        | true, v when v.ValueKind = JsonValueKind.Number -> inputTokens <- inputTokens + v.GetInt64()
+                        | _ -> ()
+                        match usage.TryGetProperty(propOut) with
+                        | true, v when v.ValueKind = JsonValueKind.Number -> outputTokens <- v.GetInt64()
+                        | _ -> ()
+                    | _ -> ()
 
                 while not isDone do
                     let! line = reader.ReadLineAsync() |> Async.AwaitTask
@@ -127,6 +171,15 @@ type AnthropicAgent(config: AnthropicConfig) =
                             match root.TryGetProperty("type") with
                             | true, t ->
                                 match t.GetString() with
+                                | "message_start" ->
+                                    match root.TryGetProperty("message") with
+                                    | true, m -> readUsageTokens m "input_tokens" "output_tokens"
+                                    | _ -> ()
+
+                                | "message_delta" ->
+                                    // `usage.output_tokens` here is cumulative total for the response
+                                    readUsageTokens root "input_tokens" "output_tokens"
+
                                 | "content_block_start" ->
                                     match root.TryGetProperty("content_block") with
                                     | true, block ->
@@ -153,6 +206,7 @@ type AnthropicAgent(config: AnthropicConfig) =
                                                 | true, text ->
                                                     let token = text.GetString()
                                                     if not (String.IsNullOrEmpty token) then
+                                                        if firstTokenAtMs = 0L then firstTokenAtMs <- stopwatch.ElapsedMilliseconds
                                                         fullResponse.Append(token) |> ignore
                                                         onEvent (Text token)
                                                 | _ -> ()
@@ -161,6 +215,7 @@ type AnthropicAgent(config: AnthropicConfig) =
                                                 | true, text ->
                                                     let token = text.GetString()
                                                     if not (String.IsNullOrEmpty token) then
+                                                        if firstTokenAtMs = 0L then firstTokenAtMs <- stopwatch.ElapsedMilliseconds
                                                         onEvent (Thinking token)
                                                 | _ -> ()
                                             | "input_json_delta" ->
@@ -198,6 +253,17 @@ type AnthropicAgent(config: AnthropicConfig) =
                             | _ -> ()
                         with _ -> ()
 
+                stopwatch.Stop()
+                let totalNs = stopwatch.ElapsedMilliseconds * 1_000_000L
+                let prefillNs = (if firstTokenAtMs > 0L then firstTokenAtMs else stopwatch.ElapsedMilliseconds) * 1_000_000L
+                let evalNs = max 0L (totalNs - prefillNs)
+                onEvent (Metrics {
+                    PromptEvalCount = inputTokens
+                    EvalCount = outputTokens
+                    PromptEvalDurNs = prefillNs
+                    EvalDurNs = evalNs
+                    TotalDurNs = totalNs
+                })
                 let result = fullResponse.ToString()
                 log $"Response received ({result.Length} chars)"
                 onEvent (Result result)

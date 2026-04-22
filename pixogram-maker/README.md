@@ -431,6 +431,58 @@ The retry prefill number (16s → 2.3s per retry) is the clearest per-call win. 
 
 **The deepest takeaway, worth calling out:** the single most useful instrument wasn't a fix, it was the logging change in Finding 7. For the entire first bench cycle we were debugging with `tok/s` and chasing phantom cache behavior. The real picture only emerged once we logged `prompt_eval_duration` directly. When you're optimizing against a black box, invest in making your metrics *honest* before you invest in the fix.
 
+## Field Notes: Models We've Tried
+
+Different backends behave very differently — not just in speed, but in how they reason, fail, and drift. These are observations from running the same feedback loop (5 rounds of varied prompts: specific / vague / dealer / rejection / aesthetic) on the same issues across models.
+
+### Currently configured sets
+
+| ConfigSet | Backend | Size | Character |
+|---|---|---|---|
+| `claude-sonnet-4.6/haiku-4.5` | Anthropic API | hosted | reliable baseline |
+| `copilot-sonnet-4.6/haiku-4.5` | GitHub Copilot SDK | hosted | same model, different provider |
+| `copilot-gpt-5.4/gpt-5.4-mini` | GitHub Copilot SDK | hosted | strong coder, empty-response risk without no-tools prompt |
+| `ollama1-gemma4-26b` | Ollama local | 28 GB (Q8_0 MoE 26B-A4B) | visually ambitious, runtime-fragile |
+| `ollama1-qwen36-35b` | Ollama local | 21 GB (NVFP4 MoE 35B-A3B) | fast, disciplined, think-loop prone |
+| `ollama1-qwen36-coding-mxfp8` | Ollama local | 37 GB (MXFP8 MoE) | coding fine-tune, best Implementor speed so far |
+| `ollama1-qwen36-coding-nothink` | Ollama local | same as above, `think=false` for Implementor | 3× faster when it works, 2× slower when fallback triggers |
+| `ollama1-qwen3.5-27b-q8` | Ollama local | 29 GB | dense 27B, smooth baseline |
+| `ollama1-gpt-oss-120b` | Ollama local | 65 GB (MXFP4 MoE 117B-A5.1B) | structured thinking, clean retries |
+| `ollama1-nemotron-3-super` | Ollama local | 87 GB (Q4_K_M MoE 120B-A12B) | largest we fit on 128 GB, untested so far |
+| `ollama1-nemotron-cascade-2` | Ollama local | 24 GB (Q4_K_M MoE 30B-A3B) | smallest Nemotron, untested so far |
+
+NVFP4 note: on Apple Silicon, the `nvfp4` Ollama tags are GGUFs packed into FP4-scaled sub-blocks and run via the normal Metal path — llama.cpp does not yet support NVIDIA's native NVFP4 Tensor-Core kernels (tracking in [ggml-org/llama.cpp#16668](https://github.com/ggml-org/llama.cpp/discussions/16668)). Real NVFP4 inference still requires TensorRT-LLM on Hopper/Blackwell.
+
+### Gemma 4 26B (MoE, 3.8B active)
+
+- **Visual ambition is high.** A "dealer" prompt ("mach mal was, ich lass dich") reliably produces dramatic scenes — screen shake, sparks, shockwaves, glitch-text overlays.
+- **Drift toward cosmic/singularity motifs.** Across unrelated issues (Tetris, DNA, shooting stars), the Maverick role tends to pull concepts into "black hole" / "vortex" / "orbital debris" territory. A strong model prior that's hard to steer around with prompting alone.
+- **Runtime fragility.** Ambitious scenes routinely exhaust all 5 Implementor retries with `IndexOutOfRangeException` or similar runtime bugs. On one feedback round ([dealer] on issue #69), Gemma produced *no* output — every retry crashed differently. The retries don't converge toward a working version; they generate *different* buggy versions.
+- **Pace:** ~7–15 min per iteration on M2 Ultra. Long thinking phases.
+
+### Qwen 3.6 35B-A3B (MoE)
+
+- **Fastest Ollama option for this workload.** ~3B active params means the Implementor call returns in 35–80s depending on think mode.
+- **Disciplined.** Implementor code is conservative and usually runs first try. Low retry count.
+- **Think-loop risk.** With thinking *on*, earlier qwen3.x versions self-reinforced reasoning indefinitely on ambiguous Triage decisions — we had to disable thinking for Triage to fix it. See commit `b5f726b` / `e049b76`.
+- **Coding fine-tune (`mxfp8`) is materially better at Implementor** than the general-purpose tag. Not surprising — it's the same base with code-weighted SFT.
+
+### GPT-OSS 120B (MoE, 5.1B active, MXFP4)
+
+- **Structured root-cause thinking.** When an Implementor retry triggers, the thinking block *quotes the offending code* and derives the precondition for the crash:
+  > *"Error 'Index and length must refer to a location within the string' occurs likely from substring operation on `timeText`. In code: `var displayText = timeText.Substring(0, timeText.Length - glitch);` If glitch becomes negative or larger than length..."*
+  This reads like a human debugging, not a LLM pattern-matching on "error → fix" pairs.
+- **Triage reasoning is very explicit.** GPT-OSS enumerates conversation comments numerically (`[1]`, `[2]`, …), walks the routing rules step-by-step, then outputs the decision. Audit trail for free.
+- **Fast on this hardware.** 5 min per full iteration on M2 Ultra (vs. Gemma's 7–15 min). Feels like the sweet spot for local: big enough to reason well, small enough (~65 GB MXFP4) to stay warm in RAM.
+- Uses the same `no-tools` system prompt as GPT-5.4 to avoid empty responses from phantom tool calls.
+
+### Observations across the set
+
+- **Local ≠ slow.** GPT-OSS 120B on M2 Ultra completes a full workflow iteration in the same ballpark as a Copilot Sonnet 4.6 round-trip. Latency is not the reason to pick hosted.
+- **MoE active-param count predicts throughput better than total.** 117B-A5.1B (GPT-OSS) beats 26B-A4B (Gemma) on wall-clock despite being 4× larger on disk, because 4× more RAM doesn't slow token generation — only active params do.
+- **Failure *mode* is more informative than failure *rate*.** Gemma fails by producing inventive-but-broken code; GPT-OSS fails by producing boring-but-correct code. Which is "better" depends on what the feedback prompt was asking for.
+- **Heterogeneous model setups** (see Mode Collapse section below) become interesting here — running Visionary on Gemma for creative wildness while keeping Implementor on GPT-OSS for code reliability is a near-zero-effort config change with real upside.
+
 ## Open Problem: Ideation & Mode Collapse
 
 In practice, iterations within a single issue tend to look **visually similar** — and even fresh issues often land in the same stylistic neighborhood. The Maverick role was introduced to counteract this, but it hasn't produced the conceptual jumps we'd hoped for. A literature survey confirmed this is a structural property of current LLMs, not a prompting issue.
@@ -475,7 +527,7 @@ All configuration is via environment variables (loaded from `.env` locally, from
 | `AI_TIMEOUT_MS` | Timeout for AI calls |
 | `GIF_DURATION_SECONDS` | Duration of rendered GIF |
 | `GIF_SCALE` | Pixel scale factor for GIF |
-| `CONFIG_SET` | Which backend config to use (`anthropic` or `copilot`) |
+| `CONFIG_SET` | Which backend config to use (see "Models We've Tried" for the full list — Claude/Copilot hosted or Ollama local) |
 
 Context window budget (`ContextLengthTokens`) and compaction threshold (`CompactionThreshold`) are **not** environment variables — they are defined per `ConfigSet` in code, since they depend on the model's capabilities.
 

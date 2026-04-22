@@ -118,6 +118,45 @@ let private configSetMarkdown (models: ConfigSet) =
     $"\n\n---\n\n🤖 **Config Set:** `{models.Name}` · **Implementor:** {impl}" +
     $"\n\n<details>\n<summary>Model Configuration</summary>\n\n{table}\n\n</details>"
 
+/// Renders a table of per-call metrics collected during one comment's worth of AI work.
+/// `entries` is (roleLabel, stats) pairs — one row per askChatEx call.
+let private metricsMarkdown (entries: (string * CallStats) list) =
+    let entries = entries |> List.filter (fun (_, s) -> s.Metrics.IsSome || s.TextChars > 0 || s.ThinkingChars > 0)
+    if entries.IsEmpty then ""
+    else
+        let fmtDur (ns: int64) = $"{float ns / 1e9:F1}s"
+        let row (label: string, s: CallStats) =
+            match s.Metrics with
+            | Some m ->
+                let genSpeed =
+                    if m.EvalDurNs > 0L then $"{float m.EvalCount / (float m.EvalDurNs / 1e9):F1} tok/s"
+                    else "—"
+                $"| {label} | {m.PromptEvalCount} | {m.EvalCount} | {s.ThinkingChars} | {s.TextChars} | {fmtDur m.PromptEvalDurNs} | {genSpeed} | {fmtDur m.TotalDurNs} |"
+            | None ->
+                $"| {label} | — | — | {s.ThinkingChars} | {s.TextChars} | — | — | — |"
+        let sumMetrics =
+            entries
+            |> List.choose (fun (_, s) -> s.Metrics)
+            |> List.fold (fun acc m ->
+                { PromptEvalCount = acc.PromptEvalCount + m.PromptEvalCount
+                  EvalCount = acc.EvalCount + m.EvalCount
+                  PromptEvalDurNs = acc.PromptEvalDurNs + m.PromptEvalDurNs
+                  EvalDurNs = acc.EvalDurNs + m.EvalDurNs
+                  TotalDurNs = acc.TotalDurNs + m.TotalDurNs })
+                { PromptEvalCount = 0L; EvalCount = 0L; PromptEvalDurNs = 0L; EvalDurNs = 0L; TotalDurNs = 0L }
+        let totalThink = entries |> List.sumBy (fun (_, s) -> s.ThinkingChars)
+        let totalText = entries |> List.sumBy (fun (_, s) -> s.TextChars)
+        let totalRow =
+            let genSpeed =
+                if sumMetrics.EvalDurNs > 0L then $"{float sumMetrics.EvalCount / (float sumMetrics.EvalDurNs / 1e9):F1} tok/s"
+                else "—"
+            $"| **Σ** | **{sumMetrics.PromptEvalCount}** | **{sumMetrics.EvalCount}** | **{totalThink}** | **{totalText}** | **{fmtDur sumMetrics.PromptEvalDurNs}** | **{genSpeed}** | **{fmtDur sumMetrics.TotalDurNs}** |"
+        let header =
+            "| Role | Prompt tok | Gen tok | Think chars | Text chars | Prefill | Gen speed | Total |\n" +
+            "|------|-----------:|--------:|------------:|-----------:|--------:|----------:|------:|"
+        let body = (entries |> List.map row) @ [ totalRow ] |> String.concat "\n"
+        $"\n\n<details>\n<summary>Run Metrics</summary>\n\n{header}\n{body}\n\n</details>"
+
 // ---------------------------------------------------------------------------
 // Code extraction & rendering
 // ---------------------------------------------------------------------------
@@ -199,7 +238,9 @@ let private issueFolderName (issueNumber: int) (title: string) =
     $"issue-{issueNumber}_{sanitized}"
 
 let private setupWorktree () =
-    let worktreePath = Path.Combine(Path.GetTempPath(), "pixogram-maker-wt")
+    // Per-process suffix so parallel workflow runs don't collide on the same worktree.
+    let worktreePath =
+        Path.Combine(Path.GetTempPath(), $"pixogram-maker-wt-{System.Diagnostics.Process.GetCurrentProcess().Id}")
     // Clean up any leftover worktree
     if Directory.Exists worktreePath then
         runGit [ "worktree"; "remove"; worktreePath; "--force" ] |> ignore
@@ -394,34 +435,35 @@ let private executeDirector (config: PipelineConfig) (protocol: ProtocolLog) (ba
     while not posted && attempt <= config.MaxDirectorRetries do
         printfn $"  [{ts ()}] ▶ Running {label} ({backendDisplayName backend}), attempt {attempt}/{config.MaxDirectorRetries}..."
         printfn $"    Prompt: {promptFile}"
-        match callAgent backend config.AiTimeoutMs promptFile conversationMessages with
+        match callAgentEx backend config.AiTimeoutMs promptFile conversationMessages with
         | Result.Error err ->
             printfn $"  ✗ {label} failed: {err}"
             log protocol label $"FAILED (attempt {attempt}): {err}"
-        | Ok response when not (response.Contains(expectedTag)) ->
+        | Ok (response, _) when not (response.Contains(expectedTag)) ->
             printfn $"  ✗ {label} response missing expected tag '{expectedTag}', discarding."
             log protocol label $"DISCARDED (attempt {attempt}, missing tag): {response}"
-        | Ok response ->
+        | Ok (response, stats) ->
             log protocol label response
             printfn $"    Posting comment..."
-            postComment issueNumber response
+            let footer = metricsMarkdown [ label, stats ]
+            postComment issueNumber (response + footer)
             printfn $"  ✓ {label} posted."
             posted <- true
         attempt <- attempt + 1
     if not posted then
         printfn $"  ✗ {label} failed after {config.MaxDirectorRetries} attempts."
 
-let private generateSummary (config: PipelineConfig) (conversationMessages: ChatMessage list) =
+let private generateSummary (config: PipelineConfig) (conversationMessages: ChatMessage list) : string * CallStats =
     printfn $"    [{ts ()}] Generating summary..."
     let stripped = conversationMessages |> sliceForSummary |> stripDetailsFromMessages
     let conversationText = renderConversationAsText stripped
     let prompt = renderPrompt "summary.md" [ "conversation", conversationText ]
     let messages = [ ChatMessage.system noToolsPrompt; ChatMessage.user prompt ]
-    match askChat config.Models.Triage config.AiTimeoutMs messages with
-    | Ok summary -> summary.Trim()
+    match askChatEx config.Models.Triage config.AiTimeoutMs messages with
+    | Ok (summary, stats) -> summary.Trim(), stats
     | Result.Error err ->
         printfn $"    ✗ Summary failed: {err}"
-        ""
+        "", emptyCallStats
 
 let private executeImplementor (config: PipelineConfig) (protocol: ProtocolLog) (conversationMessages: ChatMessage list) (fullConversationMessages: ChatMessage list) (comments: IssueComment list) (issueNumber: int) (issueTitle: string) : bool =
     printfn $"  [{ts ()}] ▶ Running Implementor ({backendDisplayName config.Models.Implementor})..."
@@ -447,10 +489,13 @@ let private executeImplementor (config: PipelineConfig) (protocol: ProtocolLog) 
         && (s.Contains "Renderer" || s.Contains "ctx." || s.Contains "void Frame"
             || s.Contains "DrawingContext" || s.Contains "RenderCtx")
 
-    let getInitialCode (backend: SelectedBackend) =
+    let metricsLog = ResizeArray<string * CallStats>()
+
+    let getInitialCode (backend: SelectedBackend) (label: string) =
         printfn $"    [{ts ()}] [impl] Sending to {backendDisplayName backend}..."
-        match askChat backend config.AiTimeoutMs baseMessages with
-        | Ok response ->
+        match askChatEx backend config.AiTimeoutMs baseMessages with
+        | Ok (response, stats) ->
+            metricsLog.Add((label, stats))
             let code = extractCodeFromMarkdown response
             let hasMarker = code.Contains("// ---")
             let looksLikeCode = looksLikeCSharp code
@@ -468,14 +513,14 @@ let private executeImplementor (config: PipelineConfig) (protocol: ProtocolLog) 
             None
 
     let initialCode =
-        match getInitialCode config.Models.Implementor with
+        match getInitialCode config.Models.Implementor "Implementor (initial)" with
         | Some code -> Some code
         | None ->
             match config.Models.ImplementorFallback with
             | Some fallback ->
                 printfn $"  ↩ Trying fallback model ({backendDisplayName fallback})..."
                 log protocol "Implementor" $"FALLBACK: switching to {backendDisplayName fallback}"
-                getInitialCode fallback
+                getInitialCode fallback "Implementor (fallback)"
             | None ->
                 printfn $"  ✗ No fallback model configured."
                 None
@@ -519,7 +564,8 @@ let private executeImplementor (config: PipelineConfig) (protocol: ProtocolLog) 
             let latestImplMessage =
                 ChatMessage.assistant $"**[Implementor]** — Iteration {iterationNumber}\n\n<details>\n\n```csharp\n{code}\n```\n\n</details>"
             let summaryConversation = fullConversationMessages @ [ latestImplMessage ]
-            let summary = generateSummary config summaryConversation
+            let summary, summaryStats = generateSummary config summaryConversation
+            metricsLog.Add(("Summary", summaryStats))
             let summaryLine = if summary <> "" then $"\n\n{summary}" else ""
             let vscodeUrl = $"https://vscode.dev/github/{owner}/{repoName}/blob/{artifactBranch}/{issueFolderName issueNumber issueTitle}"
             let openLinks =
@@ -531,7 +577,8 @@ let private executeImplementor (config: PipelineConfig) (protocol: ProtocolLog) 
                 summaryLine +
                 gifMarkdown +
                 openLinks +
-                configSetMarkdown config.Models
+                configSetMarkdown config.Models +
+                metricsMarkdown (List.ofSeq metricsLog)
             postComment issueNumber comment
             printfn $"  [{ts ()}] ✓ Implementor posted — iteration {iterationNumber} (attempt {attempt})."
             updateIssueGallery issueNumber issueTitle
@@ -552,12 +599,13 @@ let private executeImplementor (config: PipelineConfig) (protocol: ProtocolLog) 
                 retryHistory.Add(ChatMessage.user feedback)
                 let retryMessages = baseMessages @ List.ofSeq retryHistory
                 printfn $"    [impl] Sending error feedback (attempt {attempt}, history: {retryHistory.Count / 2} pairs)..."
-                match askChat config.Models.Implementor config.AiTimeoutMs retryMessages with
+                match askChatEx config.Models.Implementor config.AiTimeoutMs retryMessages with
                 | Result.Error aiErr ->
                     printfn $"  ✗ Implementor retry AI failed: {aiErr}"
                     log protocol "Implementor" $"RETRY AI FAILED: {aiErr}"
                     attempt <- config.MaxImplementorRetries // bail out
-                | Ok response ->
+                | Ok (response, stats) ->
+                    metricsLog.Add(($"Implementor (retry {attempt})", stats))
                     let fixedCode = extractCodeFromMarkdown response
                     printfn $"    [impl] Retry code extracted ({fixedCode.Length} chars from {response.Length} chars response)"
                     code <- fixedCode
@@ -681,6 +729,14 @@ let run (config: PipelineConfig) (issue: Issue) =
         elif not (runApprovalGate config protocol issue) then
             printfn "  ─── Workflow aborted (not approved) ───"
         else
+
+        // Auto-apply the model-config label so GitHub shows which ConfigSet produced
+        // this iteration. Best-effort: missing label on the repo is not fatal.
+        let modelLabel = "model-" + config.Models.Name
+        if not (issue.Labels |> List.exists (fun l -> String.Equals(l, modelLabel, StringComparison.OrdinalIgnoreCase))) then
+            match tryAddLabel issue.Number modelLabel with
+            | Result.Ok () -> printfn $"  Applied label: {modelLabel}"
+            | Result.Error msg -> printfn $"  ⚠ Could not apply label '{modelLabel}' (skipping): {msg}"
 
         let mutable maxIterations = extractIterationCount config issue.Body
         printfn $"  Max iterations: {maxIterations}"

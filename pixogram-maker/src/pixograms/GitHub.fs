@@ -134,6 +134,16 @@ let listBranchFolder (branch: string) (path: string) : string list =
 let addLabel issueNumber (label: string) =
     client.Issue.Labels.AddToIssue(owner, repoName, issueNumber, [| label |]).Result |> ignore
 
+// Best-effort: apply a label if it exists on the repo. Never throws.
+// Used for auto-applying model-config labels where a missing label
+// (e.g. new ConfigSet added without the corresponding GitHub label)
+// must not break the workflow.
+let tryAddLabel issueNumber (label: string) : Result<unit, string> =
+    try
+        client.Issue.Labels.AddToIssue(owner, repoName, issueNumber, [| label |]).Result |> ignore
+        Ok ()
+    with ex -> Error ex.Message
+
 let removeLabel issueNumber (label: string) =
     try client.Issue.Labels.RemoveFromIssue(owner, repoName, issueNumber, label).Result |> ignore
     with _ -> () // ignore if label wasn't present

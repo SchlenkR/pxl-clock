@@ -7,6 +7,7 @@
 publish/
 .tmp/
 .DS_Store
+.claude
 
 pxl-config.json
 tools/reel-maker/src/preview-config.json
@@ -131,6 +132,7 @@ StyleCopReport.xml
 *.tmp_proj
 *_wpftmp.csproj
 *.log
+!pixogram-maker/benchmarks/**/*.log
 *.tlog
 *.vspscc
 *.vssscc

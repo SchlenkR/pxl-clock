@@ -32,6 +32,15 @@ type AgentConfig =
         MaxTurns: int option
     }
 
+type CallMetrics =
+    {
+        PromptEvalCount: int64
+        EvalCount: int64
+        PromptEvalDurNs: int64
+        EvalDurNs: int64
+        TotalDurNs: int64
+    }
+
 type AgentEvent =
     | Thinking of string
     | Text of string
@@ -39,6 +48,7 @@ type AgentEvent =
     | ToolResult of string
     | Result of string
     | Error of string
+    | Metrics of CallMetrics
 
 type ChatMessage =
     {
