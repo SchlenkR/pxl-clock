@@ -6,7 +6,17 @@ on:
     paths:
       - 'homepage/**'
       - '.github/workflows/deploy-homepage.yml'
-  # Rebuild every 30 minutes so new pixograms show up on the site.
+  # Rebuild whenever an issue or its comments change so the homepage reflects
+  # new/edited pixogram ideas + feedback in near-real-time. GitHub does not
+  # expose a "body-only edited" event — `issues: edited` fires on any change
+  # to the issue (title/body/assignees), which is fine: the fetch step only
+  # pulls pixogram-idea-labelled issues so irrelevant edits cost ~30s but
+  # don't pollute output.
+  issues:
+    types: [opened, edited, reopened, closed, deleted, labeled, unlabeled]
+  issue_comment:
+    types: [created, edited, deleted]
+  # Safety net: rebuild every 30 minutes even if no event fired.
   schedule:
     - cron: '*/30 * * * *'
   workflow_dispatch: {}

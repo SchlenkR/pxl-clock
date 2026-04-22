@@ -15,6 +15,21 @@ const modelBadgeClass = (model: string | null): string => {
   return '';
 };
 
+const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+// Compact "DD MMM" date next to the iter label (e.g. "22 Apr"). CSS upper-
+// cases the label so it reads "22 APR" in the UI. Returns empty string when
+// no timestamp is available (older iterations without an Implementor comment).
+const formatIterDate = (iso: string | null): string => {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  return `${String(d.getUTCDate()).padStart(2, '0')} ${MONTHS_SHORT[d.getUTCMonth()]}`;
+};
+const iterLabel = (index: number, iso: string | null): string => {
+  const date = formatIterDate(iso);
+  return date ? `iter ${index} · ${date}` : `iter ${index}`;
+};
+
 // Lazy-GIF frame: ship a tiny 1×1 transparent placeholder in `src`, stash the
 // real URL in `data-src`. An IntersectionObserver in main.ts swaps `src` when
 // the image enters the viewport and wipes it back out when it leaves, so only
@@ -47,7 +62,7 @@ const shootoutCard = (g: ShootoutGroup): string => {
   // models. Cell (model, iter) = that specific GIF. If multiple issues in the
   // cluster have the same (model, iter), we keep the one with the highest
   // issue number (most recent).
-  type IterRef = { gifUrl: string; issueUrl: string; issueTitle: string; issueNumber: number; iterIndex: number };
+  type IterRef = { gifUrl: string; issueUrl: string; issueTitle: string; issueNumber: number; iterIndex: number; createdAt: string | null };
   const cellMap = new Map<string, IterRef>();  // key = `${model}|${iterIndex}`
   const modelSet = new Set<string>();
   const iterSet = new Set<number>();
@@ -65,6 +80,7 @@ const shootoutCard = (g: ShootoutGroup): string => {
           issueTitle: issue.cleanTitle,
           issueNumber: issue.number,
           iterIndex: it.index,
+          createdAt: it.createdAt,
         });
       }
     }
@@ -110,12 +126,12 @@ const shootoutCard = (g: ShootoutGroup): string => {
         if (!ref) return `
           <a class="cell empty" aria-hidden="true" data-model="${escape(m)}">
             ${pendingFrame('not rendered')}
-            <span class="cell-label muted">iter ${n}</span>
+            <span class="cell-label muted">iter ${n}</span><!-- empty: no date -->
           </a>`;
         return `
           <a class="cell" href="${escape(ref.issueUrl)}" target="_blank" rel="noopener" title="#${ref.issueNumber} · iter ${ref.iterIndex}" data-model="${escape(m)}">
             ${frame(ref.gifUrl, `${ref.issueTitle} iter ${ref.iterIndex} (${shortModel(m)})`)}
-            <span class="cell-label">iter ${ref.iterIndex}</span>
+            <span class="cell-label">${iterLabel(ref.iterIndex, ref.createdAt)}</span>
           </a>`;
       })
       .join('');
@@ -137,12 +153,12 @@ const shootoutCard = (g: ShootoutGroup): string => {
           if (!ref) return `
             <a class="cell empty" aria-hidden="true">
               ${pendingFrame('—')}
-              <span class="cell-label muted">iter ${n}</span>
+              <span class="cell-label muted">iter ${n}</span><!-- empty: no date -->
             </a>`;
           return `
             <a class="cell" href="${escape(ref.issueUrl)}" target="_blank" rel="noopener" title="#${ref.issueNumber} · iter ${ref.iterIndex}">
               ${frame(ref.gifUrl, `${ref.issueTitle} iter ${ref.iterIndex} (${shortModel(m)})`)}
-              <span class="cell-label">iter ${ref.iterIndex}</span>
+              <span class="cell-label">${iterLabel(ref.iterIndex, ref.createdAt)}</span>
             </a>`;
         })
         .join('');
@@ -223,7 +239,7 @@ const singleCard = (i: Issue): string => {
           ${commentHtml}
           <a class="iter-art" href="${escape(i.url)}" target="_blank" rel="noopener" title="#${i.number} iter ${it.index}">
             ${frame(it.gifUrl, `${i.cleanTitle} iter ${it.index}`)}
-            <span class="cell-label">iter ${it.index}</span>
+            <span class="cell-label">${iterLabel(it.index, it.createdAt)}</span>
           </a>
         </div>`;
     })
@@ -324,7 +340,7 @@ export function render(data: IssuesData): string {
               ${frame(it.gifUrl, `${issue.cleanTitle} iter ${it.index}`)}
               <div class="cell-meta">
                 <span class="cell-meta-row">
-                  <span class="cell-num">#${issue.number} · iter ${it.index}</span>
+                  <span class="cell-num">#${issue.number} · ${iterLabel(it.index, it.createdAt)}</span>
                   <span class="badge ${modelBadgeClass(model)}">${escape(shortModel(model))}</span>
                 </span>
                 <p class="cell-desc">${escape(issue.cleanTitle)}</p>

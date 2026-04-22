@@ -217,17 +217,24 @@ const stripComment = (body: string): string => {
  * Config Set → model mapping from the footer. Iterations that predate
  * the Config Set marker era stay unmapped.
  */
-function extractIterModels(comments: RawComment[]): Map<number, string> {
+interface IterMeta {
+  model: string | null;
+  createdAt: string;
+}
+function extractIterMeta(comments: RawComment[]): Map<number, IterMeta> {
   const sorted = [...comments].sort(
     (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
   );
   let implIndex = 0;
-  const map = new Map<number, string>();
+  const map = new Map<number, IterMeta>();
   for (const c of sorted) {
     if (!c.body.includes('**[Implementor]**')) continue;
     implIndex++;
     const m = c.body.match(CONFIGSET_RE);
-    if (m) map.set(implIndex, m[1]!);
+    map.set(implIndex, {
+      model: m ? m[1]! : null,
+      createdAt: c.created_at,
+    });
   }
   return map;
 }
@@ -295,10 +302,10 @@ async function main() {
     // Always pull comments: we need per-iteration model extraction from the
     // ConfigSet footer. `feedback` mapping is a free byproduct.
     let feedback: FeedbackComment[] = [];
-    let iterModels = new Map<number, string>();
+    let iterMeta = new Map<number, IterMeta>();
     if (gifs.length > 0) {
       const comments = await listComments(raw.number);
-      iterModels = extractIterModels(comments);
+      iterMeta = extractIterMeta(comments);
       if (gifs.length > autoCount) {
         feedback = matchFeedbackToIters(comments, autoCount);
       }
@@ -307,12 +314,15 @@ async function main() {
     const iterations: Iteration[] = gifs.map((gif) => {
       const base = gif.replace(/\.gif$/, '');
       const index = parseInt(base, 10);
+      const meta = iterMeta.get(index);
       return {
         index,
         gifUrl: branchRaw(folder, gif),
         csUrl: branchBlob(folder, `${base}.cs`),
         // Specific model that produced this iter. Null if pre-marker era.
-        model: iterModels.get(index) ?? null,
+        model: meta?.model ?? null,
+        // Timestamp of the Implementor comment — proxy for GIF creation date.
+        createdAt: meta?.createdAt ?? null,
       };
     });
 

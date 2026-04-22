@@ -6,6 +6,10 @@ export interface Iteration {
       from the "Config Set: `xxx`" marker in its Implementor comment.
       Null if the iteration predates the marker (older runs). */
   model: string | null;
+  /** ISO timestamp of the Implementor comment that produced this iteration.
+      Used as a proxy for "when this GIF was made". Null if no matching
+      comment was found (very old issues). */
+  createdAt: string | null;
 }
 
 /** User/maintainer comment that triggered a feedback iteration. */
