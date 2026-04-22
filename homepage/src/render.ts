@@ -122,10 +122,10 @@ const shootoutCard = (g: ShootoutGroup): string => {
       .map((m) => {
         const ref = cellMap.get(`${m}|${n}`);
         if (!ref) return `
-          <div class="cell empty" aria-hidden="true">
+          <a class="cell empty" aria-hidden="true">
             ${pendingFrame('not rendered')}
             <span class="cell-label muted">iter ${n}</span>
-          </div>`;
+          </a>`;
         return `
           <a class="cell" href="${escape(ref.issueUrl)}" target="_blank" rel="noopener" title="#${ref.issueNumber} · iter ${ref.iterIndex}">
             ${frame(ref.gifUrl, `${ref.issueTitle} iter ${ref.iterIndex} (${shortModel(m)})`)}
@@ -138,6 +138,38 @@ const shootoutCard = (g: ShootoutGroup): string => {
 
   const totalIters = cellMap.size;
 
+  // Panel view: one horizontal film-strip per model with all its iterations.
+  // No feedback bars, no model-as-column grid — just the renders side by side.
+  const iterCountStyle = `style="--iter-count:${iterKeys.length}"`;
+  const panelRows = modelKeys
+    .map((m) => {
+      const firstRef = iterKeys.map((n) => cellMap.get(`${m}|${n}`)).find((r): r is IterRef => r !== undefined);
+      const headUrl = firstRef?.issueUrl ?? g.variants[0]?.url ?? '#';
+      const cells = iterKeys
+        .map((n) => {
+          const ref = cellMap.get(`${m}|${n}`);
+          if (!ref) return `
+            <a class="cell empty" aria-hidden="true">
+              ${pendingFrame('—')}
+              <span class="cell-label muted">iter ${n}</span>
+            </a>`;
+          return `
+            <a class="cell" href="${escape(ref.issueUrl)}" target="_blank" rel="noopener" title="#${ref.issueNumber} · iter ${ref.iterIndex}">
+              ${frame(ref.gifUrl, `${ref.issueTitle} iter ${ref.iterIndex} (${shortModel(m)})`)}
+              <span class="cell-label">iter ${ref.iterIndex}</span>
+            </a>`;
+        })
+        .join('');
+      return `
+        <div class="panel-row">
+          <header class="panel-row-head">
+            <a class="badge ${modelBadgeClass(m)}" href="${escape(headUrl)}" target="_blank" rel="noopener">${escape(shortModel(m))}</a>
+          </header>
+          <div class="panel-row-strip" ${iterCountStyle}>${cells}</div>
+        </div>`;
+    })
+    .join('');
+
   return `
     <article class="shootout">
       <header class="shootout-head">
@@ -149,7 +181,7 @@ const shootoutCard = (g: ShootoutGroup): string => {
           <span class="badge">${g.variants.length} issue${g.variants.length === 1 ? '' : 's'}</span>
         </div>
       </header>
-      <div class="shootout-body" data-scroller>
+      <div class="shootout-body view-only-grid" data-scroller>
         <div class="head-strip">
           <button class="scroll-chev prev" type="button" aria-label="Scroll left">‹</button>
           <div class="head-clip">
@@ -160,6 +192,9 @@ const shootoutCard = (g: ShootoutGroup): string => {
         <div class="shootout-viewport">
           ${rows.join('')}
         </div>
+      </div>
+      <div class="shootout-body view-only-panel">
+        ${panelRows}
       </div>
     </article>`;
 };
@@ -234,27 +269,23 @@ export function render(data: IssuesData): string {
   const renderableSingles = data.singles.filter((i) => i.iterations.length > 0);
 
   return `
+  <div class="hero-scene" aria-hidden="true"></div>
   <header class="hero">
-    <div class="hero-collage" aria-hidden="true">
-      <div class="hero-tile hero-tile-1" style="background-image:url(hero-1.jpg)"></div>
-      <div class="hero-tile hero-tile-2" style="background-image:url(hero-2.jpg)"></div>
-      <div class="hero-tile hero-tile-3" style="background-image:url(hero-3.jpg)"></div>
-    </div>
     <div class="container hero-inner">
+      <img class="hero-logo" src="logo.svg" alt="PXL" width="150" height="50" />
+      <h1>24×24 LED Frame — Programmable in <span class="accent-csharp">C#</span> or with <span class="accent-ai">AI</span>, just by opening a GitHub Issue.</h1>
       <div class="hero-copy">
-        <img class="hero-logo" src="logo.svg" alt="PXL" width="150" height="50" />
-        <h1>24×24 pixels. Real glass. <span class="accent">Programmable in C#.</span></h1>
-        <p class="hero-lead">
-          PXL Clock is a 27×27&nbsp;cm LED frame for your shelf. You write the animations yourself in C# — or you describe what you want and let an AI do it.
+        <p class="hero-lead primary">
+          PXL Clock is a 27×27&nbsp;cm LED frame for your shelf. You write the animations yourself in <span class="accent-csharp">C#</span> — or you describe what you want and let an <span class="accent-ai">AI</span> do it.
         </p>
-        <p class="hero-lead">
-          The AI part lives on <a href="https://github.com/SchlenkR/pxl-clock">GitHub</a>. Open an issue with your idea, an agent picks it up, runs it through several models, and posts back what each of them made. Everything below is what came out — same prompt, model by model.
+        <p class="hero-lead secondary">
+          The <span class="accent-ai">AI</span> part lives on <a href="https://github.com/SchlenkR/pxl-clock">GitHub</a>. Open an issue with your idea, an agent picks it up, runs it through several models, and posts back what each of them made. Everything below is what came out — same prompt, model by model.
         </p>
-        <div class="ctas">
-          <a class="btn" href="https://www.pxlclock.com/?ref=RONALD">Get the real clock →</a>
-          <a class="btn secondary" href="${escape(submitUrl)}">Submit an idea</a>
-          <a class="btn secondary" href="https://discord.gg/KDbVdKQh5j">Discord</a>
-        </div>
+      </div>
+      <div class="ctas">
+        <a class="btn" href="https://www.pxlclock.com/?ref=RONALD">Get the real clock →</a>
+        <a class="btn secondary" href="${escape(submitUrl)}">Submit an idea</a>
+        <a class="btn secondary" href="https://discord.gg/KDbVdKQh5j">Discord</a>
       </div>
     </div>
   </header>
@@ -263,13 +294,50 @@ export function render(data: IssuesData): string {
     <button type="button" class="zoom-btn" data-zoom-in aria-label="Larger">+</button>
     <span class="zoom-label"><span data-zoom-level>3</span>/4</span>
     <button type="button" class="zoom-btn" data-zoom-out aria-label="Smaller">−</button>
+    <hr class="zoom-divider" />
+    <button type="button" class="view-btn" data-view="grid" aria-label="Grid view (models as columns, iterations as rows)" title="Grid view">▦</button>
+    <button type="button" class="view-btn" data-view="panel" aria-label="Panel view (one row per model, all iterations as a strip)" title="Panel view">≡</button>
+    <button type="button" class="view-btn" data-view="flat" aria-label="Flat view (all pixograms, newest first)" title="Flat view">▤</button>
   </div>
+
+  <section id="flat" class="view-only-flat">
+    <div class="container">
+      <div class="flat-grid">
+        ${data.issues
+          .flatMap((issue) =>
+            issue.iterations.map((it) => ({ issue, it, sortKey: `${issue.updatedAt}|${String(it.index).padStart(4, '0')}` }))
+          )
+          .sort((a, b) => b.sortKey.localeCompare(a.sortKey))
+          .map(({ issue, it }) => {
+            const model = it.model ?? issue.model ?? 'unknown';
+            return `<a class="cell flat-cell" href="${escape(issue.url)}" target="_blank" rel="noopener">
+              ${frame(it.gifUrl, `${issue.cleanTitle} iter ${it.index}`)}
+              <div class="cell-meta">
+                <span class="cell-meta-row">
+                  <span class="cell-num">#${issue.number} · iter ${it.index}</span>
+                  <span class="badge ${modelBadgeClass(model)}">${escape(shortModel(model))}</span>
+                </span>
+                <p class="cell-desc">${escape(issue.description || issue.cleanTitle)}</p>
+              </div>
+              <div class="cell-tip" role="tooltip">
+                <span class="cell-tip-title">${escape(issue.cleanTitle)}</span>
+                <span class="cell-tip-meta">
+                  <span class="badge ${modelBadgeClass(model)}">${escape(shortModel(model))}</span>
+                  <span class="cell-tip-num">#${issue.number} · iter ${it.index}</span>
+                </span>
+              </div>
+            </a>`;
+          })
+          .join('')}
+      </div>
+    </div>
+  </section>
 
   <section id="shootout">
     <div class="container">
       ${
         data.shootouts.length === 0
-          ? '<p class="empty">Shootout data still being generated — check back soon.</p>'
+          ? '<p class="section-empty">Shootout data still being generated — check back soon.</p>'
           : data.shootouts.map(shootoutCard).join('')
       }
     </div>

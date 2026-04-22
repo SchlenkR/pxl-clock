@@ -8,6 +8,7 @@
  *              comment that triggered them (for the homepage to display next
  *              to the corresponding GIF).
  */
+import { execSync } from 'node:child_process';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -43,13 +44,34 @@ const PIPELINE_TAGS = [
 const BOT_AUTHOR_RE = /^(github-actions|dependabot|copilot)(\[bot\])?$/i;
 const COMMENT_HIDDEN_MARKER = '<!-- pixogram-bot-note -->';
 
+// Resolve a GitHub token: prefer env (CI), fall back to `gh auth token`
+// (local dev). Cached after first call to avoid spawning gh per-request.
+let cachedToken: string | undefined;
+let tokenResolved = false;
+const ghToken = (): string | undefined => {
+  if (tokenResolved) return cachedToken;
+  tokenResolved = true;
+  cachedToken = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
+  if (!cachedToken) {
+    try {
+      cachedToken = execSync('gh auth token', {
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'ignore'],
+      }).trim() || undefined;
+    } catch {
+      // gh not installed or not logged in — fall through unauthenticated.
+    }
+  }
+  return cachedToken;
+};
+
 const headers = (): Record<string, string> => {
   const h: Record<string, string> = {
     Accept: 'application/vnd.github+json',
     'X-GitHub-Api-Version': '2022-11-28',
     'User-Agent': 'pxl-clock-homepage-builder',
   };
-  const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
+  const token = ghToken();
   if (token) h.Authorization = `Bearer ${token}`;
   return h;
 };

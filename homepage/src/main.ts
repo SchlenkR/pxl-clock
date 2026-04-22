@@ -65,3 +65,38 @@ for (const body of document.querySelectorAll<HTMLElement>('.shootout-body[data-s
 }
 
 applyZoom();
+
+/* ─── View toggle: grid vs panel ───────────────────────────────────
+   Both views are rendered in the DOM; CSS hides the inactive one based on
+   `body[data-view]`. State on body so it can drive any matching selector
+   (incl. hiding feedback comments in the singles section in panel mode). */
+type View = 'grid' | 'panel' | 'flat';
+const setView = (view: View) => {
+  document.body.dataset.view = view;
+  document.querySelectorAll<HTMLButtonElement>('.view-btn').forEach((b) => {
+    b.classList.toggle('active', b.dataset.view === view);
+  });
+  for (const fn of overflowUpdaters) fn();
+};
+document.querySelectorAll<HTMLButtonElement>('.view-btn').forEach((b) => {
+  b.addEventListener('click', () => setView((b.dataset.view as View) ?? 'grid'));
+});
+setView('grid');
+
+/* ─── Flat-view tooltip: pick above/below based on viewport room ───
+   On hover, measure the cell's distance from the top of the viewport vs.
+   the tooltip's height. If there isn't enough room above, drop a
+   `.tip-below` class so CSS flips the tooltip under the cell. */
+const TOOLTIP_RESERVE = 110; // approximate tooltip height + arrow + gap
+for (const cell of document.querySelectorAll<HTMLElement>('.flat-cell')) {
+  cell.addEventListener('mouseenter', () => {
+    const rect = cell.getBoundingClientRect();
+    const tip = cell.querySelector<HTMLElement>('.cell-tip');
+    const tipHeight = tip?.offsetHeight || TOOLTIP_RESERVE;
+    if (rect.top < tipHeight + 16) {
+      cell.classList.add('tip-below');
+    } else {
+      cell.classList.remove('tip-below');
+    }
+  });
+}
