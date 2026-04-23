@@ -49,6 +49,12 @@ type AgentEvent =
     | Result of string
     | Error of string
     | Metrics of CallMetrics
+    // RawRequest: the full payload about to hit the wire (HTTP body / stdin prompt / SDK input).
+    // RawEvent: every streaming chunk verbatim — one entry per SSE line, NDJSON line, or SDK event.
+    // Together they guarantee the log captures the complete conversation with the API, including
+    // unknown/unhandled events. Consumers that only care about semantic output can ignore these.
+    | RawRequest of string
+    | RawEvent of string
 
 type ChatMessage =
     {
@@ -141,6 +147,8 @@ let private sendToProcess (stdin: StreamWriter) (stdout: StreamReader) (prompt: 
     async {
         let msg = createUserMessage prompt
 
+        onEvent (RawRequest msg)
+
         let! sendOk =
             async {
                 try
@@ -164,6 +172,7 @@ let private sendToProcess (stdin: StreamWriter) (stdout: StreamReader) (prompt: 
             if isNull line then
                 isDone <- true
             else
+                onEvent (RawEvent line)
                 try
                     use doc = JsonDocument.Parse(line)
                     let root = doc.RootElement

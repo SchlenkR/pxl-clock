@@ -65,38 +65,24 @@ let private ghEnv =
 
 
 // ---------------------------------------------------------------------------
-// Protocol logging
+// Protocol logging — thin wrapper over RunLogger
 // ---------------------------------------------------------------------------
+//
+// ProtocolLog used to own a StreamWriter and a directory; now RunLogger owns
+// all file handles centrally (workflow.log, raw.jsonl, per-step files). This
+// type just carries the run directory for callers that need to drop .cs/.gif
+// artifacts next to the log.
 
 let private outputDir = Path.Combine(projectDir, "output")
 
-type private ProtocolLog =
-    {
-        Writer: StreamWriter
-        Dir: string
-    }
+type private ProtocolLog = { Dir: string }
 
-let private startProtocol (issueNumber: int) =
-    let issueDir = Path.Combine(outputDir, $"issue-{issueNumber}")
-    Directory.CreateDirectory issueDir |> ignore
-    let timestamp = DateTime.Now.ToString "yyyy-MM-dd_HH-mm-ss"
-    let logPath = Path.Combine(issueDir, $"{timestamp}.log")
-    let writer = new StreamWriter(logPath, append = false)
-    writer.AutoFlush <- true
-    writer.WriteLine $"# Workflow Protocol — Issue #{issueNumber}"
-    let now = DateTime.Now.ToString "O"
-    writer.WriteLine $"# Started: {now}"
-    writer.WriteLine()
-    {
-        Writer = writer
-        Dir = issueDir
-    }
+let private startProtocol (issueNumber: int) (issueTitle: string) (configName: string) =
+    let runDir = RunLogger.startRun outputDir issueNumber issueTitle configName
+    { Dir = runDir }
 
-let private log (protocol: ProtocolLog) (role: string) (text: string) =
-    let ts = DateTime.Now.ToString "HH:mm:ss"
-    protocol.Writer.WriteLine $"[{ts}] [{role}]"
-    protocol.Writer.WriteLine text
-    protocol.Writer.WriteLine()
+let private log (_: ProtocolLog) (role: string) (text: string) =
+    RunLogger.writeNote (sprintf "[%s]\n%s" role text)
 
 let private ts () = DateTime.Now.ToString "HH:mm:ss"
 
@@ -404,7 +390,7 @@ let private runCompaction (config: PipelineConfig) (protocol: ProtocolLog) (conv
     let conversationText = renderConversationAsText conversationMessages
     let systemPrompt = renderSystemPrompt "compaction.md" []
     let messages = [ ChatMessage.system systemPrompt; ChatMessage.user conversationText ]
-    match askChat config.Models.Compaction config.AiTimeoutMs messages with
+    match askChat "Compaction" config.Models.Compaction config.AiTimeoutMs messages with
     | Result.Error err ->
         printfn $"  ✗ Compaction failed: {err}"
         log protocol "Compaction" $"FAILED: {err}"
@@ -435,7 +421,7 @@ let private executeDirector (config: PipelineConfig) (protocol: ProtocolLog) (ba
     while not posted && attempt <= config.MaxDirectorRetries do
         printfn $"  [{ts ()}] ▶ Running {label} ({backendDisplayName backend}), attempt {attempt}/{config.MaxDirectorRetries}..."
         printfn $"    Prompt: {promptFile}"
-        match callAgentEx backend config.AiTimeoutMs promptFile conversationMessages with
+        match callAgentEx (sprintf "%s (attempt %d/%d)" label attempt config.MaxDirectorRetries) backend config.AiTimeoutMs promptFile conversationMessages with
         | Result.Error err ->
             printfn $"  ✗ {label} failed: {err}"
             log protocol label $"FAILED (attempt {attempt}): {err}"
@@ -459,7 +445,7 @@ let private generateSummary (config: PipelineConfig) (conversationMessages: Chat
     let conversationText = renderConversationAsText stripped
     let prompt = renderPrompt "summary.md" [ "conversation", conversationText ]
     let messages = [ ChatMessage.system noToolsPrompt; ChatMessage.user prompt ]
-    match askChatEx config.Models.Triage config.AiTimeoutMs messages with
+    match askChatEx "Summary" config.Models.Triage config.AiTimeoutMs messages with
     | Ok (summary, stats) -> summary.Trim(), stats
     | Result.Error err ->
         printfn $"    ✗ Summary failed: {err}"
@@ -493,7 +479,7 @@ let private executeImplementor (config: PipelineConfig) (protocol: ProtocolLog) 
 
     let getInitialCode (backend: SelectedBackend) (label: string) =
         printfn $"    [{ts ()}] [impl] Sending to {backendDisplayName backend}..."
-        match askChatEx backend config.AiTimeoutMs baseMessages with
+        match askChatEx label backend config.AiTimeoutMs baseMessages with
         | Ok (response, stats) ->
             metricsLog.Add((label, stats))
             let code = extractCodeFromMarkdown response
@@ -599,7 +585,7 @@ let private executeImplementor (config: PipelineConfig) (protocol: ProtocolLog) 
                 retryHistory.Add(ChatMessage.user feedback)
                 let retryMessages = baseMessages @ List.ofSeq retryHistory
                 printfn $"    [impl] Sending error feedback (attempt {attempt}, history: {retryHistory.Count / 2} pairs)..."
-                match askChatEx config.Models.Implementor config.AiTimeoutMs retryMessages with
+                match askChatEx (sprintf "Implementor (retry %d)" attempt) config.Models.Implementor config.AiTimeoutMs retryMessages with
                 | Result.Error aiErr ->
                     printfn $"  ✗ Implementor retry AI failed: {aiErr}"
                     log protocol "Implementor" $"RETRY AI FAILED: {aiErr}"
@@ -713,15 +699,15 @@ let dispatch (config: PipelineConfig) : Issue list =
         issue)
 
 let triageOnly (config: PipelineConfig) (issue: Issue) =
-    let protocol = startProtocol issue.Number
+    let protocol = startProtocol issue.Number issue.Title config.Models.Name
     try
         if runSafetyGate config protocol issue then
             runApprovalGate config protocol issue |> ignore
     finally
-        protocol.Writer.Dispose()
+        RunLogger.stopRun ()
 
 let run (config: PipelineConfig) (issue: Issue) =
-    let protocol = startProtocol issue.Number
+    let protocol = startProtocol issue.Number issue.Title config.Models.Name
 
     try
         if not (runSafetyGate config protocol issue) then
@@ -901,9 +887,7 @@ let run (config: PipelineConfig) (issue: Issue) =
         printfn ""
         log protocol "Workflow" "Finished."
     finally
-        let endTime = DateTime.Now.ToString "O"
-        protocol.Writer.WriteLine $"# Ended: {endTime}"
-        protocol.Writer.Dispose()
+        RunLogger.stopRun ()
 
 /// Dispatch + run: find issues needing attention and run workflow on each.
 let dispatchAndRun (config: PipelineConfig) =

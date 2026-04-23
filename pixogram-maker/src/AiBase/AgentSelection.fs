@@ -7,6 +7,7 @@ open AiBase.OllamaAgent
 open AiBase.CopilotAgent
 open AiBase.CopilotSdkAgent
 open AiBase.AnthropicAgent
+open AiBase.OpenAIAgent
 open Spectre.Console
 
 // ---------------------------------------------------------------------------
@@ -18,6 +19,8 @@ type SelectedBackend =
     | Copilot of model: string * effort: Effort
     | Ollama of baseUrl: string * model: string * apiKey: string option * think: bool
     | Anthropic of model: string * effort: Effort
+    // Generic OpenAI-compatible: works with OpenRouter, OpenAI, Together, Groq, DeepSeek, vLLM, …
+    | OpenAI of baseUrl: string * model: string * apiKey: string * effort: Effort
 
 type BackendOptions =
     {
@@ -142,6 +145,13 @@ let backendDisplayName (backend: SelectedBackend) =
     | Anthropic(model, effort) ->
         let e = match effort with Low -> "Low" | Medium -> "Medium" | High -> "High" | Max -> "Max"
         $"Anthropic {model} ({e})"
+    | OpenAI(baseUrl, model, _, effort) ->
+        let e = match effort with Low -> "Low" | Medium -> "Medium" | High -> "High" | Max -> "Max"
+        // Host hint is useful when the same logger file mixes OpenRouter, OpenAI, etc.
+        let host =
+            try Uri(baseUrl).Host
+            with _ -> baseUrl
+        $"OpenAI[{host}] {model} ({e})"
 
 let agentFactory (backend: SelectedBackend) : IAgent =
     match backend with
@@ -168,6 +178,13 @@ let agentFactory (backend: SelectedBackend) : IAgent =
                 // same KV-cache slot → prefix-cache hits across Implementor retries.
                 NumCtx = 40_960
             })
+    | OpenAI(baseUrl, model, apiKey, effort) ->
+        new OpenAIAgent(
+            { defaultOpenAIConfig with
+                ApiKey = apiKey
+                BaseUrl = baseUrl
+                Model = model
+                Effort = effort })
     | Anthropic(model, effort) ->
         let apiKey =
             System.Environment.GetEnvironmentVariable("CLAUDE_API_KEY")

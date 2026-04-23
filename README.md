@@ -33,10 +33,40 @@ Find out more:
 
 Welcome to the **PXL Clock** repository! This repo serves as a central hub for:
 
+- **The Pixogram Gallery** — every pixogram the community and our AI pipeline has produced so far, plus a side-by-side model shootout
 - **Resources for creating your own custom PXL Clock Pixograms**
 - **Issue tracking** and **idea proposals** (hardware, software, use cases, features)
 
 We're excited to see what the community will build around the PXL Clock. Below you'll find everything you need to get started.
+
+---
+
+## Pixogram Gallery & AI Pipeline
+
+**[Visit the Pixogram Gallery → schlenkr.github.io/pxl-clock](https://schlenkr.github.io/pxl-clock/)**
+
+<p align="center">
+  <a href="https://schlenkr.github.io/pxl-clock/">
+    <img src="docs/images/pixogram-gallery-preview.png" alt="Pixogram Gallery — the same prompt rendered by multiple AI models side by side" width="900" />
+  </a>
+</p>
+
+The gallery is a live model shootout. Every GitHub Issue in this repo that describes a visual idea (*"a little sailboat on waves"*, *"Tetris playing itself"*, *"a pixel dragon breathing fire"*) gets picked up by our **Pixogram Maker** — a multi-agent AI pipeline that turns the description into an actual 24x24 animated pixogram, running on several models in parallel.
+
+What you see in each column is the same issue, interpreted by a different model (Claude Opus 4.7, Sonnet 4.6, Gemini, GPT-OSS, Qwen, Nemotron, …). Each row is one iteration — the pipeline loops through roles (Visionary → Craftsman → Implementor → Maverick → …), takes your feedback from the issue comments, and iterates.
+
+### How to get your own pixogram generated
+
+1. **Open an [Issue](../../issues/new/choose)** in this repo describing your idea — plain language, in any language.
+2. A maintainer approves it (safety gate — this prevents the pipeline from burning compute on random spam).
+3. The AI pipeline runs, posts the generated GIFs back as comments, and they land in the gallery.
+4. **Comment on the issue** to steer the next iteration — *"make it bluer"*, *"less mechanical, more organic"*, or *"completely different approach"*. The pipeline reads your feedback and routes to the right agent (specific feedback → Craftsman, vague → Maverick, rejection → Visionary).
+
+### What's under the hood
+
+The Pixogram Maker is itself open source and lives in [`pixogram-maker/`](pixogram-maker/). It's a study in multi-agent AI orchestration: role separation, prompt caching, byte-stable prefixes for local inference, conversation compaction, trust filtering against prompt injection, and so on. If you're into AI pipelines — [**read the full write-up**](pixogram-maker/README.md). It covers everything from Ollama KV-cache tuning on a Mac Studio to mode collapse in RLHF-aligned models.
+
+Backends it runs on: **Anthropic API** (Claude), **GitHub Copilot SDK** (Sonnet, GPT-5.4), and **local Ollama** (Qwen, Gemma, GPT-OSS, Nemotron — all self-hosted on a Mac Studio).
 
 ---
 
@@ -70,13 +100,14 @@ The **fastest way** to develop Pixograms is with the official [**PXL Clock VS Co
 
 ## Table of Contents
 
-1. [PXL Clock VS Code Extension](#pxl-clock-vs-code-extension)
-2. [About PXL Clock](#about-pxl-clock)
-3. [Filing Issues and Ideas](#filing-issues-and-ideas)
-4. [Developing Your Own Pixograms](#developing-your-own-pixograms)
-5. [Rendering Pixograms (Pxl.Render)](#rendering-pixograms-pxlrender)
-6. [Contributing](#contributing)
-7. [License](LICENSE.md)
+1. [Pixogram Gallery & AI Pipeline](#pixogram-gallery--ai-pipeline)
+2. [PXL Clock VS Code Extension](#pxl-clock-vs-code-extension)
+3. [About PXL Clock](#about-pxl-clock)
+4. [Filing Issues and Ideas](#filing-issues-and-ideas)
+5. [Developing Your Own Pixograms](#developing-your-own-pixograms)
+6. [Rendering Pixograms (Pxl.Render)](#rendering-pixograms-pxlrender)
+7. [Contributing](#contributing)
+8. [License](LICENSE.md)
 
 ---
 

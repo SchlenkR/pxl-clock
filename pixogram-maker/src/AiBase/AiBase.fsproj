@@ -11,6 +11,7 @@
     <Compile Include="CopilotAgent.fs" />
     <Compile Include="CopilotSdkAgent.fs" />
     <Compile Include="AnthropicAgent.fs" />
+    <Compile Include="OpenAIAgent.fs" />
     <Compile Include="ConsoleOutput.fs" />
     <Compile Include="AgentSelection.fs" />
   </ItemGroup>

@@ -104,6 +104,8 @@ let printEvent (index: int) (name: string) (color: ConsoleColor) =
             endStreamIfNeeded()
             coloredLn ConsoleColor.Red $"{pad}  [{name} ERROR] {e}"
         | Metrics _ -> ()
+        // Raw events are noisy by design — they go to raw.jsonl on disk, not the console.
+        | RawRequest _ | RawEvent _ -> ()
 
 let private formatEvent (name: string) (event: AgentEvent) =
     match event with
@@ -114,6 +116,8 @@ let private formatEvent (name: string) (event: AgentEvent) =
     | Result t -> $"[{name} result] {t}"
     | Error e -> $"[{name} ERROR] {e}"
     | Metrics m -> $"[{name} metrics] prompt={m.PromptEvalCount} gen={m.EvalCount}"
+    | RawRequest _ -> $"[{name} raw-request]"
+    | RawEvent _ -> $"[{name} raw-event]"
 
 let logEvent (logPath: string) (index: int) (name: string) (color: ConsoleColor) =
     let consoleFn = printEvent index name color

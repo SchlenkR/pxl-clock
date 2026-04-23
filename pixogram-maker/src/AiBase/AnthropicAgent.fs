@@ -114,6 +114,7 @@ type AnthropicAgent(config: AnthropicConfig) =
                 log $"Sending {messages.Length} messages..."
 
                 let json = buildRequestJson messages
+                onEvent (RawRequest json)
                 let content = new StringContent(json, Encoding.UTF8, "application/json")
                 use request = new HttpRequestMessage(HttpMethod.Post, "https://api.anthropic.com/v1/messages")
                 request.Content <- content
@@ -158,100 +159,102 @@ type AnthropicAgent(config: AnthropicConfig) =
                     let! line = reader.ReadLineAsync() |> Async.AwaitTask
                     if isNull line then
                         isDone <- true
-                    elif line.StartsWith("event: ") then
-                        let eventType = line.Substring(7).Trim()
-                        if eventType = "message_stop" then
-                            isDone <- true
-                    elif line.StartsWith("data: ") then
-                        let data = line.Substring(6)
-                        try
-                            use doc = JsonDocument.Parse(data)
-                            let root = doc.RootElement
+                    else
+                        onEvent (RawEvent line)
+                        if line.StartsWith("event: ") then
+                            let eventType = line.Substring(7).Trim()
+                            if eventType = "message_stop" then
+                                isDone <- true
+                        elif line.StartsWith("data: ") then
+                            let data = line.Substring(6)
+                            try
+                                use doc = JsonDocument.Parse(data)
+                                let root = doc.RootElement
 
-                            match root.TryGetProperty("type") with
-                            | true, t ->
-                                match t.GetString() with
-                                | "message_start" ->
-                                    match root.TryGetProperty("message") with
-                                    | true, m -> readUsageTokens m "input_tokens" "output_tokens"
-                                    | _ -> ()
-
-                                | "message_delta" ->
-                                    // `usage.output_tokens` here is cumulative total for the response
-                                    readUsageTokens root "input_tokens" "output_tokens"
-
-                                | "content_block_start" ->
-                                    match root.TryGetProperty("content_block") with
-                                    | true, block ->
-                                        match block.TryGetProperty("type") with
-                                        | true, bt ->
-                                            currentBlockType <- bt.GetString()
-                                            if currentBlockType = "tool_use" then
-                                                currentToolName <-
-                                                    match block.TryGetProperty("name") with
-                                                    | true, n -> n.GetString()
-                                                    | _ -> "?"
-                                                toolInput.Clear() |> ignore
+                                match root.TryGetProperty("type") with
+                                | true, t ->
+                                    match t.GetString() with
+                                    | "message_start" ->
+                                        match root.TryGetProperty("message") with
+                                        | true, m -> readUsageTokens m "input_tokens" "output_tokens"
                                         | _ -> ()
-                                    | _ -> ()
 
-                                | "content_block_delta" ->
-                                    match root.TryGetProperty("delta") with
-                                    | true, delta ->
-                                        match delta.TryGetProperty("type") with
-                                        | true, dt ->
-                                            match dt.GetString() with
-                                            | "text_delta" ->
-                                                match delta.TryGetProperty("text") with
-                                                | true, text ->
-                                                    let token = text.GetString()
-                                                    if not (String.IsNullOrEmpty token) then
-                                                        if firstTokenAtMs = 0L then firstTokenAtMs <- stopwatch.ElapsedMilliseconds
-                                                        fullResponse.Append(token) |> ignore
-                                                        onEvent (Text token)
-                                                | _ -> ()
-                                            | "thinking_delta" ->
-                                                match delta.TryGetProperty("thinking") with
-                                                | true, text ->
-                                                    let token = text.GetString()
-                                                    if not (String.IsNullOrEmpty token) then
-                                                        if firstTokenAtMs = 0L then firstTokenAtMs <- stopwatch.ElapsedMilliseconds
-                                                        onEvent (Thinking token)
-                                                | _ -> ()
-                                            | "input_json_delta" ->
-                                                match delta.TryGetProperty("partial_json") with
-                                                | true, json ->
-                                                    let chunk = json.GetString()
-                                                    if not (String.IsNullOrEmpty chunk) then
-                                                        toolInput.Append(chunk) |> ignore
-                                                | _ -> ()
-                                            | other ->
-                                                log $"Unknown delta type: {other}"
+                                    | "message_delta" ->
+                                        // `usage.output_tokens` here is cumulative total for the response
+                                        readUsageTokens root "input_tokens" "output_tokens"
+
+                                    | "content_block_start" ->
+                                        match root.TryGetProperty("content_block") with
+                                        | true, block ->
+                                            match block.TryGetProperty("type") with
+                                            | true, bt ->
+                                                currentBlockType <- bt.GetString()
+                                                if currentBlockType = "tool_use" then
+                                                    currentToolName <-
+                                                        match block.TryGetProperty("name") with
+                                                        | true, n -> n.GetString()
+                                                        | _ -> "?"
+                                                    toolInput.Clear() |> ignore
+                                            | _ -> ()
                                         | _ -> ()
-                                    | _ -> ()
 
-                                | "content_block_stop" ->
-                                    if currentBlockType = "tool_use" then
-                                        let input = toolInput.ToString()
-                                        onEvent (ToolUse(currentToolName, input))
-                                        toolInput.Clear() |> ignore
-                                    currentBlockType <- ""
+                                    | "content_block_delta" ->
+                                        match root.TryGetProperty("delta") with
+                                        | true, delta ->
+                                            match delta.TryGetProperty("type") with
+                                            | true, dt ->
+                                                match dt.GetString() with
+                                                | "text_delta" ->
+                                                    match delta.TryGetProperty("text") with
+                                                    | true, text ->
+                                                        let token = text.GetString()
+                                                        if not (String.IsNullOrEmpty token) then
+                                                            if firstTokenAtMs = 0L then firstTokenAtMs <- stopwatch.ElapsedMilliseconds
+                                                            fullResponse.Append(token) |> ignore
+                                                            onEvent (Text token)
+                                                    | _ -> ()
+                                                | "thinking_delta" ->
+                                                    match delta.TryGetProperty("thinking") with
+                                                    | true, text ->
+                                                        let token = text.GetString()
+                                                        if not (String.IsNullOrEmpty token) then
+                                                            if firstTokenAtMs = 0L then firstTokenAtMs <- stopwatch.ElapsedMilliseconds
+                                                            onEvent (Thinking token)
+                                                    | _ -> ()
+                                                | "input_json_delta" ->
+                                                    match delta.TryGetProperty("partial_json") with
+                                                    | true, json ->
+                                                        let chunk = json.GetString()
+                                                        if not (String.IsNullOrEmpty chunk) then
+                                                            toolInput.Append(chunk) |> ignore
+                                                    | _ -> ()
+                                                | other ->
+                                                    log $"Unknown delta type: {other}"
+                                            | _ -> ()
+                                        | _ -> ()
 
-                                | "error" ->
-                                    match root.TryGetProperty("error") with
-                                    | true, err ->
-                                        let msg =
-                                            match err.TryGetProperty("message") with
-                                            | true, m -> m.GetString()
-                                            | _ -> err.GetRawText()
-                                        log $"ERROR: {msg}"
-                                        onEvent (Error msg)
-                                    | _ -> ()
+                                    | "content_block_stop" ->
+                                        if currentBlockType = "tool_use" then
+                                            let input = toolInput.ToString()
+                                            onEvent (ToolUse(currentToolName, input))
+                                            toolInput.Clear() |> ignore
+                                        currentBlockType <- ""
 
-                                | other ->
-                                    log $"Unknown event: {other}"
-                            | _ -> ()
-                        with _ -> ()
+                                    | "error" ->
+                                        match root.TryGetProperty("error") with
+                                        | true, err ->
+                                            let msg =
+                                                match err.TryGetProperty("message") with
+                                                | true, m -> m.GetString()
+                                                | _ -> err.GetRawText()
+                                            log $"ERROR: {msg}"
+                                            onEvent (Error msg)
+                                        | _ -> ()
+
+                                    | other ->
+                                        log $"Unknown event: {other}"
+                                | _ -> ()
+                            with _ -> ()
 
                 stopwatch.Stop()
                 let totalNs = stopwatch.ElapsedMilliseconds * 1_000_000L

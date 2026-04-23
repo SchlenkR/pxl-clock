@@ -77,6 +77,7 @@ type OllamaAgent(config: OllamaConfig) =
         member _.SendChat(messages, onEvent) =
             async {
                 let json = buildRequestJson messages
+                onEvent (RawRequest json)
                 let content = new StringContent(json, Encoding.UTF8, "application/json")
                 use request = new HttpRequestMessage(HttpMethod.Post, $"{config.BaseUrl}/api/chat", Content = content)
                 match config.ApiKey with
@@ -98,6 +99,7 @@ type OllamaAgent(config: OllamaConfig) =
                     if isNull line then
                         isDone <- true
                     elif line <> "" then
+                        onEvent (RawEvent line)
                         try
                             use doc = JsonDocument.Parse(line)
                             let root = doc.RootElement

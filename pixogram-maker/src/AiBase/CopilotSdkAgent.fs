@@ -82,11 +82,27 @@ type CopilotSdkAgent(config: CopilotSdkConfig) =
                 let prompt = ChatMessage.formatAsText messages
                 log $"Sending prompt ({prompt.Length} chars)..."
 
+                // Persist the exact text we hand to the SDK. SDK-internal framing is opaque,
+                // but this is what drives the turn.
+                onEvent (RawRequest (System.Text.Json.JsonSerializer.Serialize
+                    {| model = config.Model; effort = effortStr; prompt = prompt |}))
+
                 let fullResponse = StringBuilder()
                 let tcs = System.Threading.Tasks.TaskCompletionSource<unit>()
 
                 // Register event handler for streaming
                 use _ = s.On(fun evt ->
+                    // Capture every SDK event as a raw entry before semantic interpretation —
+                    // keeps the log complete even for event types this code doesn't branch on.
+                    let rawLine =
+                        try
+                            System.Text.Json.JsonSerializer.Serialize
+                                {| eventType = evt.GetType().Name
+                                   data = evt |}
+                        with ex ->
+                            $"""{{"eventType":"{evt.GetType().Name}","serializationError":"{ex.Message}"}}"""
+                    onEvent (RawEvent rawLine)
+
                     match evt with
                     | :? AssistantMessageDeltaEvent as e ->
                         let delta = e.Data.DeltaContent

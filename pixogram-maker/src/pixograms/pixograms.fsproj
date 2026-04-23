@@ -7,6 +7,7 @@
 
   <ItemGroup>
     <Compile Include="GitHub.fs" />
+    <Compile Include="RunLogger.fs" />
     <Compile Include="Config.fs" />
     <Compile Include="Triage.fs" />
     <Compile Include="Conversation.fs" />

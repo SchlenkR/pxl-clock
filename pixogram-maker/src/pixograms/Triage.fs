@@ -101,7 +101,7 @@ let runSafetyCheck (config: PipelineConfig) (issue: GitHub.Issue) : SafetyResult
               "author", issue.Author
               "body", issue.Body ]
     let messages = [ ChatMessage.system noToolsPrompt; ChatMessage.user prompt ]
-    match askChat config.Models.SafetyCheck config.AiTimeoutMs messages with
+    match askChat "Safety Check" config.Models.SafetyCheck config.AiTimeoutMs messages with
     | Result.Error err ->
         printfn $"  ✗ Safety check AI error: {err}"
         SafetyResult.Error $"AI error: {err}"
@@ -124,7 +124,7 @@ let runCommentSafetyCheck (config: PipelineConfig) (context: string) (author: st
               "author", author
               "body", commentBody ]
     let messages = [ ChatMessage.system noToolsPrompt; ChatMessage.user prompt ]
-    match askChat config.Models.SafetyCheck config.AiTimeoutMs messages with
+    match askChat "Comment Safety Check" config.Models.SafetyCheck config.AiTimeoutMs messages with
     | Result.Error err ->
         printfn $"  ✗ Comment safety check AI error: {err}"
         SafetyResult.Error $"AI error: {err}"
@@ -143,7 +143,7 @@ let extractIterationCount (config: PipelineConfig) (issueBody: string) =
     let prompt = renderPrompt "iteration-count.md" [ "default_iterations", string config.DefaultIterations; "description", issueBody ]
     let messages = [ ChatMessage.system noToolsPrompt; ChatMessage.user prompt ]
     printfn "  Extracting iteration count..."
-    match askChat config.Models.Triage config.AiTimeoutMs messages with
+    match askChat "Extract Iteration Count" config.Models.Triage config.AiTimeoutMs messages with
     | Result.Error err ->
         printfn $"  ✗ Iteration extraction failed: {err}, defaulting to {config.DefaultIterations}"
         config.DefaultIterations
@@ -167,7 +167,7 @@ let extractIterationBump (config: PipelineConfig) (author: string) (commentBody:
     let prompt = renderPrompt "iteration-bump.md" [ "author", author; "body", commentBody ]
     let messages = [ ChatMessage.system noToolsPrompt; ChatMessage.user prompt ]
     printfn "  Checking for auto-iteration bump in comment..."
-    match askChat config.Models.Triage config.AiTimeoutMs messages with
+    match askChat "Extract Iteration Bump" config.Models.Triage config.AiTimeoutMs messages with
     | Result.Error err ->
         printfn $"  ✗ Iteration bump extraction failed: {err}, treating as 0"
         0
@@ -207,7 +207,7 @@ let determineNextAction (config: PipelineConfig) (maxIterations: int) (author: s
     let mutable attempt = 1
     while result.IsNone && attempt <= attempts do
         printfn $"  Triage (attempt {attempt}/{attempts})..."
-        match askChat config.Models.Triage config.AiTimeoutMs messages with
+        match askChat (sprintf "Triage (attempt %d/%d)" attempt attempts) config.Models.Triage config.AiTimeoutMs messages with
         | Result.Error err ->
             printfn $"  ✗ Triage failed (attempt {attempt}): {err}"
             lastErr <- err
@@ -241,12 +241,12 @@ let determineNextAction (config: PipelineConfig) (maxIterations: int) (author: s
 // Agent calls: backend + system prompt + conversation messages → response
 // ---------------------------------------------------------------------------
 
-let callAgent (backend: SelectedBackend) (timeoutMs: int) (promptFile: string) (conversationMessages: ChatMessage list) : Result<string, string> =
+let callAgent (stepName: string) (backend: SelectedBackend) (timeoutMs: int) (promptFile: string) (conversationMessages: ChatMessage list) : Result<string, string> =
     let systemPrompt = renderSystemPrompt promptFile []
     let messages = ChatMessage.system systemPrompt :: conversationMessages
-    askChat backend timeoutMs messages
+    askChat stepName backend timeoutMs messages
 
-let callAgentEx (backend: SelectedBackend) (timeoutMs: int) (promptFile: string) (conversationMessages: ChatMessage list) : Result<string * CallStats, string> =
+let callAgentEx (stepName: string) (backend: SelectedBackend) (timeoutMs: int) (promptFile: string) (conversationMessages: ChatMessage list) : Result<string * CallStats, string> =
     let systemPrompt = renderSystemPrompt promptFile []
     let messages = ChatMessage.system systemPrompt :: conversationMessages
-    askChatEx backend timeoutMs messages
+    askChatEx stepName backend timeoutMs messages

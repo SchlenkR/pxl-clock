@@ -332,6 +332,8 @@ type CopilotAgent(config: CopilotConfig) =
                     w.WriteEndArray()
                     w.WriteEndObject())
 
+                onEvent (RawRequest (promptParams.GetRawText()))
+
                 let! sendOk =
                     async {
                         try
@@ -363,6 +365,7 @@ type CopilotAgent(config: CopilotConfig) =
                     if isNull line then
                         isDone <- true
                     else
+                        onEvent (RawEvent line)
                         try
                             use doc = JsonDocument.Parse(line)
                             let root = doc.RootElement

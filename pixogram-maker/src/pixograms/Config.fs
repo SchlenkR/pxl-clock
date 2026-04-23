@@ -45,6 +45,10 @@ module OllamaModels =
     // Feb 2026 addition
     let glm47Flash = "glm-4.7-flash:q8_0"                       // 30B/3B MoE, coding + agentic
 
+module OpenRouterModels =
+    let minimaxM25 = "minimax/minimax-m2.5"                     // 196k ctx, paid
+    let minimaxM25Free = "minimax/minimax-m2.5:free"            // 196k ctx, free tier
+
 // ---------------------------------------------------------------------------
 // Ollama env helper — reads OLLAMA{N}_URL / OLLAMA{N}_API_KEY
 // ---------------------------------------------------------------------------
@@ -64,6 +68,26 @@ let private hasOllamaEnv (envPrefix: string) =
     Environment.GetEnvironmentVariable($"{envPrefix}_URL")
     |> String.IsNullOrEmpty
     |> not
+
+// ---------------------------------------------------------------------------
+// OpenRouter env helper.
+// Reads OPENROUTER_API_KEY; falls back to OPENROUTER_PXL_APIKEY so the same
+// variable name works locally (shell export) and in GitHub Actions secrets.
+// ---------------------------------------------------------------------------
+
+let private openRouterApiKey () : string =
+    [ "OPENROUTER_API_KEY"; "OPENROUTER_PXL_APIKEY" ]
+    |> List.tryPick (fun name ->
+        match Environment.GetEnvironmentVariable name with
+        | null | "" -> None
+        | v -> Some v)
+    |> Option.defaultValue ""
+
+let private openRouterBackend (model: string) (effort: Effort) : SelectedBackend =
+    OpenAI("https://openrouter.ai/api/v1", model, openRouterApiKey (), effort)
+
+let private hasOpenRouterKey () =
+    openRouterApiKey () <> ""
 
 // ---------------------------------------------------------------------------
 // ConfigSet — which AI models to use for each pipeline role
@@ -289,7 +313,29 @@ let configSets () =
                 }
         ]
 
-    staticSets @ ollamaSets
+    // OpenRouter sets — only offered when an OpenRouter API key is present, so
+    // the CLI's config listing stays clean on machines without OpenRouter creds.
+    let openRouterSets =
+        if hasOpenRouterKey () then
+            let or_ = openRouterBackend
+            [
+                {
+                    // MiniMax M2.5 via OpenRouter: 196K context, strong coding + reasoning.
+                    Name = "openrouter-minimax-m2.5"
+                    SafetyCheck = or_ OpenRouterModels.minimaxM25 Medium
+                    Triage = or_ OpenRouterModels.minimaxM25 Medium
+                    DirectorVisionary = or_ OpenRouterModels.minimaxM25 Medium
+                    DirectorMaverick = or_ OpenRouterModels.minimaxM25 Medium
+                    Implementor = or_ OpenRouterModels.minimaxM25 High
+                    ImplementorFallback = None
+                    Compaction = or_ OpenRouterModels.minimaxM25 Low
+                    ContextLengthTokens = 196_000
+                    CompactionThreshold = 0.8
+                }
+            ]
+        else []
+
+    staticSets @ ollamaSets @ openRouterSets
 
 let resolveConfigSet (name: string) : ConfigSet =
     let sets = configSets ()
@@ -340,6 +386,12 @@ let private endThinking () =
         inThinking <- false
 
 let private onEvent (event: AgentEvent) =
+    // 1) Persist to RunLogger (workflow.log + raw.jsonl + step files).
+    //    Safe to call when no run is active — it no-ops.
+    RunLogger.logAgentEvent event
+
+    // 2) Mirror to console for live feedback. Raw events are too noisy for
+    //    the console — they go to disk only.
     match event with
     | Thinking t ->
         if not inThinking then
@@ -370,6 +422,7 @@ let private onEvent (event: AgentEvent) =
         eprintfn "    [ERROR] %s" e
         Console.ResetColor()
     | Metrics _ -> ()
+    | RawRequest _ | RawEvent _ -> ()
 
 // System prompt to prevent models (especially gpt-5.4) from attempting tool use.
 // These agents have no tools available — without this instruction, some models
@@ -412,11 +465,14 @@ type CallStats =
 
 let emptyCallStats = { Metrics = None; ThinkingChars = 0; TextChars = 0 }
 
-let askChatEx (backend: SelectedBackend) (timeoutMs: int) (messages: ChatMessage list) : Result<string * CallStats, string> =
+let private doAskChat (backend: SelectedBackend) (timeoutMs: int) (messages: ChatMessage list) : Result<string * CallStats, string> =
     let name = backendDisplayName backend
     let totalChars = messages |> List.sumBy (fun m -> m.Content.Length)
     printfn $"    [askChat] Backend: {name}"
     printfn $"    [askChat] Messages: {messages.Length}, Total: {totalChars} chars, Timeout: {timeoutMs / 1000}s"
+    // Persist the full outgoing request (messages + backend) to workflow.log + step request.json.
+    // Called before SendChat so the log is complete even if the call crashes mid-flight.
+    RunLogger.logRequest backend messages
     let metricsRef = ref None
     let thinkingChars = ref 0
     let textChars = ref 0
@@ -436,6 +492,12 @@ let askChatEx (backend: SelectedBackend) (timeoutMs: int) (messages: ChatMessage
             Async.RunSynchronously(work, timeout = timeoutMs)
         let trimmed = result.Trim()
         let stats = { Metrics = metricsRef.Value; ThinkingChars = thinkingChars.Value; TextChars = textChars.Value }
+        // Tail: dump thinking + final response + metrics into workflow.log so the narrative
+        // reads top-to-bottom: REQUEST → THINKING → RESPONSE → METRICS. Step-specific files
+        // (thinking.txt / response.txt / raw.jsonl) already have full content for analysis.
+        RunLogger.logThinkingTail ()
+        RunLogger.logResponseTail trimmed
+        RunLogger.logMetricsTail ()
         if String.IsNullOrWhiteSpace trimmed then
             printfn $"    [askChat] ERROR: empty response"
             Result.Error "AI returned empty response"
@@ -450,5 +512,14 @@ let askChatEx (backend: SelectedBackend) (timeoutMs: int) (messages: ChatMessage
         printfn $"    [askChat] ERROR: {ex.Message}"
         Result.Error $"AI call failed: {ex.Message}"
 
-let askChat (backend: SelectedBackend) (timeoutMs: int) (messages: ChatMessage list) : Result<string, string> =
-    askChatEx backend timeoutMs messages |> Result.map fst
+/// Run an AI call inside a named RunLogger step. Every call to askChat(Ex) goes
+/// through here so the log always has clear step boundaries with descriptive names.
+let askChatEx (stepName: string) (backend: SelectedBackend) (timeoutMs: int) (messages: ChatMessage list) : Result<string * CallStats, string> =
+    RunLogger.beginStep stepName
+    try
+        doAskChat backend timeoutMs messages
+    finally
+        RunLogger.endStep ()
+
+let askChat (stepName: string) (backend: SelectedBackend) (timeoutMs: int) (messages: ChatMessage list) : Result<string, string> =
+    askChatEx stepName backend timeoutMs messages |> Result.map fst
