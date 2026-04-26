@@ -48,6 +48,21 @@ module OllamaModels =
 module OpenRouterModels =
     let minimaxM25 = "minimax/minimax-m2.5"                     // 196k ctx, paid
     let minimaxM25Free = "minimax/minimax-m2.5:free"            // 196k ctx, free tier
+    // Frontier shootout #1 — non-Anthropic, non-OpenAI
+    let qwen3CoderPlus = "qwen/qwen3-coder-plus"                // 1M ctx, coding-specialised
+    let deepseekV4Pro = "deepseek/deepseek-v4-pro"              // 1M ctx, frontier reasoning
+    let kimiK2Thinking = "moonshotai/kimi-k2-thinking"          // 262K ctx, native thinking mode
+    let grok420 = "x-ai/grok-4.20"                              // 2M ctx, xAI flagship
+    let codestral2508 = "mistralai/codestral-2508"              // 256K ctx, Mistral coding
+    // Frontier shootout #2 — broader sweep including Claude/OpenAI baselines
+    let kimiK26 = "moonshotai/kimi-k2.6"                        // 256K ctx
+    let qwen36Plus = "qwen/qwen3.6-plus"                        // 1M ctx
+    let glm51 = "z-ai/glm-5.1"                                  // 203K ctx
+    let minimaxM27 = "minimax/minimax-m2.7"                     // 197K ctx, very cheap
+    let mimoV2Pro = "xiaomi/mimo-v2-pro"                        // 1M ctx, Xiaomi MiMo
+    let claudeHaiku45 = "anthropic/claude-haiku-4.5"            // 200K ctx (Anthropic via OR)
+    let gpt54 = "openai/gpt-5.4"                                // 1M ctx (OpenAI via OR)
+    let gemini31Pro = "google/gemini-3.1-pro-preview"           // 1M ctx
 
 // ---------------------------------------------------------------------------
 // Ollama env helper — reads OLLAMA{N}_URL / OLLAMA{N}_API_KEY
@@ -108,7 +123,7 @@ type ConfigSet =
     }
 
 let configSets () =
-    let staticSets =
+    let anthropicSets =
         [
             {
                 Name = "claude-sonnet-4.6/haiku-4.5"
@@ -153,7 +168,10 @@ let configSets () =
                 ContextLengthTokens = 180_000
                 CompactionThreshold = 0.8
             }
+        ]
 
+    let copilotSets =
+        [
             {
                 Name = "copilot-sonnet-4.6/haiku-4.5"
                 SafetyCheck = Copilot(CopilotModels.sonnet46, Medium)
@@ -315,27 +333,45 @@ let configSets () =
 
     // OpenRouter sets — only offered when an OpenRouter API key is present, so
     // the CLI's config listing stays clean on machines without OpenRouter creds.
+    // All sets follow the same role-effort recipe (Medium for analysis, High for
+    // generation, Low for compaction). ContextLengthTokens is conservative so
+    // compaction triggers within reasonable budgets even when model max is huge.
     let openRouterSets =
         if hasOpenRouterKey () then
             let or_ = openRouterBackend
-            [
+            let mkSet name model ctx =
                 {
-                    // MiniMax M2.5 via OpenRouter: 196K context, strong coding + reasoning.
-                    Name = "openrouter-minimax-m2.5"
-                    SafetyCheck = or_ OpenRouterModels.minimaxM25 Medium
-                    Triage = or_ OpenRouterModels.minimaxM25 Medium
-                    DirectorVisionary = or_ OpenRouterModels.minimaxM25 Medium
-                    DirectorMaverick = or_ OpenRouterModels.minimaxM25 Medium
-                    Implementor = or_ OpenRouterModels.minimaxM25 High
+                    Name = name
+                    SafetyCheck = or_ model Medium
+                    Triage = or_ model Medium
+                    DirectorVisionary = or_ model Medium
+                    DirectorMaverick = or_ model Medium
+                    Implementor = or_ model High
                     ImplementorFallback = None
-                    Compaction = or_ OpenRouterModels.minimaxM25 Low
-                    ContextLengthTokens = 196_000
+                    Compaction = or_ model Low
+                    ContextLengthTokens = ctx
                     CompactionThreshold = 0.8
                 }
+            [
+                mkSet "minimax-m2.5"      OpenRouterModels.minimaxM25      196_000
+                mkSet "qwen3-coder-plus"  OpenRouterModels.qwen3CoderPlus  200_000
+                mkSet "deepseek-v4-pro"   OpenRouterModels.deepseekV4Pro   200_000
+                mkSet "kimi-k2-thinking"  OpenRouterModels.kimiK2Thinking  200_000
+                mkSet "grok-4.20"         OpenRouterModels.grok420         200_000
+                mkSet "codestral-2508"    OpenRouterModels.codestral2508   200_000
+                // Frontier shootout #2
+                mkSet "kimi-k2.6"         OpenRouterModels.kimiK26         200_000
+                mkSet "qwen3.6-plus"      OpenRouterModels.qwen36Plus      200_000
+                mkSet "glm-5.1"           OpenRouterModels.glm51           200_000
+                mkSet "minimax-m2.7"      OpenRouterModels.minimaxM27      196_000
+                mkSet "mimo-v2-pro"       OpenRouterModels.mimoV2Pro       200_000
+                mkSet "claude-haiku-4.5"  OpenRouterModels.claudeHaiku45   180_000
+                mkSet "gpt-5.4"           OpenRouterModels.gpt54           200_000
+                mkSet "gemini-3.1-pro"    OpenRouterModels.gemini31Pro     200_000
             ]
         else []
 
-    staticSets @ ollamaSets @ openRouterSets
+    anthropicSets @ copilotSets @ ollamaSets @ openRouterSets
 
 let resolveConfigSet (name: string) : ConfigSet =
     let sets = configSets ()
