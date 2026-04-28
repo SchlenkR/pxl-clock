@@ -497,9 +497,14 @@ type CallStats =
         Metrics: CallMetrics option
         ThinkingChars: int
         TextChars: int
+        // Full reasoning trace, captured so callers can fall back to it when
+        // the content stream is empty (some providers — MiMo V2.5/Pro, GLM 5.1
+        // — emit the entire response, code included, into reasoning rather
+        // than content). Empty string when the model didn't produce reasoning.
+        Thinking: string
     }
 
-let emptyCallStats = { Metrics = None; ThinkingChars = 0; TextChars = 0 }
+let emptyCallStats = { Metrics = None; ThinkingChars = 0; TextChars = 0; Thinking = "" }
 
 let private doAskChat (backend: SelectedBackend) (timeoutMs: int) (messages: ChatMessage list) : Result<string * CallStats, string> =
     let name = backendDisplayName backend
@@ -512,10 +517,13 @@ let private doAskChat (backend: SelectedBackend) (timeoutMs: int) (messages: Cha
     let metricsRef = ref None
     let thinkingChars = ref 0
     let textChars = ref 0
+    let thinkingBuf = System.Text.StringBuilder()
     let wrapped (e: AgentEvent) =
         match e with
         | Metrics m -> metricsRef.Value <- Some m
-        | Thinking t -> thinkingChars.Value <- thinkingChars.Value + t.Length
+        | Thinking t ->
+            thinkingChars.Value <- thinkingChars.Value + t.Length
+            thinkingBuf.Append(t) |> ignore
         | Text t -> textChars.Value <- textChars.Value + t.Length
         | _ -> ()
         onEvent e
@@ -527,7 +535,12 @@ let private doAskChat (backend: SelectedBackend) (timeoutMs: int) (messages: Cha
         let result =
             Async.RunSynchronously(work, timeout = timeoutMs)
         let trimmed = result.Trim()
-        let stats = { Metrics = metricsRef.Value; ThinkingChars = thinkingChars.Value; TextChars = textChars.Value }
+        let thinkingText = thinkingBuf.ToString()
+        let stats =
+            { Metrics = metricsRef.Value
+              ThinkingChars = thinkingChars.Value
+              TextChars = textChars.Value
+              Thinking = thinkingText }
         // Tail: dump thinking + final response + metrics into workflow.log so the narrative
         // reads top-to-bottom: REQUEST → THINKING → RESPONSE → METRICS. Step-specific files
         // (thinking.txt / response.txt / raw.jsonl) already have full content for analysis.
@@ -535,8 +548,16 @@ let private doAskChat (backend: SelectedBackend) (timeoutMs: int) (messages: Cha
         RunLogger.logResponseTail trimmed
         RunLogger.logMetricsTail ()
         if String.IsNullOrWhiteSpace trimmed then
-            printfn $"    [askChat] ERROR: empty response"
-            Result.Error "AI returned empty response"
+            // Some providers (MiMo V2.5/Pro, GLM 5.1 with high reasoning effort) emit the
+            // entire response — code included — into the reasoning stream and leave content
+            // empty. Surface that as a successful call with empty content so the caller
+            // can recover from `stats.Thinking`. Only error if there's nothing usable at all.
+            if thinkingText.Length > 200 then
+                printfn $"    [askChat] empty response, but {thinkingText.Length} chars in reasoning — caller may recover"
+                Ok ("", stats)
+            else
+                printfn $"    [askChat] ERROR: empty response"
+                Result.Error "AI returned empty response"
         else
             printfn $"    [askChat] OK: {trimmed.Length} chars"
             Ok (trimmed, stats)

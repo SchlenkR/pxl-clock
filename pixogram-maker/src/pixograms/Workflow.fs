@@ -39,6 +39,37 @@ let private extractCodeFromMarkdown (response: string) : string =
             // Fallback: if no markdown block, treat entire response as code (backwards compat)
             response.Trim()
 
+/// Some providers (MiMo V2.5/Pro, GLM 5.1 with high reasoning effort) emit the entire
+/// response — code included — into the reasoning stream and leave content empty.
+/// When the content extraction yields nothing usable, scan the reasoning text for
+/// csharp blocks and return candidates ranked "most likely to be the final code".
+/// Filters out placeholder/draft blocks so we don't render partial scaffolding.
+let private extractCodeCandidatesFromReasoning (reasoning: string) : string list =
+    if String.IsNullOrWhiteSpace reasoning then []
+    else
+        let rx =
+            System.Text.RegularExpressions.Regex(
+                @"```(?:csharp|cs)\s*\n(?<code>[\s\S]*?)```",
+                System.Text.RegularExpressions.RegexOptions.Compiled)
+        let blocks =
+            [ for m in rx.Matches(reasoning) -> m.Groups.["code"].Value.Trim() ]
+        let isPlaceholderApp (block: string) =
+            let m =
+                System.Text.RegularExpressions.Regex.Match(
+                    block, @"^//\s*app:\s*(.+?)\s*$",
+                    System.Text.RegularExpressions.RegexOptions.Multiline)
+            if not m.Success then true
+            else
+                let name = m.Groups.[1].Value.Trim()
+                name = "..." || name = "MyAppName" || name = "MyApp" || name = "TODO"
+                || not (System.Text.RegularExpressions.Regex.IsMatch(name, @"^[A-Za-z][A-Za-z0-9]*$"))
+        blocks
+        |> List.filter (fun b ->
+            not (isPlaceholderApp b)
+            && b.Length >= 400
+            && b.Contains "var scene")
+        |> List.sortByDescending String.length
+
 let private runProcess cmd (args: string list) (env: (string * string) list) =
     let psi = ProcessStartInfo(cmd)
     for a in args do psi.ArgumentList.Add a
@@ -477,21 +508,44 @@ let private executeImplementor (config: PipelineConfig) (protocol: ProtocolLog) 
 
     let metricsLog = ResizeArray<string * CallStats>()
 
+    let validate (code: string) =
+        let hasMarker = code.Contains("// ---")
+        let looksLikeCode = looksLikeCSharp code
+        if hasMarker then Some "marker"
+        elif looksLikeCode then Some "heuristic"
+        else None
+
+    /// Try the primary content first; if it doesn't validate, fall back to candidates
+    /// extracted from the reasoning stream (some providers dump everything there).
+    let pickValidCode (response: string) (thinking: string) : (string * string) option =
+        let primary = extractCodeFromMarkdown response
+        match validate primary with
+        | Some via -> Some (primary, via)
+        | None ->
+            extractCodeCandidatesFromReasoning thinking
+            |> List.tryPick (fun cand ->
+                match validate cand with
+                | Some via -> Some (cand, sprintf "reasoning-recovery/%s" via)
+                | None -> None)
+
     let getInitialCode (backend: SelectedBackend) (label: string) =
         printfn $"    [{ts ()}] [impl] Sending to {backendDisplayName backend}..."
         match askChatEx label backend config.AiTimeoutMs baseMessages with
         | Ok (response, stats) ->
             metricsLog.Add((label, stats))
-            let code = extractCodeFromMarkdown response
-            let hasMarker = code.Contains("// ---")
-            let looksLikeCode = looksLikeCSharp code
-            if hasMarker || looksLikeCode then
-                let via = if hasMarker then "marker" else "heuristic"
-                printfn $"    [impl] Code extracted via {via} ({code.Length} chars from {response.Length} chars response)"
+            match pickValidCode response stats.Thinking with
+            | Some (code, via) ->
+                printfn $"    [impl] Code extracted via {via} ({code.Length} chars from {response.Length} chars response, {stats.Thinking.Length} chars reasoning)"
+                if via.StartsWith "reasoning-recovery" then
+                    log protocol "Implementor" $"RECOVERED from reasoning ({code.Length} chars; content was empty/unusable)"
                 Some code
-            else
-                printfn $"  ⚠ Implementor response is not C# code ({code.Length} chars)"
-                log protocol "Implementor" $"INVALID (no marker, not code-like, {code.Length} chars): {code.[..min 200 (code.Length - 1)]}"
+            | None ->
+                let snippet =
+                    let preview = extractCodeFromMarkdown response
+                    if preview.Length = 0 then "(empty)"
+                    else preview.[..min 200 (preview.Length - 1)]
+                printfn $"  ⚠ Implementor response is not C# code (response {response.Length} chars, reasoning {stats.Thinking.Length} chars)"
+                log protocol "Implementor" $"INVALID (no marker, not code-like, no reasoning fallback): {snippet}"
                 None
         | Result.Error err ->
             printfn $"  ✗ Implementor AI failed: {err}"
@@ -592,8 +646,13 @@ let private executeImplementor (config: PipelineConfig) (protocol: ProtocolLog) 
                     attempt <- config.MaxImplementorRetries // bail out
                 | Ok (response, stats) ->
                     metricsLog.Add(($"Implementor (retry {attempt})", stats))
-                    let fixedCode = extractCodeFromMarkdown response
-                    printfn $"    [impl] Retry code extracted ({fixedCode.Length} chars from {response.Length} chars response)"
+                    let fixedCode, via =
+                        match pickValidCode response stats.Thinking with
+                        | Some (c, v) -> c, v
+                        | None -> extractCodeFromMarkdown response, "raw"
+                    if via.StartsWith "reasoning-recovery" then
+                        log protocol "Implementor" $"RETRY {attempt}: RECOVERED from reasoning ({fixedCode.Length} chars)"
+                    printfn $"    [impl] Retry code extracted via {via} ({fixedCode.Length} chars from {response.Length} chars response, {stats.Thinking.Length} chars reasoning)"
                     code <- fixedCode
 
         attempt <- attempt + 1

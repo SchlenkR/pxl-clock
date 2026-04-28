@@ -1230,6 +1230,40 @@ footer {
   .hero-row { flex-direction: column; align-items: flex-start; gap: 1.25rem; }
   .hero-logo { height: 48px; }
   .idea-card, .shootout { padding: 1.25rem; }
+
+  /* Edge-to-edge Cards on mobile: drop the container's side padding for the
+     card sections and flatten the cards' rounded corners + side borders so
+     they sit flush against the viewport edge. */
+  #shootout > .container,
+  #flat > .container,
+  #ideas > .container {
+    padding: 0;
+  }
+  .shootout,
+  .idea-card,
+  .flat-grid {
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    box-shadow: none;
+  }
+  .flat-grid { padding: 1.25rem; }
+
+  /* Mobile filter pill: single horizontal strip with side-fade so the row
+     stays one line tall instead of wrapping into a half-screen block. */
+  .global-filter .container { padding: 0 1rem; }
+  .flat-filter {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    -webkit-mask-image: linear-gradient(to right, transparent 0, #000 16px, #000 calc(100% - 28px), transparent 100%);
+            mask-image: linear-gradient(to right, transparent 0, #000 16px, #000 calc(100% - 28px), transparent 100%);
+  }
+  .flat-filter::-webkit-scrollbar { display: none; }
+  .flat-filter > * { flex-shrink: 0; }
+  .flat-filter-sep { align-self: stretch; }
 }
 
 @media (max-width: 600px) {

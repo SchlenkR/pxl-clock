@@ -8,6 +8,7 @@ publish/
 .tmp/
 .DS_Store
 .claude
+pixogram-maker/experiments
 
 pxl-config.json
 tools/reel-maker/src/preview-config.json
