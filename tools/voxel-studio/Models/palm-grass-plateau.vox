@@ -1,0 +1,71 @@
+# Palm Grass Plateau — two-tier island with grass plateau on top
+# A bigger sand bank with a clear grass terrace; palm grows from the
+# grass. Reads like a tropical Lost-style islet.
+
+material sand    top=#FFE5B0  front=#A88B52  side=#7E6740
+material wetsand top=#E8C880  front=#9C7E48  side=#6A5630
+material grass   top=#5AA830  front=#345E1A  side=#21401A
+material grasslt top=#7AE040  front=#3D8B22  side=#225E15
+material trunk   top=#7C4828  front=#4F2E14  side=#3A2210
+material trunkhi top=#A56838  front=#6E3F1C  side=#4A2A14
+material frondlt top=#7AE040  front=#3D8B22  side=#225E15
+material frond   top=#3D8B22  front=#225E15  side=#163E0E
+material coco    top=#523018  front=#2E1A0C  side=#1A0F06
+
+# ============================================================================
+# Sand base — 16×8, 2 tall
+# ============================================================================
+box 2 0 1   13 0 6   sand
+box 3 0 0   12 0 7   sand
+box 1 0 2   14 0 5   sand
+box 0 0 3   0 0 4    wetsand
+box 15 0 3  15 0 4   wetsand
+box 3 1 1   12 1 6   sand
+box 4 1 0   11 1 7   sand
+
+# ============================================================================
+# Grass plateau (2 tall, set back from the beach)
+# ============================================================================
+box 4 2 2   11 2 5   grass
+box 5 2 1   10 2 6   grass
+box 5 3 2   10 3 5   grass
+box 6 3 1   9 3 6    grass
+# Grass-tip highlights (lighter at edges)
+v 4 2 2   grasslt
+v 4 2 5   grasslt
+v 11 2 2  grasslt
+v 11 2 5  grasslt
+v 5 2 1   grasslt
+v 5 2 6   grasslt
+v 10 2 1  grasslt
+v 10 2 6  grasslt
+
+# ============================================================================
+# PALM TRUNK — 2×2, 7 tall, centred on the grass
+# ============================================================================
+box 7 4 3   8 10 4   trunk
+v 8 5 4   trunkhi
+v 8 7 4   trunkhi
+v 8 9 4   trunkhi
+
+# ============================================================================
+# PALM CROWN — 2-tier, fluffy
+# ============================================================================
+box 4 11 3   11 11 4  frond
+box 7 11 1   8 11 6   frond
+box 5 11 2   10 11 5  frond
+box 6 11 2   9 11 5   frondlt
+box 5 12 2   10 12 5  frondlt
+box 6 12 1   9 12 6   frondlt
+box 7 12 3   8 12 4   frondlt
+box 7 13 3   8 13 4   frondlt
+
+# Drooping outer fronds
+v 3 11 3  frond
+v 3 11 4  frond
+v 12 11 3 frond
+v 12 11 4 frond
+
+# Two coconuts
+v 6 10 4  coco
+v 9 10 3  coco

@@ -20,7 +20,7 @@ var pacmanRight = sprites.CreateAnimation((0, 0), (0, 1), (0, 2), (0, 1));
 var ghostRed = sprites.CreateAnimation((4, 0), (4, 1));
 var ghostPink = sprites.CreateAnimation((5, 0), (5, 1));
 
-var scene = (DrawingContext ctx) =>
+var scene = (RasterSurface ctx) =>
 {
     ctx.DrawBackground(Colors.Black);
 

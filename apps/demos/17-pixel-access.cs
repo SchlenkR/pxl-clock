@@ -12,7 +12,7 @@ using Pxl.Ui.CSharp;
 
 var random = new Random(42);
 
-var scene = (DrawingContext ctx) =>
+var scene = (RasterSurface ctx) =>
 {
     // Draw some background content first
     ctx.DrawBackground(Colors.DarkBlue);

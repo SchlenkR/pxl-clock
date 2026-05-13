@@ -13,7 +13,7 @@ using Pxl.Ui.CSharp;
 int counter = 0;
 double lastSecond = -1;
 
-var scene = (DrawingContext ctx) =>
+var scene = (RasterSurface ctx) =>
 {
     ctx.DrawBackground(Colors.Black);
 

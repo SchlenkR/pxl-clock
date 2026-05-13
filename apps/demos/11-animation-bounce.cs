@@ -13,7 +13,7 @@ using Pxl.Ui.CSharp;
 double x = 12;
 double dx = 0.3;  // Velocity
 
-var scene = (DrawingContext ctx) =>
+var scene = (RasterSurface ctx) =>
 {
     ctx.DrawBackground(Colors.DarkBlue);
 

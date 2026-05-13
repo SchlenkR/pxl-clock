@@ -1,0 +1,103 @@
+# Palm Island — FLAT + WIDE
+# Footprint 18 wide × 16 deep × 13 tall.
+#
+# Ground is now nearly flat (4 thin layers, 1 voxel each) with just a
+# subtle 1-voxel mound under the grass plateau, so it reads as an island
+# in the water — not a green pedestal with a tree on top.
+#
+# Layers: sand wide → sand mound → dirt thin ring → grass small plateau.
+# Then trunk (5 segments, alternating cross-sections) → leafy crown.
+
+material sand     top=#FFE5B0  front=#A88B52  side=#7E6740
+material darkdirt top=#7A4F26  front=#4A2E14  side=#321E0E
+material grass    top=#7AE040  front=#3D8B22  side=#225E15
+material trunk    top=#9C5C32  front=#603418  side=#42230F
+material frond    top=#62E03A  front=#3A8E20  side=#2C7018
+material coco     top=#6B3818  front=#3D2210  side=#251608
+
+# ============================================================================
+# GROUND — flat island with subtle central mound
+# ============================================================================
+
+# ---- y=0: sand BASE (single layer, widest organic footprint)
+box 9 0 0   10 0 0   sand   # back tip
+box 7 0 1   12 0 1   sand
+box 5 0 2   14 0 2   sand
+box 3 0 3   15 0 3   sand
+box 2 0 4   16 0 4   sand
+box 1 0 5   17 0 5   sand
+box 0 0 6   17 0 6   sand   # widest
+box 0 0 7   17 0 7   sand
+# z=8..9: COVE on left (x=0..2 = water cutting in)
+box 3 0 8   17 0 8   sand
+box 3 0 9   17 0 9   sand
+box 1 0 10  16 0 10  sand
+# z=11..12: spit on right with water gap at x=8
+box 1 0 11  7 0 11   sand
+box 9 0 11  16 0 11  sand
+box 2 0 12  7 0 12   sand
+box 9 0 12  15 0 12  sand
+box 4 0 13  13 0 13  sand
+box 6 0 14  11 0 14  sand
+box 8 0 15  10 0 15  sand   # front tip
+
+# ---- y=1: small sand MOUND (1 voxel high, much narrower than base)
+box 4 1 4   13 1 12  sand
+
+# ---- y=2: thin DARK DIRT band (1 voxel, smaller — pokes out around grass)
+box 5 2 5   12 2 11  darkdirt
+
+# ---- y=3: small GRASS plateau (1 voxel high, smallest)
+box 6 3 6   11 3 10  grass
+
+# ============================================================================
+# TRUNK — 5 segments alternating cross-sections (gnarled, slightly tapered)
+# ============================================================================
+# y=4: 3×3 BASE FLARE on grass
+box 7 4 7   9 4 9    trunk
+# y=5: 2×2 narrow
+box 8 5 7   9 5 8    trunk
+# y=6: 5-voxel CROSS (3×3 minus corners) — slight bulge
+v 8 6 7    trunk
+v 7 6 8    trunk
+v 8 6 8    trunk
+v 9 6 8    trunk
+v 8 6 9    trunk
+# y=7: 2×2 narrow
+box 8 7 7   9 7 8    trunk
+# y=8: 3×3 TOP FLARE just under the crown
+box 7 8 7   9 8 9    trunk
+
+# ============================================================================
+# CROWN — 4 layers of fronds + drooping tips + coconuts
+# ============================================================================
+# y=9: 4×4 inner crown
+box 6 9 6   9 9 9    frond
+# y=10: 7×7 OCTAGONAL widest layer (corners knocked off, plus 4 cardinal tips)
+box 5 10 5  9 10 5   frond     # back row
+box 5 10 9  9 10 9   frond     # front row
+box 5 10 6  5 10 8   frond     # left col
+box 9 10 6  9 10 8   frond     # right col
+box 6 10 6  8 10 8   frond     # solid 3×3 center
+v 4 10 7   frond                # left tip
+v 10 10 7  frond                # right tip
+v 7 10 4   frond                # back tip
+v 7 10 10  frond                # front tip
+# y=11: 4×4 upper crown
+box 6 11 6  9 11 9   frond
+# y=12: 2×2 top tuft
+box 7 12 7  8 12 8   frond
+
+# Drooping outer frond tips at y=10 (8 directions for full palm-star feel)
+v 3 9 7    frond
+v 11 9 7   frond
+v 3 9 8    frond
+v 11 9 8   frond
+v 7 9 3    frond
+v 8 9 3    frond
+v 7 9 11   frond
+v 8 9 11   frond
+
+# Two coconuts hidden in the foliage
+v 5 10 5   coco
+v 9 10 9   coco

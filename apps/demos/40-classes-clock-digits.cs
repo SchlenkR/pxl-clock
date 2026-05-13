@@ -13,7 +13,7 @@ var digits = new DigitTile[4];
 for (var i = 0; i < 4; i++)
     digits[i] = new DigitTile(x: 1 + i * 6, y: 9);
 
-var scene = (DrawingContext ctx) =>
+var scene = (RasterSurface ctx) =>
 {
     ctx.DrawBackground(Color.FromRgb(0.05, 0.0, 0.1));
 
@@ -40,7 +40,7 @@ class DigitTile(int x, int y)
     private int lastValue = -1;
     private double flash = 0;
 
-    public void DrawAnimated(DrawingContext ctx, int value)
+    public void DrawAnimated(RasterSurface ctx, int value)
     {
         if (value != lastValue)
         {

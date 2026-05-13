@@ -504,7 +504,7 @@ let private executeImplementor (config: PipelineConfig) (protocol: ProtocolLog) 
         s.Length > 300
         && s.Contains '{' && s.Contains '}' && s.Contains ';'
         && (s.Contains "Renderer" || s.Contains "ctx." || s.Contains "void Frame"
-            || s.Contains "DrawingContext" || s.Contains "RenderCtx")
+            || s.Contains "RasterSurface" || s.Contains "RenderCtx")
 
     let metricsLog = ResizeArray<string * CallStats>()
 

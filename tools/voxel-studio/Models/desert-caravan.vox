@@ -1,0 +1,125 @@
+# Desert caravan — LONG along the X axis (40 wide × 10 deep × 11 high)
+# Sand dunes along the bottom, two camels with riders walking left to right,
+# a small palm-tree oasis on the right, and a single pyramid silhouette far back.
+
+material sand     top=#F4D896  front=#A8784A  side=#7A5836
+material dune     top=#E0C078  front=#92653A  side=#664628
+material rock     top=#8E785A  front=#5C4F3D  side=#3F362A
+material camelfur top=#C09060  front=#7A5C3C  side=#503D27
+material rider    top=#6E4A2E  front=#4A311E  side=#321F12
+material cloth    top=#D6402A  front=#8E2616  side=#5E170E   # red saddle blanket
+material trunk    top=#9C5C32  front=#603418  side=#42230F
+material frond    top=#62E03A  front=#3A8E20  side=#2C7018
+material water    top=#5FA0B8  front=#2E6E86  side=#1A4858
+material pyramid  top=#D8B878  front=#8C6F44  side=#5F4B2D
+
+# ============================================================================
+# DUNES — undulating sand layers across the full length
+# ============================================================================
+# Base sand sheet
+box 0 0 0   39 0 9   sand
+# First dune (x=2..10), ~3 tall
+box 2 1 1   10 1 8   dune
+box 3 2 2   9 2 7    dune
+box 4 3 3   8 3 6    dune
+v 5 4 4   dune
+v 6 4 5   dune
+# Second dune (x=14..22), ~2 tall
+box 14 1 0   22 1 8   dune
+box 15 2 1   21 2 7   dune
+box 16 3 2   20 3 6   dune
+# Third dune (x=26..34), ~3 tall (with oasis dip behind it)
+box 26 1 0   34 1 8   dune
+box 27 2 1   33 2 7   dune
+box 28 3 2   32 3 6   dune
+v 29 4 3   dune
+v 30 4 4   dune
+v 31 4 5   dune
+
+# ============================================================================
+# CAMEL #1 (x=11..14) — 4-legged silhouette with hump and rider
+# ============================================================================
+# Body
+box 11 4 4   14 4 5   camelfur
+box 11 5 4   14 5 5   camelfur
+# Hump
+box 12 6 4   13 6 5   camelfur
+v 12 7 4   camelfur
+# Neck + head (front, x=14, going up)
+v 14 6 4   camelfur
+v 14 6 5   camelfur
+v 14 7 4   camelfur
+v 14 7 5   camelfur
+v 15 7 4   camelfur     # head jutting forward
+v 15 7 5   camelfur
+# Tail (back)
+v 10 5 4   camelfur
+# Legs (4)
+v 11 3 4   camelfur
+v 11 3 5   camelfur
+v 14 3 4   camelfur
+v 14 3 5   camelfur
+# Red saddle blanket
+v 12 6 4   cloth
+v 13 6 4   cloth
+# Rider
+v 12 8 4   rider
+v 13 8 4   rider
+v 12 9 4   rider     # head
+
+# ============================================================================
+# CAMEL #2 (x=23..26) — second camel slightly behind
+# ============================================================================
+box 23 4 4   26 4 5   camelfur
+box 23 5 4   26 5 5   camelfur
+box 24 6 4   25 6 5   camelfur
+v 24 7 4   camelfur
+v 26 6 4   camelfur
+v 26 6 5   camelfur
+v 26 7 4   camelfur
+v 26 7 5   camelfur
+v 27 7 4   camelfur
+v 27 7 5   camelfur
+v 22 5 4   camelfur
+v 23 3 4   camelfur
+v 23 3 5   camelfur
+v 26 3 4   camelfur
+v 26 3 5   camelfur
+v 24 6 4   cloth
+v 25 6 4   cloth
+v 24 8 4   rider
+v 25 8 4   rider
+v 24 9 4   rider
+
+# ============================================================================
+# OASIS — small pool + palm tree on the right (x=30..34)
+# ============================================================================
+# Water pool (small)
+box 30 1 4   33 1 6   water
+# Palm trunk (3 tall on the dune)
+box 32 4 5   32 6 5   trunk
+# Palm crown
+box 31 7 4   33 7 6   frond
+v 30 7 5   frond
+v 34 7 5   frond
+v 32 7 3   frond
+v 32 7 7   frond
+v 32 8 5   frond     # top tuft
+
+# ============================================================================
+# DISTANT PYRAMID (back-left, x=4..10 area) — adds depth/scale to the scene
+# ============================================================================
+# Sits at z=8..9 (back of scene), low and wide so it reads as far away
+box 5 1 8   10 1 9   pyramid
+box 6 2 8   9 2 9    pyramid
+box 7 3 8   8 3 9    pyramid
+v 7 4 8   pyramid
+v 7 4 9   pyramid
+
+# ============================================================================
+# A few rocks scattered for interest
+# ============================================================================
+v 0 1 5   rock
+v 38 1 4  rock
+v 19 1 9  rock
+v 36 1 6  rock

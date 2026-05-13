@@ -16,7 +16,7 @@ var mythen = Image.LoadSingleImage("assets/mythen.png");
 static double Lerp(double start, double end, double step, double steps) =>
     start + (end - start) * (step / steps);
 
-var scene = (DrawingContext ctx) =>
+var scene = (RasterSurface ctx) =>
 {
     var now = ctx.Now;
     var hour = now.Hour;

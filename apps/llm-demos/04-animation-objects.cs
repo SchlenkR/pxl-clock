@@ -34,7 +34,7 @@ var colorCycle = Animate.ToggleValues(0.5,
 // One-shot fade-in (Repeat.Once is the default; included here for clarity).
 var fadeIn = Animate.EaseOut(3.0, 0.0, 1.0, repeat: Repeat.Once);
 
-var scene = (DrawingContext ctx) =>
+var scene = (RasterSurface ctx) =>
 {
     ctx.DrawBackground(Colors.Black);
 

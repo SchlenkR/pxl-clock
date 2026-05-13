@@ -12,7 +12,7 @@ using Pxl.Ui.CSharp;
 
 var pulse = Animate.EaseInOut(2, 1, 3, repeat: Repeat.PingPong);
 
-var scene = (DrawingContext ctx) =>
+var scene = (RasterSurface ctx) =>
 {
     ctx.DrawBackground(Colors.Black);
 

@@ -27,7 +27,7 @@
 
 using Pxl.Ui.CSharp;
 
-var scene = (DrawingContext ctx) =>
+var scene = (RasterSurface ctx) =>
 {
     ctx.DrawBackground(Color.FromRgb(0.04, 0.04, 0.08));
     var t = ctx.Elapsed.TotalSeconds;

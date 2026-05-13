@@ -10,7 +10,7 @@
 
 using Pxl.Ui.CSharp;
 
-var scene = (DrawingContext ctx) =>
+var scene = (RasterSurface ctx) =>
 {
     // Fill the entire canvas with a background color
     ctx.DrawBackground(Colors.DarkBlue);

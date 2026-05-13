@@ -1,0 +1,139 @@
+# Mountain ridge with castle — LONG along X axis (32 wide × 12 deep × 18 high)
+# A jagged mountain ridge runs the full length, with snow on the peaks,
+# a small medieval castle perched on the highest part, and pine trees on
+# the lower slopes.
+
+material rock      top=#7A6E5A  front=#4A4030  side=#322B1F
+material rockdark  top=#5C5040  front=#382F22  side=#231D14
+material snow      top=#F0F4F8  front=#A8AEB6  side=#7A7E84
+material grass     top=#5A8E32  front=#365A1E  side=#243D14
+material wallstone top=#C8C0AC  front=#827A66  side=#564F40
+material wallstonedark top=#9A9078  front=#605844  side=#3C3829
+material roofred   top=#8E2418  front=#5C140C  side=#3C0D08
+material flag      top=#C82828  front=#8C1E1E  side=#5C1414
+material gold      top=#F2C738  front=#9F731A  side=#7A5612
+material pine      top=#1A4824  front=#0E2E15  side=#0A1F0E
+material trunk     top=#5A4030  front=#3A271A  side=#251910
+
+# ============================================================================
+# MOUNTAIN RIDGE — wave-like profile, snow caps on the highest parts
+# ============================================================================
+# Base footprint (the whole ridge sits on a wide base of dark rock)
+box 0 0 2   31 1 9   rockdark
+
+# Profile per X — going up and down across the length
+# x=0..3: low foothill
+box 0 2 3   3 2 8   rock
+box 1 3 4   2 3 7   rock
+
+# x=4..8: rising slope
+box 4 2 3   8 2 8   rock
+box 4 3 3   8 3 8   rock
+box 5 4 4   7 4 7   rock
+v 6 5 5   rock
+v 6 5 6   rock
+
+# x=9..14: medium peak (this is where the castle sits)
+box 9 2 3   14 2 8   rock
+box 9 3 3   14 3 8   rock
+box 9 4 4   14 4 7   rock
+box 10 5 4  13 5 7   rock
+box 10 6 4  13 6 7   rock
+box 11 7 5  12 7 6   rock     # plateau for castle
+# Snow cap on the peak (above castle plateau will be hidden by castle)
+v 11 8 5   snow
+v 12 8 5   snow
+v 11 8 6   snow
+v 12 8 6   snow
+
+# x=15..18: dip / saddle
+box 15 2 3   18 2 8   rock
+box 15 3 4   18 3 7   rock
+box 16 4 5   17 4 6   rock
+
+# x=19..25: HIGH PEAK with snow cap
+box 19 2 3   25 2 8   rock
+box 19 3 3   25 3 8   rock
+box 19 4 4   25 4 7   rock
+box 20 5 4   24 5 7   rock
+box 20 6 4   24 6 7   rock
+box 21 7 5   23 7 6   rock
+box 21 8 5   23 8 6   rock
+box 22 9 5   22 9 6   rock
+# Snow cap
+box 21 10 5  23 10 6  snow
+box 22 11 5  22 11 6  snow
+v 22 12 5   snow
+
+# x=26..31: descending slope
+box 26 2 3   31 2 8   rock
+box 26 3 3   30 3 8   rock
+box 27 4 4   29 4 7   rock
+v 28 5 5   rock
+
+# ============================================================================
+# CASTLE — perched on the medium peak (x=10..14, y=8..)
+# ============================================================================
+# Main keep walls
+box 10 8 5   13 11 6   wallstone
+# Crenellations on top
+v 10 12 5   wallstone
+v 12 12 5   wallstone
+v 10 12 6   wallstone
+v 12 12 6   wallstone
+v 13 12 5   wallstone
+v 13 12 6   wallstone
+# Door (dark stone)
+v 11 8 5   wallstonedark
+v 11 9 5   wallstonedark
+# Tower on the right (taller, with red roof)
+box 14 8 5   14 13 6   wallstone
+# Crenellation
+v 14 14 5   wallstone
+v 14 14 6   wallstone
+# Red conical roof on the tower
+box 13 14 5   15 14 6  roofred
+v 14 15 5   roofred
+v 14 15 6   roofred
+# Flag
+v 14 16 5   flag
+v 14 16 6   flag
+v 14 17 5   gold     # finial
+
+# ============================================================================
+# PINE TREES on the lower slopes
+# ============================================================================
+# Pine 1 (left foothill)
+v 1 4 5   trunk
+v 1 5 5   pine
+v 0 5 5   pine
+v 2 5 5   pine
+v 1 5 4   pine
+v 1 5 6   pine
+v 1 6 5   pine
+
+# Pine 2 (right foothill)
+v 28 5 4   trunk
+v 28 6 4   pine
+v 27 6 4   pine
+v 29 6 4   pine
+v 28 6 5   pine
+v 28 7 4   pine
+
+# Pine 3 (between peaks, in the dip)
+v 17 5 5   trunk
+v 17 6 5   pine
+v 16 6 5   pine
+v 18 6 5   pine
+v 17 6 4   pine
+v 17 6 6   pine
+v 17 7 5   pine
+
+# ============================================================================
+# Grass patches at the base
+# ============================================================================
+v 0 2 4   grass
+v 4 2 9   grass
+v 18 2 9  grass
+v 26 2 4  grass
+v 31 2 5  grass

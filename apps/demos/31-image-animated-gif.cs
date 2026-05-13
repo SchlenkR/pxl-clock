@@ -14,7 +14,7 @@ using Pxl.Ui.CSharp;
 var animation = Image.LoadAnimatedGif("assets/mario.gif")
     .Resize(32, 24);
 
-var scene = (DrawingContext ctx) =>
+var scene = (RasterSurface ctx) =>
 {
     ctx.DrawBackground(Colors.Black);
 

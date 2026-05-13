@@ -1,0 +1,162 @@
+# Palm Hi-Res Classic — single tall palm with REAL round trunk
+# 40 × 40 × 32
+#
+# REAL palm crown: 8 fronds, MIX of orientations:
+#   * 4 CARDINAL fronds (E, W, N-back, S-front): wide solid LEAF PLATES
+#     that droop down (rise +1, peak, drop 4 to spitz tip)
+#   * 4 DIAGONAL fronds (NE, NW, SE, SW): shorter UPRIGHT fronds that
+#     point upward (rise 3 voxels, peak high, mild droop)
+# Each frond is a SOLID volume (multiple voxels per leaf segment), not
+# scattered points. Result: dichte, dicke palm crown like in real photos.
+
+material sand    top=#FFE5B0  front=#A88B52  side=#7E6740
+material wetsand top=#E8C880  front=#9C7E48  side=#6A5630
+material grass   top=#5AA830  front=#345E1A  side=#21401A
+material trunk   top=#9C5E32  front=#6E3F1C  side=#3A2210
+material frond   top=#7AE040  front=#3D8B22  side=#1F5A18
+material coco    top=#5A3418  front=#36200E  side=#23150A
+material pebble  top=#8E7E68  front=#544738  side=#372C20
+
+# ============================================================================
+# SAND BANK — 32 wide × 22 deep, 3 voxels tall
+# ============================================================================
+box 6 0 7    33 0 32   sand
+box 8 0 5    31 0 34   sand
+box 10 0 4   29 0 35   sand
+box 13 0 3   26 0 36   sand
+box 8 1 8    31 1 31   sand
+box 10 1 6   29 1 33   sand
+box 13 1 5   26 1 34   sand
+box 11 2 9   28 2 30   sand
+box 14 2 7   25 2 32   sand
+box 16 3 16  23 3 23   sand
+box 18 4 18  21 4 21   sand
+
+v 6 0 14    wetsand
+v 6 0 25    wetsand
+v 33 0 14   wetsand
+v 33 0 25   wetsand
+v 13 0 3    wetsand
+v 26 0 3    wetsand
+v 13 0 36   wetsand
+v 26 0 36   wetsand
+v 12 1 12   pebble
+v 28 1 28   pebble
+v 14 1 30   pebble
+v 26 1 11   pebble
+v 14 3 14   grass
+v 25 3 25   grass
+
+# ============================================================================
+# ROUND 6×6 TRUNK — corner (17, 17), x=17..22, z=17..22, height 16
+# ============================================================================
+box 19 5 17    20 20 17   trunk
+box 18 5 18    21 20 18   trunk
+box 17 5 19    22 20 20   trunk
+box 18 5 21    21 20 21   trunk
+box 19 5 22    20 20 22   trunk
+
+# Root flare
+v 16 5 19   trunk
+v 16 5 20   trunk
+v 23 5 19   trunk
+v 23 5 20   trunk
+v 19 5 16   trunk
+v 20 5 16   trunk
+v 19 5 23   trunk
+v 20 5 23   trunk
+
+# ============================================================================
+# COCONUT CLUSTERS — hanging on the trunk sides at y=18..19
+# Real palms have cocos hanging from the underside of the crown.
+# ============================================================================
+v 23 19 19  coco
+v 23 19 20  coco
+v 23 18 20  coco
+v 16 19 19  coco
+v 16 19 20  coco
+v 16 18 19  coco
+v 19 19 16  coco
+v 20 19 23  coco
+
+# ============================================================================
+# CARDINAL FRONDS — wide drooping leaf plates
+# Each plate: 6 segments along the rib axis, each segment is a solid
+# row of 3..8 voxels in the perpendicular axis. Profile: rise +1, peak,
+# drop 4 to a 2-voxel tip.
+# ============================================================================
+
+# ---- Frond +X (East) — drooping leaf plate ----
+box 23 21 17   23 21 22    frond     # base, 6 wide z (level)
+box 24 22 16   24 22 23    frond     # rise + spread, 8 wide
+box 25 22 16   25 22 23    frond     # peak (still up), 8 wide
+box 26 21 17   26 21 22    frond     # drop, 6 wide
+box 27 20 18   27 20 21    frond     # drop more, 4 wide
+box 28 19 19   28 19 20    frond     # tip narrows, 2 wide
+
+# ---- Frond -X (West) — drooping leaf plate ----
+box 16 21 17   16 21 22    frond
+box 15 22 16   15 22 23    frond
+box 14 22 16   14 22 23    frond
+box 13 21 17   13 21 22    frond
+box 12 20 18   12 20 21    frond
+box 11 19 19   11 19 20    frond
+
+# ---- Frond +Z (back) — drooping leaf plate ----
+box 17 21 23   22 21 23    frond
+box 16 22 24   23 22 24    frond
+box 16 22 25   23 22 25    frond
+box 17 21 26   22 21 26    frond
+box 18 20 27   21 20 27    frond
+box 19 19 28   20 19 28    frond
+
+# ---- Frond -Z (front) — drooping leaf plate ----
+box 17 21 16   22 21 16    frond
+box 16 22 15   23 22 15    frond
+box 16 22 14   23 22 14    frond
+box 17 21 13   22 21 13    frond
+box 18 20 12   21 20 12    frond
+box 19 19 11   20 19 11    frond
+
+# ============================================================================
+# DIAGONAL FRONDS — shorter, UPRIGHT (point UP, like raised arms)
+# Each diagonal frond rises 3 voxels above trunk top, peaks, then a
+# small drop to spitz tip. SOLID 2x2 patches (not single voxels).
+# ============================================================================
+
+# ---- Frond NE (+X +Z) — upright ----
+box 22 21 22   23 21 23    frond     # base patch (2×2)
+box 23 22 23   24 22 24    frond     # rises (2×2)
+box 24 23 24   25 23 25    frond     # rises (2×2) PEAK starts
+box 25 24 25   26 24 26    frond     # PEAK high (2×2)
+box 26 23 26   27 23 27    frond     # slight drop
+v 27 22 27  frond                      # tip
+v 28 21 28  frond                      # final tip
+
+# ---- Frond NW (-X +Z) — upright ----
+box 16 21 22   17 21 23    frond
+box 15 22 23   16 22 24    frond
+box 14 23 24   15 23 25    frond
+box 13 24 25   14 24 26    frond
+box 12 23 26   13 23 27    frond
+v 12 22 27  frond
+v 11 21 28  frond
+
+# ---- Frond SE (+X -Z) — upright ----
+box 22 21 16   23 21 17    frond
+box 23 22 15   24 22 16    frond
+box 24 23 14   25 23 15    frond
+box 25 24 13   26 24 14    frond
+box 26 23 12   27 23 13    frond
+v 27 22 12  frond
+v 28 21 11  frond
+
+# ---- Frond SW (-X -Z) — upright ----
+box 16 21 16   17 21 17    frond
+box 15 22 15   16 22 16    frond
+box 14 23 14   15 23 15    frond
+box 13 24 13   14 24 14    frond
+box 12 23 12   13 23 13    frond
+v 12 22 12  frond
+v 11 21 11  frond
+

@@ -1,0 +1,46 @@
+# Tiny Palm Classic — even more compact, no extending fronds
+# A "postcard" palm: rounder sand mound, stout trunk, neat crown.
+
+material sand    top=#FFE5B0  front=#A88B52  side=#7E6740
+material wetsand top=#E8C880  front=#9C7E48  side=#6A5630
+material trunk   top=#854E2C  front=#4F2E14  side=#3A2210
+material trunkdk top=#5A3418  front=#36200E  side=#23150A
+material frondlt top=#7AE040  front=#3D8B22  side=#225E15
+material frond   top=#3D8B22  front=#225E15  side=#163E0E
+
+# ============================================================================
+# SAND BANK — more compact rounded oval, 12 × 6
+# ============================================================================
+box 3 0 1   10 0 4   sand
+box 4 0 0   9 0 5    sand
+box 2 0 2   11 0 3   sand
+box 1 0 2   1 0 3    wetsand        # west tip
+box 12 0 2  12 0 3   wetsand        # east tip
+
+# Centre raise (rounded mound)
+box 4 1 1   9 1 4    sand
+box 5 1 0   8 1 5    sand
+box 5 2 1   8 2 4    sand
+box 6 3 2   7 3 3    sand          # tiny apex
+
+# ============================================================================
+# PALM TRUNK — 2×2, 6 voxels tall, on the apex (centred at x=6..7, z=2..3)
+# ============================================================================
+box 6 4 2   7 9 3   trunk
+v 7 5 3   trunkdk
+v 7 7 3   trunkdk
+
+# ============================================================================
+# PALM CROWN — wide flat 2-tone disk, no extending fronds
+# ============================================================================
+# Main wide layer (y=10)
+box 3 10 2   10 10 3  frond         # X-arm
+box 6 10 0   7 10 5   frond         # Z-arm
+box 4 10 1   9 10 4   frond
+box 5 10 1   8 10 4   frondlt
+# Upper layer (y=11, smaller)
+box 4 11 1   9 11 4   frondlt
+box 5 11 0   8 11 5   frondlt
+box 6 11 2   7 11 3   frondlt
+# Top tuft (y=12)
+box 6 12 2   7 12 3   frondlt

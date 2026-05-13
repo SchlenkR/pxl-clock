@@ -1,0 +1,236 @@
+# Palm Island — ARCHIPELAGO (82 × 28 × 14)
+# A small archipelago: three distinct islets of decreasing size. Main
+# island in the middle (asymmetric blob), medium one to the west, small
+# one to the east. Background renders the surrounding sea.
+#
+# ROUND TRUNK convention: 4×4 with corners cut (12 voxels per layer)
+
+material sand     top=#F4E0A0  front=#A89060  side=#705D40
+material sandwet  top=#E8C880  front=#9C7E48  side=#6A5630
+material grass    top=#5A8E32  front=#365A1E  side=#243D14
+material trunk    top=#8C5A2E  front=#5A3818  side=#3A2410
+material frond    top=#3FB048  front=#1E7028  side=#104818
+material frondlt  top=#62E03A  front=#3A8E20  side=#2C7018
+material coconut  top=#5A4030  front=#3A271A  side=#251910
+material rock     top=#8E785A  front=#5C4F3D  side=#3F362A
+
+# ============================================================================
+# WEST ISLET (medium) — asymmetric oval, slightly elongated north-south
+# Position: x=4..18, z=8..20
+# ============================================================================
+box 6 1 10    16 1 18   sand
+box 8 1 8     14 1 20   sand          # extends north-south
+box 5 1 12    17 1 16   sand          # extends east-west
+box 4 1 13    18 1 15   sand          # widest at middle
+# Wet sand fringe
+box 4 1 13    4 1 15    sandwet
+box 18 1 13   18 1 15   sandwet
+box 8 1 8     8 1 8     sandwet
+box 14 1 8    14 1 8    sandwet
+box 8 1 20    8 1 20    sandwet
+box 14 1 20   14 1 20   sandwet
+# Raised sand y=2
+box 7 2 11    15 2 17   sand
+box 9 2 10    13 2 18   sand
+box 8 2 12    14 2 16   sand
+# Grass cap
+box 9 3 12    13 3 16   grass
+box 10 4 13   12 4 15   grass
+
+# ============================================================================
+# MAIN ISLET (largest, middle) — irregular blob with a small inlet
+# Position: x=28..56, z=4..24
+# ============================================================================
+# Build as overlapping bands forming an irregular oval
+box 30 1 7    54 1 21   sand
+box 32 1 5    52 1 23   sand
+box 35 1 4    50 1 24   sand          # north-south extent maxed
+box 28 1 10   56 1 18   sand          # east-west extent maxed
+box 29 1 12   55 1 16   sand          # widest at middle
+# North shore wet sand fringe
+box 41 1 23   45 1 23   sandwet
+
+# Outer wet sand fringes
+box 28 1 13   28 1 15   sandwet
+box 56 1 13   56 1 15   sandwet
+box 35 1 4    50 1 4    sandwet       # south shore
+box 41 1 24   45 1 24   sandwet       # north shore (around inlet)
+box 35 1 24   39 1 24   sandwet
+box 46 1 24   50 1 24   sandwet
+
+# Raised sand y=2
+box 32 2 8    52 2 20   sand
+box 35 2 6    49 2 22   sand
+box 30 2 11   54 2 17   sand
+# y=3 raise
+box 34 3 9    50 3 19   sand
+box 36 3 8    48 3 20   sand
+# Grass plateau
+box 36 4 10   48 4 18   grass
+box 38 4 8    46 4 20   grass
+box 38 5 11   46 5 17   grass
+box 40 6 13   44 6 15   grass         # tiny knoll
+
+# ============================================================================
+# EAST ISLET (smallest) — almost circular, perched at the east end
+# Position: x=66..78, z=10..18
+# ============================================================================
+box 68 1 12   76 1 16   sand
+box 70 1 10   74 1 18   sand          # extends north-south
+box 67 1 13   77 1 15   sand          # extends east-west
+box 66 1 14   78 1 14   sand          # very thin tip east-west
+# Wet fringe
+box 66 1 14   66 1 14   sandwet
+box 78 1 14   78 1 14   sandwet
+box 70 1 10   74 1 10   sandwet
+box 70 1 18   74 1 18   sandwet
+# Raised
+box 69 2 13   75 2 15   sand
+box 71 2 12   73 2 16   sand
+# Grass cap
+box 71 3 13   73 3 15   grass
+v 72 4 14   grass
+
+# ============================================================================
+# WEST ISLET PALMS (2 palms)
+# ============================================================================
+
+# ---- Palm A: tall main palm on west islet
+# Trunk corner at (10, 12), 4×4, height 9
+box 11 1 12   12 9 15   trunk
+box 10 1 13   10 9 14   trunk
+box 13 1 13   13 9 14   trunk
+box 7 10 12   16 10 15  frond
+box 10 10 9   13 10 18  frond
+box 8 10 11   15 10 16  frond
+box 9 10 10   14 10 17  frond
+box 9 11 12   14 11 15  frondlt
+box 10 11 11  13 11 16  frondlt
+box 11 12 13  12 12 14  frondlt
+v 11 13 13  frondlt
+v 7 9 13   coconut
+v 16 9 14  coconut
+
+# ---- Palm B: smaller, west side of islet
+# Trunk corner at (5, 13), height 7
+box 6 1 13    7 7 16    trunk
+box 5 1 14    5 7 15    trunk
+box 8 1 14    8 7 15    trunk
+box 3 8 13    10 8 16   frond
+box 6 8 11    7 8 18    frond
+box 4 8 12    9 8 17    frond
+box 6 9 13    7 9 16    frondlt
+box 5 9 14    8 9 15    frondlt
+v 6 10 14   frondlt
+v 7 10 15   frondlt
+v 3 7 14   coconut
+v 10 7 15  coconut
+
+# ============================================================================
+# MAIN ISLET PALMS (4 palms)
+# ============================================================================
+
+# ---- Palm C: tall hero palm on main islet (center grass)
+# Trunk corner at (41, 13), height 10
+box 42 1 13   43 10 16  trunk
+box 41 1 14   41 10 15  trunk
+box 44 1 14   44 10 15  trunk
+# Big lush canopy y=11
+box 38 11 13  47 11 16  frond
+box 41 11 10  44 11 19  frond
+box 39 11 12  46 11 17  frond
+box 40 11 11  45 11 18  frond
+# Upper y=12
+box 40 12 13  45 12 16  frondlt
+box 41 12 12  44 12 17  frondlt
+box 42 12 11  43 12 18  frondlt
+# Top tuft y=13
+box 42 13 14  43 13 15  frondlt
+v 38 10 14  coconut
+v 38 10 15  coconut
+v 47 10 14  coconut
+v 47 10 15  coconut
+
+# ---- Palm D: south side of main islet
+# Trunk corner at (38, 6), height 8
+box 39 1 6    40 8 9    trunk
+box 38 1 7    38 8 8    trunk
+box 41 1 7    41 8 8    trunk
+box 35 9 6    44 9 9    frond
+box 38 9 4    41 9 11   frond
+box 36 9 5    43 9 10   frond
+box 38 10 6   41 10 9   frondlt
+box 39 10 5   40 10 10  frondlt
+box 39 11 7   40 11 8   frondlt
+v 35 8 7   coconut
+v 44 8 8   coconut
+
+# ---- Palm E: north side of main islet (near inlet)
+# Trunk corner at (35, 19), height 8
+box 36 1 19   37 8 22   trunk
+box 35 1 20   35 8 21   trunk
+box 38 1 20   38 8 21   trunk
+box 33 9 19   40 9 22   frond
+box 36 9 17   39 9 24   frond
+box 34 9 18   41 9 23   frond
+box 36 10 19  39 10 22  frondlt
+box 37 10 18  38 10 23  frondlt
+box 36 11 20  39 11 21  frondlt
+v 33 8 20  coconut
+v 41 8 21  coconut
+
+# ---- Palm F: east side of main islet
+# Trunk corner at (50, 13), height 8
+box 51 1 13   52 8 16   trunk
+box 50 1 14   50 8 15   trunk
+box 53 1 14   53 8 15   trunk
+box 48 9 13   55 9 16   frond
+box 51 9 11   54 9 18   frond
+box 49 9 12   56 9 17   frond
+box 51 10 13  54 10 16  frondlt
+box 52 10 12  53 10 17  frondlt
+box 51 11 14  54 11 15  frondlt
+v 48 8 14  coconut
+v 56 8 15  coconut
+
+# ============================================================================
+# EAST ISLET PALMS (2 small palms)
+# ============================================================================
+
+# ---- Palm G: main palm on east islet
+# Trunk corner at (70, 12), height 7
+box 71 1 12   72 7 15   trunk
+box 70 1 13   70 7 14   trunk
+box 73 1 13   73 7 14   trunk
+box 68 8 12   75 8 15   frond
+box 71 8 10   72 8 17   frond
+box 69 8 11   74 8 16   frond
+box 71 9 12   74 9 15   frondlt
+box 70 9 13   73 9 14   frondlt
+v 71 10 13  frondlt
+v 72 10 14  frondlt
+v 68 7 13  coconut
+v 75 7 14  coconut
+
+# ---- Palm H: small leaning palm at east tip of east islet
+# Trunk corner at (74, 13), height 6
+box 75 1 13   76 6 16   trunk
+box 74 1 14   74 6 15   trunk
+box 77 1 14   77 6 15   trunk
+box 72 7 13   79 7 16   frond
+box 75 7 11   76 7 18   frond
+box 73 7 12   78 7 17   frond
+box 75 8 13   78 8 16   frondlt
+box 76 8 12   77 8 17   frondlt
+v 75 9 14   frondlt
+v 76 9 15   frondlt
+
+# ============================================================================
+# Rocks scattered at islet edges
+# ============================================================================
+box 4 1 12    5 2 12    rock          # west islet south rocks
+box 18 1 16   18 2 17   rock          # west islet east rocks
+box 28 1 11   29 2 12   rock          # main islet southwest rocks
+box 55 1 16   56 2 18   rock          # main islet east rocks
+box 78 1 13   79 2 14   rock          # east islet east rocks
+box 66 1 13   67 2 13   rock          # east islet west rocks

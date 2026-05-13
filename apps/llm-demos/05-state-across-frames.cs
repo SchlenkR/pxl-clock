@@ -42,7 +42,7 @@ for (int i = 0; i < 30; i++)
 
 // === SCENE: read state, mutate state, draw state ===
 
-var scene = (DrawingContext ctx) =>
+var scene = (RasterSurface ctx) =>
 {
     ctx.DrawBackground(Colors.Black);
 

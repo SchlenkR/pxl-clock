@@ -1,0 +1,151 @@
+# Palm Island #5 — TREFOIL / 3-LOBE shape (52 × 22 × 11)
+# Three rounded lobes radiating from a common center, like a clover.
+# West lobe and north lobe are bigger, southeast lobe smaller. The
+# inner gaps between lobes form little coves of shallow water.
+
+material sand     top=#F4E0A0  front=#A89060  side=#705D40
+material sandwet  top=#E8C880  front=#9C7E48  side=#6A5630
+material grass    top=#5A8E32  front=#365A1E  side=#243D14
+material trunk    top=#8C5A2E  front=#5A3818  side=#3A2410
+material frond    top=#3FB048  front=#1E7028  side=#104818
+material frondlt  top=#62E03A  front=#3A8E20  side=#2C7018
+material coconut  top=#5A4030  front=#3A271A  side=#251910
+material rock     top=#8E785A  front=#5C4F3D  side=#3F362A
+
+# ============================================================================
+# CENTER HUB — joins all three lobes
+# ============================================================================
+box 19 1 9    28 1 14   sand
+box 20 1 8    27 1 15   sand
+box 22 1 7    25 1 16   sand
+
+# ============================================================================
+# WEST LOBE (big)
+# ============================================================================
+box 8 1 8    20 1 14   sand
+box 10 1 7   19 1 15   sand
+box 12 1 6   18 1 16   sand
+box 14 1 5   17 1 17   sand     # northwest bulge
+
+# ============================================================================
+# NORTH LOBE (big, points toward +z)
+# ============================================================================
+box 19 1 14   28 1 21   sand
+box 20 1 13   27 1 21   sand
+box 21 1 12   26 1 21   sand
+box 22 1 13   25 1 21   sand    # tapering up
+box 23 1 17   24 1 21   sand    # tip
+
+# ============================================================================
+# SOUTHEAST LOBE (smaller, points toward +x slightly down)
+# ============================================================================
+box 27 1 5    38 1 12   sand
+box 29 1 6    40 1 11   sand
+box 32 1 7    42 1 10   sand
+box 36 1 7    43 1 10   sand     # tip
+
+# ============================================================================
+# COVES between lobes — leave as shallow (already shallow above)
+# West cove: between west and north lobe (around x=18..21, z=15..18)
+# East cove: between north and southeast lobe (around x=28..32, z=12..16)
+# South cove: between west and southeast (around x=20..28, z=4..7)
+# (These are naturally water because no sand placed there)
+
+# ============================================================================
+# WET SAND fringes at lobe shores
+# ============================================================================
+box 8 1 9    8 1 13    sandwet     # west tip waterline
+box 25 1 21  26 1 21   sandwet     # north tip waterline
+box 42 1 8   43 1 9    sandwet     # southeast tip waterline
+# Cove waterlines
+box 20 1 17  21 1 17   sandwet
+box 28 1 13  29 1 13   sandwet
+box 23 1 6   24 1 6    sandwet
+
+# ============================================================================
+# RAISED SAND y=2 — smaller mounds on each lobe
+# ============================================================================
+box 11 2 8    18 2 14   sand     # west lobe mound
+box 21 2 14   26 2 20   sand     # north lobe mound
+box 30 2 7    39 2 11   sand     # southeast lobe mound
+box 21 2 9    26 2 14   sand     # central hub mound
+
+# ============================================================================
+# GRASS caps on the higher lobe centers
+# ============================================================================
+box 13 3 9    17 3 13   grass
+box 22 3 15   26 3 19   grass
+box 32 3 8    37 3 10   grass
+box 22 3 10   26 3 13   grass     # central hub grass
+
+# Tiny extra mound on west lobe
+box 14 4 10   16 4 12   grass
+
+# ============================================================================
+# PALMS — one per lobe, plus one in the center
+# ============================================================================
+
+# ---- Palm A: tall, west lobe ----
+box 14 1 10   15 8 11   trunk
+box 14 9 10   15 9 11   trunk
+box 11 9 10   18 9 11   frond
+box 14 9 7    15 9 14   frond
+box 13 10 10  16 10 11  frondlt
+box 14 10 9   15 10 12  frondlt
+v 14 11 10  frondlt
+v 15 11 11  frondlt
+v 13 8 10  coconut
+v 16 8 11  coconut
+
+# ---- Palm B: tall, north lobe ----
+box 23 1 17   24 8 18   trunk
+box 23 9 17   24 9 18   trunk
+box 20 9 17   27 9 18   frond
+box 23 9 14   24 9 21   frond
+box 22 10 17  25 10 18  frondlt
+box 23 10 16  24 10 19  frondlt
+v 23 11 17  frondlt
+v 24 11 18  frondlt
+v 22 8 17  coconut
+v 25 8 18  coconut
+
+# ---- Palm C: medium, southeast lobe ----
+box 34 1 8    35 6 9    trunk
+box 32 7 8   37 7 9    frond
+box 34 7 6   35 7 11   frond
+box 33 8 8   36 8 9    frondlt
+v 34 9 8   frondlt
+v 35 9 9   frondlt
+v 33 6 8   coconut
+v 36 6 9   coconut
+
+# ---- Palm D: small, central hub ----
+box 23 1 11   24 5 12   trunk
+box 21 6 11  26 6 12   frond
+box 23 6 9   24 6 14   frond
+v 23 7 11  frondlt
+v 24 7 12  frondlt
+
+# ---- Palm E: small leaning palm at west-lobe outer tip ----
+box 9 1 11    10 4 12   trunk
+box 7 5 11   12 5 12   frond
+box 9 5 10   10 5 13   frond
+v 9 6 11   frondlt
+v 10 6 12  frondlt
+
+# ---- Palm F: small leaning palm at southeast-lobe tip ----
+box 41 1 8    42 3 9    trunk
+box 39 4 8   43 4 9    frond
+box 41 4 7   42 4 10   frond
+v 41 5 8   frondlt
+v 42 5 9   frondlt
+
+# ============================================================================
+# Rocks in the coves (small breakwaters)
+# ============================================================================
+box 19 1 17   20 1 18   rock
+box 28 1 12   29 1 12   rock
+box 27 1 6    28 1 6    rock
+# Outer shore rocks
+box 8 1 8    9 1 8    rock
+box 23 1 21   24 1 21   rock

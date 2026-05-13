@@ -23,7 +23,7 @@ for (var i = 0; i < stars.Length; i++)
     );
 }
 
-var scene = (DrawingContext ctx) =>
+var scene = (RasterSurface ctx) =>
 {
     ctx.DrawBackground(Colors.Black);
 

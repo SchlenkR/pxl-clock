@@ -5,7 +5,7 @@
 // description: All primitive shape APIs in one scene — background, rect, circle, line, point, arc
 // ---
 
-// INTENT: Show every drawing primitive on `DrawingContext` in one place so an LLM
+// INTENT: Show every drawing primitive on `RasterSurface` in one place so an LLM
 // can pick the right one for a given task. This is the "what's in the toolbox"
 // reference. Each shape is drawn once, labelled by position so you can see what
 // each call produces.
@@ -14,7 +14,7 @@
 
 using Pxl.Ui.CSharp;
 
-var scene = (DrawingContext ctx) =>
+var scene = (RasterSurface ctx) =>
 {
     // Background fills the entire 24x24 canvas. Always clear first — pixels
     // from previous frames otherwise persist (you'd see motion trails).

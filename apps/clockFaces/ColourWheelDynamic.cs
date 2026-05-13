@@ -16,7 +16,7 @@ var bgColor = Color.FromHsv360(195, 0.9, 0.2).WithAlpha(0.4);
 var pixels = new Color[576];
 var lastSecond = -1;
 
-var scene = (DrawingContext ctx) =>
+var scene = (RasterSurface ctx) =>
 {
     var now = ctx.Now;
     var second = now.Second;

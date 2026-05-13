@@ -14,7 +14,7 @@ var particles = new Particle[20];
 for (var i = 0; i < particles.Length; i++)
     particles[i] = Particle.CreateRandom(random);
 
-var scene = (DrawingContext ctx) =>
+var scene = (RasterSurface ctx) =>
 {
     ctx.DrawBackground(Colors.Black);
 
@@ -39,7 +39,7 @@ class Particle
         X += Math.Sin(Y * 0.3) * 0.2;
     }
 
-    public void Draw(DrawingContext ctx)
+    public void Draw(RasterSurface ctx)
     {
         var fade = 1.0 - (Y / 24.0);
         ctx.DrawPoint(X, Y, Color.FromHsl360(Hue, 100, 50 * fade));

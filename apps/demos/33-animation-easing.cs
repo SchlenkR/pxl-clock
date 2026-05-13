@@ -19,7 +19,7 @@ var easeInOut = Animate.EaseInOut(3, 0, 28, repeat: Repeat.Loop);
 // Toggle the label color every 0.8 seconds
 var labelColor = Animate.ToggleValues(0.8, Colors.White, Colors.Gray);
 
-var scene = (DrawingContext ctx) =>
+var scene = (RasterSurface ctx) =>
 {
     ctx.DrawBackground(Colors.Black);
 

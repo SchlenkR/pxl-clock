@@ -10,7 +10,7 @@
 
 using Pxl.Ui.CSharp;
 
-var scene = (DrawingContext ctx) =>
+var scene = (RasterSurface ctx) =>
 {
     // Draw a single white pixel at position (12, 12)
     ctx.SetPixel(12, 12, Colors.White);

@@ -16,7 +16,7 @@ var logo = Image.LoadSingleImage("assets/logo.png");
 // Optional: resize to fit the display
 var resized = logo.Resize(32, 24);
 
-var scene = (DrawingContext ctx) =>
+var scene = (RasterSurface ctx) =>
 {
     ctx.DrawBackground(Colors.Black);
     ctx.DrawImage(resized, 0, 0);

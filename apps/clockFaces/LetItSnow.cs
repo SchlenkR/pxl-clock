@@ -122,7 +122,7 @@ var world = CreateWorld(DateTime.Now);
 var lastMinute = -1;
 var lastHalfSec = -1;
 
-var scene = (DrawingContext ctx) =>
+var scene = (RasterSurface ctx) =>
 {
     var now = ctx.Now;
     var halfSec = now.Millisecond / 500;

@@ -12,7 +12,7 @@ using Pxl.Ui.CSharp;
 
 var zoom = Animate.EaseInOut(3, 1, 4, repeat: Repeat.PingPong);
 
-var scene = (DrawingContext ctx) =>
+var scene = (RasterSurface ctx) =>
 {
     ctx.DrawBackground(Colors.Black);
 

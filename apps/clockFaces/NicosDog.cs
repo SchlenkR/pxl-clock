@@ -85,7 +85,7 @@ static Color CharToColor(char c) => c switch
 Color[]? cachedPixels = null;
 var lastSecond = -1;
 
-var scene = (DrawingContext ctx) =>
+var scene = (RasterSurface ctx) =>
 {
     var now = ctx.Now;
     var sec = now.Second;

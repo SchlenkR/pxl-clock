@@ -13,7 +13,7 @@ var grid = new Grid(24, 24);
 grid.Randomize(new Random(123), density: 0.3);
 double lastStep = -1;
 
-var scene = (DrawingContext ctx) =>
+var scene = (RasterSurface ctx) =>
 {
     ctx.DrawBackground(Colors.Black);
 

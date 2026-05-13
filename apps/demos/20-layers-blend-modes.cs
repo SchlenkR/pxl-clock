@@ -10,7 +10,7 @@
 
 using Pxl.Ui.CSharp;
 
-var scene = (DrawingContext ctx) =>
+var scene = (RasterSurface ctx) =>
 {
     // Draw colorful background
     ctx.DrawRectXyWh(0, 0, 12, 24, colorFill: Colors.Red);

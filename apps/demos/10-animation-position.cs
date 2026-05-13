@@ -13,7 +13,7 @@ using Pxl.Ui.CSharp;
 // State variable - lives outside the scene, persists between frames
 double x = 0;
 
-var scene = (DrawingContext ctx) =>
+var scene = (RasterSurface ctx) =>
 {
     ctx.DrawBackground(Colors.Black);
 

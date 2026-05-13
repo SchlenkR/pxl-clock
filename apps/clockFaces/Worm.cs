@@ -37,7 +37,7 @@ var points = new List<(double X, double Y)> { (rand.NextDouble() * 24, rand.Next
 var lastTick = -1;
 var lastMinute = -1;
 
-var scene = (DrawingContext ctx) =>
+var scene = (RasterSurface ctx) =>
 {
     var now = ctx.Now;
     var tick = now.Millisecond / 100;

@@ -21,7 +21,7 @@ var handPos = new (int x, int y)[]
     (2,5),(2,4),(3,4),(3,3),(4,3),(5,2),(6,2),(7,1),(8,1),(9,0)
 };
 
-var scene = (DrawingContext ctx) =>
+var scene = (RasterSurface ctx) =>
 {
     var now = ctx.Now;
     var hour = now.Hour;

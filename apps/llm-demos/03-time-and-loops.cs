@@ -6,7 +6,7 @@
 // ---
 
 // INTENT: Every animated pixogram needs to react to time. The runtime exposes
-// three time sources on `DrawingContext` — pick the right one for the job:
+// three time sources on `RasterSurface` — pick the right one for the job:
 //
 //   ctx.Elapsed    TimeSpan since the scene started — for smooth analogue motion
 //                  (Sin/Cos based on TotalSeconds).
@@ -23,7 +23,7 @@
 
 using Pxl.Ui.CSharp;
 
-var scene = (DrawingContext ctx) =>
+var scene = (RasterSurface ctx) =>
 {
     ctx.DrawBackground(Colors.Black);
 

@@ -12,7 +12,7 @@ using Pxl.Ui.CSharp;
 
 var offsets = new[] { 10, 4, 17, 7, 12, 1, 13, 19, 9, 14, 1, 7, 18, 9, 5, 17, 8, 4, 9, 19, 2, 6, 13, 17 };
 
-var scene = (DrawingContext ctx) =>
+var scene = (RasterSurface ctx) =>
 {
     var now = ctx.Now;
     var step = now.Second % 24;

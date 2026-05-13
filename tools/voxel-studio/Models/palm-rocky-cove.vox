@@ -1,0 +1,58 @@
+# Palm Rocky Cove — palm growing from between dark grey rocks on a small
+# sand spit. Moodier than the classic tropical look.
+
+material sand    top=#FFE5B0  front=#A88B52  side=#7E6740
+material wetsand top=#E8C880  front=#9C7E48  side=#6A5630
+material trunk   top=#7C4828  front=#4F2E14  side=#3A2210
+material trunkhi top=#A56838  front=#6E3F1C  side=#4A2A14
+material frondlt top=#7AE040  front=#3D8B22  side=#225E15
+material frond   top=#3D8B22  front=#225E15  side=#163E0E
+material rock    top=#7E7060  front=#4F4438  side=#332A22
+material rockdk  top=#5A4F40  front=#382F22  side=#231D14
+material moss    top=#5A8E32  front=#2D5A18  side=#1B3A10
+
+# ============================================================================
+# Sand spit (smaller than the classic, ~10 wide × 5 deep)
+# ============================================================================
+box 3 0 1   10 0 4   sand
+box 4 0 0   9 0 5    sand
+box 2 0 2   11 0 3   sand
+box 1 0 2   1 0 3    wetsand
+box 12 0 2  12 0 3   wetsand
+
+# ============================================================================
+# ROCKS — flank the palm on both sides
+# ============================================================================
+# Left rock cluster
+box 3 1 1   4 2 4   rock
+box 3 3 2   4 3 3   rockdk
+v 3 4 2  rockdk
+v 4 4 3  rockdk
+v 3 3 1  moss      # green moss patch
+v 3 3 4  moss
+
+# Right rock cluster (smaller)
+box 9 1 1   10 1 4  rock
+box 9 2 2   10 2 3  rockdk
+v 9 3 2   moss
+v 10 3 3  moss
+
+# ============================================================================
+# PALM TRUNK — between the rocks, 2×2, 7 tall (centred at x=6..7, z=2..3)
+# ============================================================================
+box 6 1 2   7 8 3   trunk
+v 7 2 3  trunkhi
+v 7 4 3  trunkhi
+v 7 6 3  trunkhi
+
+# ============================================================================
+# PALM CROWN — 2-tier, lower than usual (palm starts higher because rocks)
+# ============================================================================
+box 3 9 2    10 9 3   frond
+box 6 9 0    7 9 5    frond
+box 4 9 1    9 9 4    frond
+box 5 9 1    8 9 4    frondlt
+box 4 10 1   9 10 4   frondlt
+box 5 10 0   8 10 5   frondlt
+box 6 10 2   7 10 3   frondlt
+box 6 11 2   7 11 3   frondlt

@@ -1,0 +1,171 @@
+# Palm Island — CRESCENT (75 × 28 × 14)
+# A crescent / C-shape island opening to the east, enclosing a turquoise
+# bay. Higher resolution: trunks are 4×4 with corners cut (octagonal),
+# canopies are 8×8 disks with smaller upper layers and top tufts.
+#
+# ROUND TRUNK convention (4x4 with corners cut):
+#   .XX.
+#   XXXX  → 3 box commands per trunk:
+#   XXXX     1) center 2-wide vertical band (full height)
+#   .XX.     2) left edge column (2 voxels deep)
+#            3) right edge column (2 voxels deep)
+
+material sand     top=#F4E0A0  front=#A89060  side=#705D40
+material sandwet  top=#E8C880  front=#9C7E48  side=#6A5630
+material grass    top=#5A8E32  front=#365A1E  side=#243D14
+material trunk    top=#8C5A2E  front=#5A3818  side=#3A2410
+material frond    top=#3FB048  front=#1E7028  side=#104818
+material frondlt  top=#62E03A  front=#3A8E20  side=#2C7018
+material coconut  top=#5A4030  front=#3A271A  side=#251910
+material rock     top=#8E785A  front=#5C4F3D  side=#3F362A
+
+# ============================================================================
+# CRESCENT FOOTPRINT y=1 — built from overlapping bands forming a C
+# ============================================================================
+# --- Spine (left back of the C) ---
+box 1 1 5    7 1 22   sand
+box 0 1 9    7 1 18   sand          # bulges outward at mid-height
+box 2 1 4    8 1 23   sand
+
+# --- Bottom arm (curves out to the right) ---
+box 4 1 2    24 1 7   sand
+box 7 1 1    22 1 8   sand
+box 20 1 2   30 1 7   sand
+box 25 1 3   33 1 8   sand          # rounded right end (lower horn)
+box 28 1 5   34 1 9   sand
+
+# --- Top arm (mirror of bottom arm) ---
+box 4 1 20   24 1 25  sand
+box 7 1 19   22 1 26  sand
+box 20 1 20  30 1 25  sand
+box 25 1 19  33 1 24  sand          # rounded right end (upper horn)
+box 28 1 18  34 1 22  sand
+
+# --- Spine corners (rounding) ---
+box 3 1 3    8 1 5    sand
+box 3 1 22   8 1 24   sand
+
+# --- Wet sand fringes along bay shore ---
+box 8 1 8    8 1 19   sandwet       # spine bay-side
+box 9 1 7    24 1 7   sandwet       # bottom arm bay-side
+box 9 1 20   24 1 20  sandwet       # top arm bay-side
+box 25 1 9   28 1 9   sandwet       # lower horn inner
+box 25 1 18  28 1 18  sandwet       # upper horn inner
+box 30 1 10  31 1 17  sandwet       # bay opening east edge
+
+# ============================================================================
+# RAISED SAND y=2 — interior plateau
+# ============================================================================
+box 3 2 5    6 2 22   sand          # spine plateau
+box 8 2 3    22 2 6   sand          # bottom arm plateau
+box 8 2 21   22 2 24  sand          # top arm plateau
+box 22 2 4   29 2 7   sand          # lower horn plateau
+box 22 2 20  29 2 23  sand          # upper horn plateau
+box 30 2 6   32 2 8   sand
+box 30 2 19  32 2 21  sand
+
+# y=3 grass cap on the spine middle
+box 4 3 8    5 3 19   grass
+box 3 3 11   6 3 16   grass
+box 4 4 13   5 4 14   grass         # tiny extra mound
+
+# Grass patches on arms
+box 11 3 4   17 3 5   grass
+box 11 3 22  17 3 23  grass
+
+# ============================================================================
+# PALM A — tall central palm on spine grass mound
+# Trunk corner at (3, 12), 4×4, height 9
+# ============================================================================
+box 4 1 12    5 9 15   trunk
+box 3 1 13    3 9 14   trunk
+box 6 1 13    6 9 14   trunk
+# Canopy lower disk y=10 (8×8 octagon centered around 4.5/13.5)
+box 1 10 12    8 10 15   frond
+box 3 10 10    6 10 17   frond
+box 2 10 11    7 10 16   frond
+# Canopy upper layer y=11 (smaller)
+box 3 11 12    6 11 15   frondlt
+box 4 11 11    5 11 16   frondlt
+# Top tuft y=12
+box 4 12 13    5 12 14   frondlt
+# Coconut cluster at trunk top
+v 2 9 13   coconut
+v 2 9 14   coconut
+v 7 9 14   coconut
+
+# ============================================================================
+# PALM B — bottom arm, mid-length
+# Trunk corner at (12, 3), 4×4, height 8
+# ============================================================================
+box 13 1 3    14 8 6    trunk
+box 12 1 4    12 8 5    trunk
+box 15 1 4    15 8 5    trunk
+# Canopy y=9
+box 10 9 3    17 9 6    frond
+box 12 9 1    15 9 8    frond
+box 11 9 2    16 9 7    frond
+# Upper canopy y=10
+box 12 10 3   15 10 6   frondlt
+box 13 10 2   14 10 7   frondlt
+# Top tuft
+box 13 11 4   14 11 5   frondlt
+v 11 8 4   coconut
+v 16 8 5   coconut
+
+# ============================================================================
+# PALM C — top arm, mid-length (mirror of Palm B)
+# Trunk corner at (12, 21), height 8
+# ============================================================================
+box 13 1 21   14 8 24   trunk
+box 12 1 22   12 8 23   trunk
+box 15 1 22   15 8 23   trunk
+# Canopy
+box 10 9 21   17 9 24   frond
+box 12 9 19   15 9 26   frond
+box 11 9 20   16 9 25   frond
+box 12 10 21  15 10 24  frondlt
+box 13 10 20  14 10 25  frondlt
+box 13 11 22  14 11 23  frondlt
+v 11 8 22  coconut
+v 16 8 23  coconut
+
+# ============================================================================
+# PALM D — lower horn (right tip of bottom arm), height 7
+# Trunk corner at (25, 4)
+# ============================================================================
+box 26 1 4    27 7 7    trunk
+box 25 1 5    25 7 6    trunk
+box 28 1 5    28 7 6    trunk
+# Canopy
+box 23 8 4    30 8 7    frond
+box 25 8 2    28 8 9    frond
+box 24 8 3    29 8 8    frond
+box 25 9 4    28 9 7    frondlt
+box 26 9 3    27 9 8    frondlt
+box 26 10 5   27 10 6   frondlt
+v 24 7 5   coconut
+v 29 7 6   coconut
+
+# ============================================================================
+# PALM E — upper horn (right tip of top arm), height 7
+# Trunk corner at (25, 20)
+# ============================================================================
+box 26 1 20   27 7 23   trunk
+box 25 1 21   25 7 22   trunk
+box 28 1 21   28 7 22   trunk
+box 23 8 20   30 8 23   frond
+box 25 8 18   28 8 25   frond
+box 24 8 19   29 8 24   frond
+box 25 9 20   28 9 23   frondlt
+box 26 9 19   27 9 24   frondlt
+box 26 10 21  27 10 22  frondlt
+v 24 7 22  coconut
+v 29 7 21  coconut
+
+# ============================================================================
+# Rocks at bay entrance (between the two horns)
+# ============================================================================
+box 32 1 12   33 2 13   rock
+box 32 1 15   33 2 16   rock
+box 8 1 13    9 2 14    rock        # rock at back of bay (against spine)

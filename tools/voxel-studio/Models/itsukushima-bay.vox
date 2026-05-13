@@ -1,0 +1,143 @@
+# Itsukushima Torii Bay — LONG along X (48 wide × 16 deep × 14 high)
+# The famous floating vermillion torii standing in tidal water (left half),
+# a sand/grass island with a Shinto shrine and a steep wooded hill behind.
+# Asymmetric footprint: water on the left transitioning to land that bulges
+# out in the middle, with a small back-cove on the upper right.
+
+material torii      top=#D8482C  front=#8C2E1C  side=#5C1F12
+material toriidark  top=#A03A22  front=#65221A  side=#42180E
+material sand       top=#F4E0A0  front=#A89060  side=#705D40
+material grass      top=#5A8E32  front=#365A1E  side=#243D14
+material treeleaf   top=#1E5C26  front=#103516  side=#0A1E0E
+material treetrunk  top=#5A4030  front=#3A271A  side=#251910
+material shrinewall top=#F0EAD8  front=#A8A088  side=#76705F
+material shrineroof top=#922820  front=#611A14  side=#400F0C
+material wood       top=#9C5C32  front=#603418  side=#42230F
+material rock       top=#7A6E5A  front=#4A4030  side=#322B1F
+
+# ============================================================================
+# THE GREAT TORII — vermillion gateway standing in the bay (x=4..10)
+# Pillars 2 voxels thick, slightly leaning inward.
+# ============================================================================
+# Two main pillars
+box 4 1 7   5 8 8   torii     # left pillar
+box 9 1 7   10 8 8  torii     # right pillar
+
+# Lower horizontal beam (nuki) — between pillars
+box 5 8 7   9 8 8   torii
+
+# Upper horizontal beam (kasagi) — wider, with upturned ends
+box 3 10 7   11 10 8   torii
+box 2 11 7   12 11 8   torii
+box 1 11 7   1 11 8   toriidark   # left upturn tip
+box 13 11 7  13 11 8   toriidark   # right upturn tip
+v 0 11 7  torii
+v 0 11 8  torii
+v 14 11 7 torii
+v 14 11 8 torii
+
+# Center plaque at top
+v 7 9 7  toriidark
+v 7 9 8  toriidark
+v 8 9 7  toriidark
+v 8 9 8  toriidark
+
+# ============================================================================
+# ISLAND — asymmetric footprint, bulges out in the middle, recedes at top-right
+# ============================================================================
+# Sand beach (irregular shoreline)
+box 17 0 1   20 0 14   sand
+box 19 0 0   28 0 15   sand    # main island bulges to the front
+box 26 0 2   38 0 13   sand
+box 36 0 4   45 0 11   sand    # narrows to the right
+box 43 0 6   47 0 10   sand    # tip
+
+# Grass plateau on top of sand
+box 19 1 3   28 1 13   grass
+box 26 1 4   38 1 12   grass
+box 36 1 5   43 1 10   grass
+
+# Inner higher grass mound
+box 21 2 5   28 2 12   grass
+box 27 2 6   34 2 11   grass
+
+# ============================================================================
+# WOODED HILL behind the shrine (x=22..38, z=12..14)
+# ============================================================================
+box 22 2 12   38 3 14   grass
+box 24 4 13   36 5 14   grass
+box 28 6 14   34 7 14   grass
+v 30 8 14   grass
+v 31 8 14   grass
+v 32 8 14   grass
+
+# Trees on the hill
+v 24 6 13   treetrunk
+v 23 7 13   treeleaf
+v 24 7 13   treeleaf
+v 25 7 13   treeleaf
+v 24 7 12   treeleaf
+v 24 7 14   treeleaf
+v 24 8 13   treeleaf
+
+v 34 6 13   treetrunk
+v 33 7 13   treeleaf
+v 34 7 13   treeleaf
+v 35 7 13   treeleaf
+v 34 7 12   treeleaf
+v 34 7 14   treeleaf
+v 34 8 13   treeleaf
+
+v 28 5 11   treetrunk
+v 27 6 11   treeleaf
+v 28 6 11   treeleaf
+v 29 6 11   treeleaf
+v 28 6 10   treeleaf
+v 28 6 12   treeleaf
+
+# ============================================================================
+# SHRINE COMPLEX (x=29..36, z=6..10) — main hall + small auxiliary hall
+# ============================================================================
+# Raised wood platform
+box 29 3 6   36 3 10   wood
+# Whitewashed walls
+box 29 4 6   36 6 10   shrinewall
+# Door (dark wood)
+v 32 4 6   wood
+v 33 4 6   wood
+# Curved wide-eave dark-red roof (3 stepped layers)
+box 27 7 5   38 7 11   shrineroof
+box 28 8 6   37 8 10   shrineroof
+box 30 9 7   35 9 9   shrineroof
+box 31 10 8  34 10 9   shrineroof
+
+# Small auxiliary shrine (left of main)
+box 22 3 7   24 3 9   wood
+box 22 4 7   24 5 9   shrinewall
+box 21 6 6   25 6 10  shrineroof
+box 22 7 7   24 7 9   shrineroof
+
+# ============================================================================
+# Small inner torii at the path entrance to the shrine (x=18, on the beach)
+# ============================================================================
+v 18 1 7   torii
+v 18 1 8   torii
+v 18 2 7   torii
+v 18 2 8   torii
+v 18 3 7   torii
+v 18 3 8   torii
+v 18 4 7   torii
+v 18 4 8   torii
+# Top beam
+box 17 5 7   19 5 8   torii
+
+# Stone path from inner torii toward the main shrine
+v 20 2 7   rock
+v 22 2 7   rock
+v 24 2 7   rock
+v 26 2 7   rock
+v 28 2 7   rock
+
+# Lone bonsai-like rock on the front shore
+v 33 1 1   rock
+v 32 1 1   rock

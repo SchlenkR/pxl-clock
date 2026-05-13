@@ -1,0 +1,134 @@
+# Palm Island #4 — DEEP BAY (54 × 22 × 11)
+# A large island with a deep V-shaped bay cut into its southern shore.
+# Two "horns" of land flank the bay opening. C/horseshoe shape from above.
+# Background renders the sea (also filling the bay).
+
+material sand     top=#F4E0A0  front=#A89060  side=#705D40
+material sandwet  top=#E8C880  front=#9C7E48  side=#6A5630
+material grass    top=#5A8E32  front=#365A1E  side=#243D14
+material trunk    top=#8C5A2E  front=#5A3818  side=#3A2410
+material frond    top=#3FB048  front=#1E7028  side=#104818
+material frondlt  top=#62E03A  front=#3A8E20  side=#2C7018
+material coconut  top=#5A4030  front=#3A271A  side=#251910
+material rock     top=#8E785A  front=#5C4F3D  side=#3F362A
+
+# ============================================================================
+# C-SHAPED SAND FOOTPRINT y=1
+# Built directly as a C (no carving): two horns + north arc, bay open to south
+# ============================================================================
+
+# --- West horn (left side of bay) ---
+box 9 1 7    18 1 17   sand
+box 11 1 6   17 1 18   sand
+box 13 1 5   16 1 19   sand
+box 16 1 4   17 1 20   sand    # tip extending south
+
+# --- East horn (right side of bay) ---
+box 33 1 7   44 1 17   sand
+box 34 1 6   42 1 18   sand
+box 35 1 5   40 1 19   sand
+box 35 1 4   37 1 20   sand    # tip extending south
+
+# --- North arc (connecting the horns over the top of the bay) ---
+box 18 1 14  34 1 17   sand
+box 19 1 13  31 1 18   sand
+box 23 1 12  30 1 20   sand    # northern bulge
+box 19 1 18  31 1 20   sand    # back-spine
+
+# --- Wet sand fringe at bay shore (interior of the C) ---
+box 18 1 7   18 1 11   sandwet
+box 33 1 7   33 1 11   sandwet
+box 19 1 12  20 1 12   sandwet
+box 31 1 12  32 1 12   sandwet
+box 21 1 13  22 1 13   sandwet
+box 29 1 13  30 1 13   sandwet
+
+# ============================================================================
+# RAISED SAND y=2
+# ============================================================================
+# West horn
+box 11 2 9    16 2 16   sand
+box 13 2 8    15 2 17   sand
+# East horn
+box 35 2 9    42 2 16   sand
+box 36 2 8    40 2 17   sand
+# North arc
+box 19 2 15   33 2 17   sand
+box 21 2 13   31 2 18   sand
+
+# ============================================================================
+# GRASS plateau on the higher parts
+# ============================================================================
+box 14 3 11   16 3 15   grass     # west horn grass
+box 36 3 11   40 3 15   grass     # east horn grass
+box 21 3 15   31 3 17   grass     # north arc
+box 23 3 14   29 3 17   grass
+box 25 4 15   28 4 16   grass     # high mound
+
+# ============================================================================
+# PALM TREES — distributed across both horns and the north arc
+# ============================================================================
+
+# ---- Palm A: tall, top of west horn ----
+box 14 1 13   15 8 14   trunk
+box 14 9 13   15 9 14   trunk
+box 11 9 13   18 9 14   frond
+box 14 9 10   15 9 17   frond
+box 13 10 13  16 10 14  frondlt
+box 14 10 12  15 10 15  frondlt
+v 14 11 13  frondlt
+v 15 11 14  frondlt
+v 13 8 13  coconut
+v 16 8 14  coconut
+
+# ---- Palm B: tall, top of east horn ----
+box 38 1 13   39 8 14   trunk
+box 38 9 13   39 9 14   trunk
+box 35 9 13   42 9 14   frond
+box 38 9 10   39 9 17   frond
+box 37 10 13  40 10 14  frondlt
+box 38 10 12  39 10 15  frondlt
+v 38 11 13  frondlt
+v 39 11 14  frondlt
+v 37 8 13  coconut
+v 40 8 14  coconut
+
+# ---- Palm C: on the bay mouth — west horn shoreward side ----
+box 17 1 9    18 5 10   trunk
+box 15 6 9   20 6 10   frond
+box 17 6 7   18 6 12   frond
+v 17 7 9   frondlt
+v 18 7 10  frondlt
+v 16 5 9   coconut
+
+# ---- Palm D: on the bay mouth — east horn shoreward side ----
+box 33 1 9    34 5 10   trunk
+box 31 6 9   36 6 10   frond
+box 33 6 7   34 6 12   frond
+v 33 7 9   frondlt
+v 34 7 10  frondlt
+v 35 5 10  coconut
+
+# ---- Palm E: north arc, west of bay apex ----
+box 22 1 16   23 6 17   trunk
+box 20 7 16   25 7 17   frond
+box 22 7 14   23 7 19   frond
+v 22 8 16  frondlt
+v 23 8 17  frondlt
+v 24 6 17  coconut
+
+# ---- Palm F: north arc, east of bay apex ----
+box 30 1 16   31 6 17   trunk
+box 28 7 16   33 7 17   frond
+box 30 7 14   31 7 19   frond
+v 30 8 16  frondlt
+v 31 8 17  frondlt
+
+# ============================================================================
+# Rocks at the bay entrance horns (natural breakwater)
+# ============================================================================
+box 17 1 7    18 2 7    rock
+box 33 1 7    34 2 7    rock
+# Outer-shore rocks
+box 9 1 13   10 1 14   rock
+box 43 1 13  44 1 14   rock

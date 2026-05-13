@@ -14,7 +14,7 @@ var orbit = Animate.Linear(3, 0, 360, repeat: Repeat.Loop);
 var spin = Animate.Linear(1.5, 0, 360, repeat: Repeat.Loop);
 var size = Animate.EaseInOut(2, 0.8, 1.5, repeat: Repeat.PingPong);
 
-var scene = (DrawingContext ctx) =>
+var scene = (RasterSurface ctx) =>
 {
     ctx.DrawBackground(Colors.Black);
 

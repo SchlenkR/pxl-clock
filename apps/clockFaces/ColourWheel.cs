@@ -225,7 +225,7 @@ Color[] CalculatePixels(int minute, int second)
 var pixels = new Color[576];
 var lastSecond = -1;
 
-var scene = (DrawingContext ctx) =>
+var scene = (RasterSurface ctx) =>
 {
     var now = ctx.Now;
     var second = now.Second;

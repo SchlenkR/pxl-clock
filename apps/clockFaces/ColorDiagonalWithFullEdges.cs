@@ -40,7 +40,7 @@ for (var i = 0; i <= 9; i++) cornersBottomLeft[i] = (0, 24 - i, i, 24);
 var cornersBottomRight = new (int, int, int, int)[10];
 for (var i = 0; i <= 9; i++) cornersBottomRight[i] = (24 - i, 24, 24, 24 - i);
 
-var scene = (DrawingContext ctx) =>
+var scene = (RasterSurface ctx) =>
 {
     var now = ctx.Now;
     var sec = now.Second;

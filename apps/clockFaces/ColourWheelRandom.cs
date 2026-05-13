@@ -34,7 +34,7 @@ static (double angle, int dir) GetShorterArc(double a, double b)
 
 var backgroundColor = Color.FromHsv360(195, 0.9, 0.2).WithAlpha(0.4);
 
-var scene = (DrawingContext ctx) =>
+var scene = (RasterSurface ctx) =>
 {
     var now = ctx.Now;
     var second = now.Second;

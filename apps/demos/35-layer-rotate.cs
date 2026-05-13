@@ -12,7 +12,7 @@ using Pxl.Ui.CSharp;
 
 var angle = Animate.Linear(4, 0, 360, repeat: Repeat.Loop);
 
-var scene = (DrawingContext ctx) =>
+var scene = (RasterSurface ctx) =>
 {
     ctx.DrawBackground(Colors.Black);
 

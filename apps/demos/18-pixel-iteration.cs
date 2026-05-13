@@ -10,7 +10,7 @@
 
 using Pxl.Ui.CSharp;
 
-var scene = (DrawingContext ctx) =>
+var scene = (RasterSurface ctx) =>
 {
     var time = ctx.Elapsed.TotalSeconds;
     var pixels = ctx.Pixels;

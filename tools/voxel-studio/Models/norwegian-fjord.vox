@@ -1,0 +1,189 @@
+# Norwegian Fjord — LONG along X (40 wide × 14 deep × 18 high)
+# A narrow blue-green fjord runs along the middle, walled by steep
+# granite cliffs on both sides (front and back). One small grass shelf
+# holds a red Falun-painted wooden cabin; a thin white waterfall pours
+# down the back cliff into the water. Pines on the upper plateaus.
+
+material foam     top=#E8F0F4  front=#A0AEB6  side=#727A82
+material cliff    top=#5A5A60  front=#383840  side=#23232A
+material clifflit top=#7E7E84  front=#56565E  side=#383840
+material rock     top=#8E785A  front=#5C4F3D  side=#3F362A
+material grass    top=#5A8E32  front=#365A1E  side=#243D14
+material snow     top=#F0F4F8  front=#A8AEB6  side=#7A7E84
+material falun    top=#A82E1F  front=#6E1E14  side=#4A140C   # red wood
+material roof     top=#3A2A1E  front=#241A12  side=#17110B
+material trim     top=#F0E8D8  front=#A89F92  side=#766F66   # white window trim
+material trunk    top=#5A4030  front=#3A271A  side=#251910
+material pine     top=#1A4824  front=#0E2E15  side=#0A1F0E
+
+# ============================================================================
+# FRONT CLIFF (z=0..4) — steep wall rising up, varied height
+# ============================================================================
+box 0 0 0   39 1 4   cliff      # base of cliff
+box 0 2 0   39 4 4   cliff      # rising
+box 0 5 0   39 6 4   cliff      # higher
+
+# Stepped variations along the front (x-axis) to break uniformity
+box 2 7 0    8 9 4   cliff
+box 4 10 0   7 11 4  clifflit
+box 12 7 0  18 9 4   cliff
+box 14 10 0 17 12 4  clifflit
+box 22 7 0  28 8 4   cliff
+box 32 7 0  37 10 4  cliff
+box 33 11 0 36 13 4  clifflit
+v 34 14 1   clifflit
+v 34 14 2   clifflit
+v 35 14 1   clifflit
+v 35 14 2   clifflit
+
+# Snow on the highest front-cliff parts
+v 34 15 1   snow
+v 35 15 1   snow
+v 34 15 2   snow
+v 35 15 2   snow
+v 15 13 1   snow
+v 16 13 1   snow
+v 15 13 2   snow
+v 16 13 2   snow
+
+# ============================================================================
+# BACK CLIFF (z=9..13) — even taller, with a small grass shelf
+# ============================================================================
+box 0 0 9   39 1 13   cliff
+box 0 2 9   39 5 13   cliff
+box 0 6 9   39 8 13   cliff
+
+# Tall back peaks
+box 4 9 9    9 12 13  cliff
+box 5 13 9   8 14 13  clifflit
+box 6 15 9   7 16 13  clifflit
+v 6 17 10   snow
+v 7 17 10   snow
+v 6 17 11   snow
+v 7 17 11   snow
+
+box 18 9 9  24 12 13  cliff
+box 19 13 9 23 13 13  clifflit
+box 20 14 9 22 14 13  clifflit
+v 21 15 10  snow
+v 21 15 11  snow
+v 21 15 12  snow
+
+box 28 9 9  35 11 13  cliff
+box 30 12 9 33 13 13  clifflit
+v 31 14 10  snow
+v 32 14 10  snow
+
+# ---- Grass shelf on the back cliff (where the cabin sits) ----
+# A small flat ledge at y=6, x=12..17
+box 12 6 9   17 6 11  grass
+box 12 5 9   17 5 11  rock     # rock under the grass shelf
+
+# ============================================================================
+# WATERFALL — thin white stripe on the back cliff
+# Falls from a high notch (x=20..21, y=14) all the way down to the water
+# ============================================================================
+v 20 13 9   foam
+v 21 13 9   foam
+v 20 12 9   foam
+v 21 12 9   foam
+v 20 11 9   foam
+v 21 11 9   foam
+v 20 10 9   foam
+v 21 10 9   foam
+v 20 9 9    foam
+v 21 9 9    foam
+v 20 8 9    foam
+v 21 8 9    foam
+v 20 7 9    foam
+v 21 7 9    foam
+v 20 6 9    foam
+v 21 6 9    foam
+v 20 5 9    foam
+v 21 5 9    foam
+v 20 4 9    foam
+v 21 4 9    foam
+v 20 3 9    foam
+v 21 3 9    foam
+v 20 2 9    foam
+v 21 2 9    foam
+# Foam splash where it hits the water
+v 20 2 8    foam
+v 21 2 8    foam
+v 19 2 8    foam
+v 22 2 8    foam
+
+# ============================================================================
+# RED FALUN CABIN on the grass shelf (x=13..15, y=7..9)
+# ============================================================================
+box 13 7 9   15 9 11  falun       # walls
+v 14 7 9   trim                    # door (white-trimmed front)
+v 13 8 9   trim                    # window trim
+v 15 8 9   trim
+# Roof (gabled, dark wood)
+box 12 10 9  16 10 11  roof
+box 13 11 9  15 11 11  roof
+v 14 12 10   roof
+# Chimney
+v 15 11 10   trim
+v 15 12 10   trim
+
+# ============================================================================
+# PINE TREES on the cliff plateaus
+# ============================================================================
+# Pine 1 (front-left plateau)
+v 5 12 2   trunk
+v 5 13 2   pine
+v 4 13 2   pine
+v 6 13 2   pine
+v 5 13 1   pine
+v 5 13 3   pine
+v 5 14 2   pine
+
+# Pine 2 (front-middle plateau)
+v 15 13 2  trunk
+v 15 14 2  pine
+v 14 14 2  pine
+v 16 14 2  pine
+v 15 14 1  pine
+v 15 14 3  pine
+v 15 15 2  pine
+
+# Pine 3 (front-right plateau)
+v 35 11 2  trunk
+v 35 12 2  pine
+v 34 12 2  pine
+v 36 12 2  pine
+v 35 12 1  pine
+v 35 12 3  pine
+v 35 13 2  pine
+
+# Pine 4 (back-left plateau)
+v 7 14 11  trunk
+v 7 15 11  pine
+v 6 15 11  pine
+v 8 15 11  pine
+v 7 15 10  pine
+v 7 15 12  pine
+v 7 16 11  pine
+
+# Pine 5 (back-middle plateau, near waterfall source)
+v 24 13 11 trunk
+v 24 14 11 pine
+v 23 14 11 pine
+v 24 14 10 pine
+v 24 14 12 pine
+v 24 15 11 pine
+
+# Pine 6 (back-right plateau)
+v 33 12 11 trunk
+v 33 13 11 pine
+v 32 13 11 pine
+v 33 13 10 pine
+v 33 13 12 pine
+v 33 14 11 pine
+
+# A small dock / jetty on the grass shelf side
+v 16 2 8   trunk     # post
+v 17 2 8   trunk     # post
+box 13 2 7  17 2 7   trunk    # dock planks
