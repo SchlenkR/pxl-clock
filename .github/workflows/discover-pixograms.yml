@@ -23,7 +23,7 @@ jobs:
           # Search for C# files using the Pxl.Ui.CSharp API (the PXL Clock drawing namespace)
           # Exclude our own repos from results
           # Include forks (fork:true) since community members may fork pxl-clock
-          QUERY='"Pxl.Ui.CSharp" language:csharp fork:true -repo:${{ github.repository }} -repo:SchlenkR/pxl-software -repo:SchlenkR/pxl-vscode-extension'
+          QUERY='"Pxl.Ui.CSharp" language:csharp fork:true -repo:${{ github.repository }} -repo:CuminAndPotato/pxl-software -repo:SchlenkR/pxl-vscode-extension'
 
           RESPONSE=$(gh api search/code \
             --method GET \

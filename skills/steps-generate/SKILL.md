@@ -45,7 +45,6 @@ The full API reference is in `llms.txt` at the `pxl-clock` repo root.
 CLOCKFACE_NAME = $ARGUMENTS
 SOURCE_PATH    = <provided via prompt>
 OUTPUT_DIR     = <provided via prompt>
-REPO           = /Users/ronald/repos/github.pxl/pxl-tutorial-maker
 PXL_CLOCK_REPO = /Users/ronald/repos/github.pxl/pxl-clock
 ```
 
