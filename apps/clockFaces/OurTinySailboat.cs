@@ -438,7 +438,7 @@ var matLeavesFront  = Color.FromRgb(0.18, 0.42, 0.14);    // leaves — shadow u
 var matSnow         = Color.FromRgb(0.95, 0.97, 1.00);
 
 // ============================================================================
-// ISLAND SHAPE LIBRARY — hand-pixelled sprites (from island-pixel-tests/)
+// ISLAND SHAPE LIBRARY — hand-pixelled sprites
 // ============================================================================
 // Each island is a 3D VOXEL MODEL — list of (vx, vy, vz, material) cubes.
 //   vx: 0..sizeX-1, lateral (left-to-right)
