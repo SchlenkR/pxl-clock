@@ -272,6 +272,13 @@ var mouseRun = new SpriteAnimation(1.0,
 var rimTone = Color.FromRgbByte(255, 246, 226);
 var frameTime = 0.0;
 var spotPick = 0;
+var frameMinute = 0;
+
+// Ein Auftritt im Regal: wer, in welcher Etage, in welche Richtung und auf welche Art.
+// Art 0 rennt durch, 1 lugt nur kurz herein, 2 laeuft bis zur Mitte und wartet dort.
+var windowBeats = new List<(int Who, int Level, bool ToRight, double Start, double Span, int Kind)>();
+var windowScore = -1;
+
 PixelAssembly flyIn = null;
 
 int FigureWidth(int nr) => cast[nr].Width;
@@ -330,7 +337,8 @@ var scene = (RasterSurface ctx) =>
     var t = ctx.Elapsed.TotalSeconds;
     var now = ctx.Now;
     frameTime = t;
-    spotPick = (int)((now.Hour * 60L + now.Minute) % 3);
+    frameMinute = (int)((now.Hour * 60L + now.Minute) % 720);
+    spotPick = frameMinute % 3;
     SetTones();
 
     var stamp = $"{now:HHmm}{baseTone.R:F2}{baseTone.G:F2}{baseTone.B:F2}";
@@ -426,7 +434,7 @@ double HoldPoint(int act) => act switch
     0 => 3.18 / 4.70,
     1 => 2.70 / 3.90,
     2 => 4.10 / 5.90,
-    3 => 5.50 / 6.80,
+    3 => 6.40 / 7.70,
     4 => 2.25 / 3.85,
     5 => 1.87 / 4.45,
     6 => 2.74 / 3.62,
@@ -993,11 +1001,11 @@ void TrapSweep(RasterSurface ctx, double u, RasterSurface target)
 
 void ActWindow(RasterSurface ctx, double p)
 {
-    const double raceEnd = 4.30;
-    const double sweepEnd = 4.66;
-    const double flyEnd = 5.50;
-    const double holdEnd = 6.30;
-    var s = p * 6.80;
+    const double raceEnd = 5.20;
+    const double sweepEnd = 5.56;
+    const double flyEnd = 6.40;
+    const double holdEnd = 7.20;
+    var s = p * 7.70;
 
     if (s < raceEnd)
     {
@@ -1024,47 +1032,124 @@ void ActWindow(RasterSurface ctx, double p)
         return;
     }
 
-    WindowBack(ctx, (s - holdEnd) / (6.80 - holdEnd));
+    WindowBack(ctx, (s - holdEnd) / (7.70 - holdEnd));
 }
 
-// Ein Rennen ueber drei Etagen: die Maus im Zickzack nach unten, die Katze hinterher.
-// Auf der letzten Etage bleibt die Maus stehen und lugt - da stehen auch ihre Beine
-// still - und ist wieder weg, sobald die Katze bei ihr ankommt.
+// Vier Nummern hintereinander, aus einem Vorrat von sechs. Welche gespielt werden und in
+// welchen Etagen, haengt an der Minute - dadurch ist jedes Rennen anders, ohne dass die
+// einzelne Nummer beliebig wird.
+void WindowCompose(int minute)
+{
+    if (windowScore == minute) return;
+    windowScore = minute;
+    windowBeats.Clear();
+
+    var pool = new[] { 0, 1, 2, 3, 4, 5 };
+    var t = 0.15;
+    for (var n = 0; n < 4; n++)
+    {
+        var number = n == 3 ? 5 : pool[(minute * 7 + n * 3 + n * minute % 5) % 5];
+        var level = (minute + n * 2) % 3;
+        var other = (level + 1 + minute % 2) % 3;
+        var toRight = (minute + n) % 2 == 0;
+
+        switch (number)
+        {
+            // Die Maus rennt durch, die Katze kommt hinterher.
+            case 0:
+                windowBeats.Add((4, level, toRight, t, 0.85, 0));
+                windowBeats.Add((0, level, toRight, t + 0.30, 0.95, 0));
+                t += 1.35;
+                break;
+
+            // Sie verfehlen sich: die Maus oben durch, die Katze eine Etage tiefer zurueck.
+            case 1:
+                windowBeats.Add((4, level, toRight, t, 0.85, 0));
+                windowBeats.Add((0, other, !toRight, t + 0.15, 0.95, 0));
+                t += 1.30;
+                break;
+
+            // Die Maus wartet in der Mitte, bis die Katze quer durchschiesst.
+            case 2:
+                windowBeats.Add((4, level, toRight, t, 1.15, 2));
+                windowBeats.Add((0, level, !toRight, t + 0.55, 0.55, 0));
+                t += 1.35;
+                break;
+
+            // Beide lugen aus verschiedenen Ecken und ziehen sich wieder zurueck.
+            case 3:
+                windowBeats.Add((4, level, toRight, t, 0.80, 1));
+                windowBeats.Add((0, other, !toRight, t + 0.25, 0.80, 1));
+                t += 1.25;
+                break;
+
+            // Frontal aufeinander zu - und beide kehren um.
+            case 4:
+                windowBeats.Add((4, level, true, t, 1.10, 2));
+                windowBeats.Add((0, level, false, t + 0.10, 1.10, 2));
+                t += 1.30;
+                break;
+
+            // Finale: der Kaese liegt in der Mitte, beide wollen ihn.
+            default:
+                windowBeats.Add((3, level, false, t, 1.60, 3));
+                windowBeats.Add((4, level, false, t + 0.20, 1.20, 2));
+                windowBeats.Add((0, level, true, t + 0.75, 0.95, 0));
+                t += 1.70;
+                break;
+        }
+    }
+}
+
 void WindowRace(RasterSurface ctx, double s)
 {
+    WindowCompose(frameMinute);
+
     ctx.DrawSurface(paperPlain);
     for (var i = 0; i < 3; i++)
         WindowShelf(ctx, i, Easings.EaseOutCubic(MathH.Clamp01((s - i * 0.10) / 0.28)));
 
-    WindowRunner(ctx, 4, 0, s, 0.10, 1.15, false);
-    WindowRunner(ctx, 4, 1, s, 1.15, 2.20, true);
-    WindowRunner(ctx, 0, 1, s, 1.48, 2.53, true);
-
-    // Untere Etage: die Maus haelt in der Mitte an, bis die Katze fast da ist.
-    if (s > 2.20)
+    foreach (var beat in windowBeats)
     {
-        var arrive = MathH.Clamp01((s - 2.20) / 0.65);
-        var flee = MathH.Clamp01((s - 3.35) / 0.55);
-        var x = MathH.Lerp(MathH.Lerp(25.0, 11.0, Easings.EaseOutCubic(arrive)), -13.0, Easings.EaseInCubic(flee));
-        Running(ctx, 4, x, 16);
-    }
-
-    if (s > 2.62)
-    {
-        var chase = MathH.Clamp01((s - 2.62) / 1.05);
-        var x = MathH.Lerp(27.0, 13.0, Easings.EaseOutCubic(chase));
-        Running(ctx, 0, x, 14);
+        if (s < beat.Start || s > beat.Start + beat.Span) continue;
+        var u = MathH.Clamp01((s - beat.Start) / beat.Span);
+        var x = WindowBeatX(beat.Who, beat.ToRight, beat.Kind, u);
+        if (beat.Kind == 3) Figure(ctx, 3, x, beat.Level * 8 + 8 - cast[3].Height);
+        else Running(ctx, beat.Who, x, beat.Level * 8 + 8 - RunHeight(beat.Who), flipX: beat.ToRight);
     }
 }
 
-// Eine Figur laeuft einmal quer durch ihre Etage.
-void WindowRunner(RasterSurface ctx, int nr, int level, double s, double from, double to, bool toRight)
+// Wo eine Figur zum Fortschritt u steht - je nach Art des Auftritts.
+double WindowBeatX(int who, bool toRight, int kind, double u)
 {
-    if (s < from || s > to) return;
-    var u = Easings.EaseInOutSine(MathH.Clamp01((s - from) / (to - from)));
-    var width = RunWidth(nr);
-    var x = toRight ? MathH.Lerp(-width - 2.0, 26.0, u) : MathH.Lerp(26.0, -width - 2.0, u);
-    Running(ctx, nr, x, level * 8 + 8 - RunHeight(nr), flipX: toRight);
+    var width = kind == 3 ? cast[3].Width : RunWidth(who);
+    var from = toRight ? -width - 2.0 : 25.0;
+    var to = toRight ? 25.0 : -width - 2.0;
+
+    // Der Kaese liegt einfach da, bis ihn jemand mitnimmt.
+    if (kind == 3) return u < 0.62 ? 8.0 : MathH.Lerp(8.0, -12.0, Easings.EaseInCubic((u - 0.62) / 0.38));
+
+    // Nur hereinlugen: ein Stueck weit ins Bild und wieder zurueck.
+    if (kind == 1)
+    {
+        var peek = toRight ? -width + 7.0 : 24.0 - 7.0;
+        var e = u < 0.28 ? Easings.EaseOutCubic(u / 0.28)
+              : u < 0.68 ? 1.0
+              : 1.0 - Easings.EaseInCubic((u - 0.68) / 0.32);
+        return MathH.Lerp(from, peek, e);
+    }
+
+    // Bis zur Mitte laufen, warten, dann weiter. Wer nach rechts laeuft, haelt links der
+    // Mitte und umgekehrt - so stehen sich zwei Wartende Nase an Nase gegenueber.
+    if (kind == 2)
+    {
+        var stop = toRight ? 10.0 - width : 13.0;
+        if (u < 0.34) return MathH.Lerp(from, stop, Easings.EaseOutCubic(u / 0.34));
+        if (u < 0.62) return stop;
+        return MathH.Lerp(stop, to, Easings.EaseInCubic((u - 0.62) / 0.38));
+    }
+
+    return MathH.Lerp(from, to, Easings.EaseInOutSine(u));
 }
 
 // Die Etagen klappen von aussen zu.
