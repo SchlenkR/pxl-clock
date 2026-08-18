@@ -1,6 +1,6 @@
 // ---
 // app: ColorDiagonalWithFullEdges
-// displayName: Color Diagonal With Full Edges
+// displayName: Color Diagonal
 // appType: ClockFace
 // author: "Nora & Urs Enzler"
 // description: Diagonal lines with corner fills that change based on time
