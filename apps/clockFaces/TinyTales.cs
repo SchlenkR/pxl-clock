@@ -6,7 +6,7 @@
 // appType: ClockFace
 // ---
 
-// Nine short stories, one per minute, never the same one twice in a row. Each ends with
+// Eight short stories, one per minute, never the same one twice in a row. Each ends with
 // the time filling the screen and then collapsing into the small readout.
 //
 // With the cast - cat, crate, bird, cheese, mouse:
@@ -15,12 +15,11 @@
 //   3 Trap       a trap is set, the light comes on, the crate catches the wrong animal
 //   4 Window     three shelves run as conveyor belts, each its own chase
 //   5 Tumble     cat and cheese tumble through in throwing arcs
-//   6 Catalogue  the cast as catalogue pages, cheese and mouse on the last two
 //
 // Without the cast, other mechanics:
-//   7 FlipBoard  a split-flap display steps through, staggered per row
-//   8 Fold       the field creases like paper and opens up white
-//   9 Spotlight  a cone searches the field, finds the mouse first, then the time
+//   6 FlipBoard  a split-flap display steps through, staggered per row
+//   7 Fold       the field creases like paper and opens up white
+//   8 Spotlight  a cone searches the field and finds one of the cast, then the time
 
 #:package Pxl@*
 
@@ -48,10 +47,9 @@ var actChase = Param.Bool(true, label: "2 Chase");
 var actTrap = Param.Bool(true, label: "3 Trap");
 var actWindow = Param.Bool(true, label: "4 Window");
 var actTumble = Param.Bool(true, label: "5 Tumble");
-var actCatalogue = Param.Bool(true, label: "6 Catalogue");
-var actFlipBoard = Param.Bool(true, label: "7 Flip board");
-var actFold = Param.Bool(true, label: "8 Fold");
-var actSpotlight = Param.Bool(true, label: "9 Spotlight");
+var actFlipBoard = Param.Bool(true, label: "6 Flip board");
+var actFold = Param.Bool(true, label: "7 Fold");
+var actSpotlight = Param.Bool(true, label: "8 Spotlight");
 
 // Paper white is the counterpart of the field and stays out of the colour family.
 var paper = Color.FromRgbByte(255, 253, 248);
@@ -89,6 +87,7 @@ CyclePicker actPicker = null;
 var sideA = new RasterSurface(24, 24);
 var sideB = new RasterSurface(24, 24);
 var fieldWithTime = new RasterSurface(24, 24);
+var fieldPlain = new RasterSurface(24, 24);
 var paperPlain = new RasterSurface(24, 24);
 var paperWithTime = new RasterSurface(24, 24);
 
@@ -189,13 +188,13 @@ var cast = new[]
     // 5 - Katze geduckt, kurz vor dem Absprung
     PixelSprite.FromRows(new[]
     {
-        "..........kk.kk",
-        "..........kdkdk",
-        "kk.......kddddk",
-        ".kk.....kkdaddk",
-        "..kk..kkddwdddk",
-        "..kkkkdddddddk.",
-        "..kddddddddddk.",
+        "kk.kk..........",
+        "kdkdk..........",
+        "kddddk.......kk",
+        "kddadkk.....kk.",
+        "kdddwddkk..kk..",
+        ".kdddddddkkkk..",
+        ".kddddddddddk..",
         "..kdddddddddk..",
         "..kdddddddddk..",
         "..kddk...kddk..",
@@ -208,42 +207,42 @@ var cast = new[]
 var catRun = new SpriteAnimation(9.0,
     PixelSprite.FromRows(new[]
     {
-        "kk.......kk.kk.",
-        ".kk......kdkdk.",
-        "..kk....kdddddk",
-        "...kkkkkkdadadk",
-        "..kdddddddwpwdk",
+        ".kk.kk.......kk",
+        ".kdkdk......kk.",
+        "kdddddk....kk..",
+        "kdadadkkkkkk...",
+        "kdwpwdddddddk..",
         ".kdddddddddddk.",
-        "kkddddddddddk..",
-        "k.kdk....kdk...",
-        "..kk.k..kk..k..",
-        ".....kk....kk..",
+        "..kddddddddddkk",
+        "...kdk....kdk.k",
+        "..k..kk..k.kk..",
+        "..kk....kk.....",
     }, fur),
     PixelSprite.FromRows(new[]
     {
-        "kk.......kk.kk.",
-        ".kk......kdkdk.",
-        "..kk....kdddddk",
-        "...kkkkkkdadadk",
-        "..kdddddddwpwdk",
+        ".kk.kk.......kk",
+        ".kdkdk......kk.",
+        "kdddddk....kk..",
+        "kdadadkkkkkk...",
+        "kdwpwdddddddk..",
         ".kdddddddddddk.",
-        "kkddddddddddk..",
-        "...kdkkkkdk....",
-        "...kdk..kdk....",
-        "...kkk..kkk....",
+        "..kddddddddddkk",
+        "....kdkkkkdk...",
+        "....kdk..kdk...",
+        "....kkk..kkk...",
     }, fur),
     PixelSprite.FromRows(new[]
     {
-        "kk.......kk.kk.",
-        ".kk......kdkdk.",
-        "..kk....kdddddk",
-        "...kkkkkkdadadk",
-        "..kdddddddwpwdk",
+        ".kk.kk.......kk",
+        ".kdkdk......kk.",
+        "kdddddk....kk..",
+        "kdadadkkkkkk...",
+        "kdwpwdddddddk..",
         ".kdddddddddddk.",
-        "kkddddddddddk..",
+        "..kddddddddddkk",
         ".kkdk.....kdkk.",
-        "kk..k......k.kk",
-        "...........kk..",
+        "kk.k......k..kk",
+        "..kk...........",
     }, fur));
 
 var mouseRun = new SpriteAnimation(11.0,
@@ -272,6 +271,8 @@ var mouseRun = new SpriteAnimation(11.0,
 
 var rimTone = Color.FromRgbByte(255, 246, 226);
 var frameTime = 0.0;
+var spotPick = 0;
+PixelAssembly flyIn = null;
 
 int FigureWidth(int nr) => cast[nr].Width;
 
@@ -309,10 +310,10 @@ void Running(RasterSurface ctx, int nr, double x0, double y0, bool flipX = false
     sprite.Draw(ctx, x, y, flipX: flipX);
 }
 
-void RunningRaw(RasterSurface ctx, int nr, double x0, double y0)
+void RunningRaw(RasterSurface ctx, int nr, double x0, double y0, bool flipX = false)
 {
     var sprite = nr == 0 ? catRun.At(frameTime) : nr == 4 ? mouseRun.At(frameTime) : cast[nr];
-    sprite.Draw(ctx, (int)Math.Round(x0), (int)Math.Round(y0), flipX: nr != 4 && nr != 0);
+    sprite.Draw(ctx, (int)Math.Round(x0), (int)Math.Round(y0), flipX: flipX);
 }
 
 int RunWidth(int nr) => nr == 0 ? 15 : nr == 4 ? 11 : cast[nr].Width;
@@ -324,6 +325,7 @@ var scene = (RasterSurface ctx) =>
     var t = ctx.Elapsed.TotalSeconds;
     var now = ctx.Now;
     frameTime = t;
+    spotPick = (int)((now.Hour * 60L + now.Minute) % 3);
     SetTones();
 
     var stamp = $"{now:HHmm}{baseTone.R:F2}{baseTone.G:F2}{baseTone.B:F2}";
@@ -331,7 +333,19 @@ var scene = (RasterSurface ctx) =>
     bigTop.Ensure($"top{stamp}{shadowStrength:F2}", s => SmallTime(s, now, accent, timeShadow, 1));
     bigBottom.Ensure($"bottom{stamp}{shadowStrength:F2}", s => SmallTime(s, now, accent, timeShadow, 2));
 
-    timeOnPaper.Ensure($"{stamp}{shadowStrength:F2}", s => SmallTime(s, now, accent, timeShadow));
+    var timeChanged = timeOnPaper.Ensure($"{stamp}{shadowStrength:F2}", s => SmallTime(s, now, accent, timeShadow));
+    if (timeChanged || flyIn is null)
+    {
+        var targets = PixelTargets.From(timeOnPaper.Surface, alphaThreshold: 0.4);
+        flyIn = new PixelAssembly(targets)
+        {
+            Duration = 0.62,
+            Spread = 15.0,
+            Gravity = 0.0,
+            FlightColor = accentLight,
+            DelayOf = i => Scatter.Value(targets[i].X, targets[i].Y) * 0.34,
+        };
+    }
     timeOnField.Ensure($"{stamp}{shadowStrength:F2}", s => SmallTime(s, now, Colors.White, deepDark));
 
     Ground(t, now);
@@ -350,9 +364,8 @@ var scene = (RasterSurface ctx) =>
             case 2: ActTrap(ctx, progress); break;
             case 3: ActWindow(ctx, progress); break;
             case 4: ActTumble(ctx, progress); break;
-            case 5: ActCatalogue(ctx, progress); break;
-            case 6: ActFlipBoard(ctx, progress); break;
-            case 7: ActFold(ctx, progress); break;
+            case 5: ActFlipBoard(ctx, progress); break;
+            case 6: ActFold(ctx, progress); break;
             default: ActSpotlight(ctx, progress); break;
         }
         return;
@@ -407,12 +420,11 @@ double HoldPoint(int act) => act switch
 {
     0 => 3.18 / 4.70,
     1 => 2.70 / 3.90,
-    2 => 2.72 / 4.30,
+    2 => 3.20 / 4.90,
     3 => 2.56 / 3.76,
     4 => 2.25 / 3.85,
-    5 => 2.95 / 4.10,
-    6 => 1.87 / 4.45,
-    7 => 2.74 / 3.62,
+    5 => 1.87 / 4.45,
+    6 => 2.74 / 3.62,
     _ => 2.65 / 4.10,
 };
 
@@ -421,13 +433,20 @@ List<int> EnabledActs()
 {
     var flags = new[]
     {
-        actDelivery, actChase, actTrap, actWindow, actTumble, actCatalogue,
+        actDelivery, actChase, actTrap, actWindow, actTumble,
         actFlipBoard, actFold, actSpotlight,
     };
     var enabled = new List<int>();
     for (var i = 0; i < flags.Length; i++)
         if (flags[i]) enabled.Add(i);
     return enabled;
+}
+
+// The digits fly in pixel by pixel on the white sheet - carries the end of every act.
+void TimeFlyIn(RasterSurface ctx, double seconds)
+{
+    ctx.DrawSurface(paperPlain);
+    flyIn.Draw(ctx, seconds);
 }
 
 // Builds fieldWithTime: gradient field with running wave, small time and seconds arc.
@@ -449,6 +468,8 @@ void Ground(double t, DateTime now)
     else
         Transitions.Iris(fieldWithTime, resting, incoming, Easings.EaseOutCubic((local - calm) / wave), softness: 0.5);
 
+    CopyInto(fieldPlain, fieldWithTime);
+    SecondsArc(fieldPlain, now);
     fieldWithTime.DrawSurface(timeOnField.Surface);
     SecondsArc(fieldWithTime, now);
 }
@@ -597,7 +618,7 @@ void ActDelivery(RasterSurface ctx, double p)
 
     if (s < stampOn)
     {
-        ctx.DrawSurface(fieldWithTime);
+        ctx.DrawSurface(fieldPlain);
         var jolt = Shake.At(s - catOn, amplitude: 1.6, duration: 0.24, frequency: 40.0);
         var grab = Easings.EaseInCubic(MathH.Clamp01((s - grabOff) / (grabOn - grabOff)));
 
@@ -641,7 +662,7 @@ void ActDelivery(RasterSurface ctx, double p)
         var g = Easings.EaseOutBack(MathH.Clamp01((s - stampOn) / (settleOn - stampOn)));
         var jolt = Shake.At(s - stampOn, amplitude: 1.5, duration: 0.20, frequency: 44.0);
         ctx.DrawSurface(paperPlain);
-        ctx.DrawSurface(bigTime.Surface, x: jolt.X, y: MathH.Lerp(1.6, 0.0, g) + jolt.Y);
+        flyIn.Draw(ctx, s - stampOn);
         DeliveryDust(ctx, 12.0, 20.0, 20.0, s - stampOn, accentLight);
         DeliveryFlash(ctx, 1.0 - (s - stampOn) / 0.11);
         return;
@@ -649,9 +670,7 @@ void ActDelivery(RasterSurface ctx, double p)
 
     if (s < dissolveOn)
     {
-        var m = (s - holdOn) * 1.12;
-        ctx.DrawSurface(paperPlain);
-        ctx.DrawSurface(bigTime.Surface, alpha: MathH.Clamp01(1.0 - m / 0.36));
+        ctx.DrawSurface(paperWithTime);
         return;
     }
 
@@ -683,7 +702,7 @@ void ActChase(RasterSurface ctx, double p)
 
     if (s < tSheet)
     {
-        ctx.DrawSurface(fieldWithTime);
+        ctx.DrawSurface(fieldPlain);
         ChaseConvoy(ctx, s, tMouse, dMouse, tCheese, dCheese, tCat, dCat);
         return;
     }
@@ -693,7 +712,7 @@ void ActChase(RasterSurface ctx, double p)
         var edge = MathH.Lerp(24.0, 0.0, Easings.EaseInOutCubic(MathH.Clamp01((s - tSheet) / dSheet)));
         if (edge > 0.5)
         {
-            ctx.DrawSurface(fieldWithTime);
+            ctx.DrawSurface(fieldPlain);
             ChaseRunner(ctx, 0, Math.Min(5.0, 5.0 - (16.0 - edge) * 1.7), 11.0, MathH.Clamp01((16.0 - edge) / 9.0));
             ChaseSheetEdge(ctx, edge);
             ctx.DrawSurface(paperPlain, x: edge);
@@ -705,22 +724,13 @@ void ActChase(RasterSurface ctx, double p)
 
         if (s < tBig) return;
 
-        var e1 = Easings.EaseOutBack(MathH.Clamp01((s - tBig) / dBig));
-        var e2 = Easings.EaseOutBack(MathH.Clamp01((s - tBig - stagger) / dBig));
-        var x1 = MathH.Lerp(27.0, 0.0, e1);
-        var x2 = MathH.Lerp(27.0, 0.0, e2);
-        ctx.DrawSurface(bigTop.Surface, x: x1 + 5.0, alpha: MathH.Clamp01(1.0 - e1) * 0.35);
-        ctx.DrawSurface(bigBottom.Surface, x: x2 + 5.0, alpha: MathH.Clamp01(1.0 - e2) * 0.35);
-        ctx.DrawSurface(bigTop.Surface, x: x1);
-        ctx.DrawSurface(bigBottom.Surface, x: x2);
+        flyIn.Draw(ctx, s - tBig);
         return;
     }
 
     if (s < tEnd)
     {
-        var m = (s - tDissolve) * 1.6;
-        ctx.DrawSurface(paperPlain);
-        ctx.DrawSurface(bigTime.Surface, alpha: MathH.Clamp01(1.0 - m / 0.30));
+        ctx.DrawSurface(paperWithTime);
         return;
     }
 
@@ -766,7 +776,7 @@ void ChaseRunner(RasterSurface ctx, int nr, double x, double y, double tempo)
 
     ChaseGhost(ctx, nr, x + 3.0 * tempo, y, 0.30 * tempo);
     ChaseShadow(ctx, nr, x, y);
-    Running(ctx, nr, x, y, flipX: nr != 4 && nr != 0);
+    Running(ctx, nr, x, y);
 }
 
 void ChaseShadow(RasterSurface ctx, int nr, double x, double y)
@@ -816,62 +826,71 @@ void ChaseStreak(RasterSurface ctx, double from, double to, int y, double streng
 
 void ActTrap(RasterSurface ctx, double p)
 {
-    var s = p * 4.3;
+    var s = p * 4.9;
 
-    if (s < 1.86)
+    if (s < 2.40)
     {
         TrapScene(ctx, s);
-        if (s > 1.46) TrapSweep(ctx, Easings.EaseInOutSine((s - 1.46) / 0.36), paperPlain);
+        if (s > 2.00) TrapSweep(ctx, Easings.EaseInOutSine((s - 2.00) / 0.36), paperPlain);
         return;
     }
 
-    if (s < 2.72)
+    if (s < 3.30)
     {
-        ctx.DrawSurface(paperPlain);
-        var top = TrapIn(s, 1.86, 2.22);
-        var bottom = TrapIn(s, 2.08, 2.46);
-        if (top > 0.0) ctx.DrawSurface(bigTop.Surface, y: MathH.Lerp(-15.0, 0.0, Easings.EaseOutBack(top)));
-        if (bottom > 0.0) ctx.DrawSurface(bigBottom.Surface, x: MathH.Lerp(-26.0, 0.0, Easings.EaseOutBack(bottom)));
+        TimeFlyIn(ctx, s - 2.40);
         return;
     }
 
-    if (s < 3.80)
+    if (s < 4.20)
     {
-        var m = s - 2.72;
-        ctx.DrawSurface(paperPlain);
-        ctx.DrawSurface(bigTime.Surface, alpha: MathH.Clamp01(1.0 - m / 0.45));
+        ctx.DrawSurface(paperWithTime);
         return;
     }
 
     ctx.DrawSurface(paperWithTime);
-    TrapSweep(ctx, Easings.EaseInOutSine((s - 3.80) / 0.44), fieldWithTime);
+    TrapSweep(ctx, Easings.EaseInOutSine((s - 4.20) / 0.44), fieldWithTime);
 }
 
 // The cat sneaks under the hanging crate to get the bait, and the crate comes down on it.
+// Der Kaese liegt links, die Kiste haengt rechts an ihrem Seil. Die Katze schleicht von
+// rechts zum Kaese und muss dabei unter der Kiste durch - die faellt genau dann. Danach
+// kommt die Maus von links und nimmt sich in Ruhe den Kaese.
 void TrapScene(RasterSurface ctx, double s)
 {
     var cheese = TrapIn(s, 0.18, 0.52);
-    var crate = TrapIn(s, 0.38, 0.78);
-    var cat = TrapIn(s, 0.58, 0.98);
-    var mouse = TrapIn(s, 0.98, 1.16);
-    var drop = Easings.EaseInCubic(TrapIn(s, 1.20, 1.34));
+    var crate = TrapIn(s, 0.34, 0.72);
+    var cat = TrapIn(s, 0.70, 1.30);
+    var drop = Easings.EaseInCubic(TrapIn(s, 1.32, 1.44));
+    var mouse = TrapIn(s, 1.52, 1.86);
 
-    ctx.DrawSurface(fieldWithTime);
+    ctx.DrawSurface(fieldPlain);
     TrapStage(ctx, TrapIn(s, 0.02, 0.30));
     TrapShadow(ctx, 0, 7, cheese * cheese);
-    TrapShadow(ctx, 11, 23, cat * cat);
 
     if (cheese > 0.0) TrapPiece(ctx, 3, MathH.Lerp(-10.0, 0.0, Easings.EaseOutBack(cheese)), 12);
-    if (cat > 0.0) TrapPiece(ctx, 5, MathH.Lerp(30.0, 11.0, Easings.EaseOutBack(cat)), 7);
-    if (mouse > 0.0) TrapPiece(ctx, 4, MathH.Lerp(-12.0, 8.0, Easings.EaseOutBack(mouse)), 10);
-    if (crate > 0.0)
+
+    // Das Seil, an dem die Kiste haengt, bis sie faellt.
+    if (crate > 0.0 && drop < 1.0)
+        for (var y = 0; y < 3; y++)
+            ctx[16, y] = edgeTone;
+
+    // Die Katze bleibt unter der Kiste stehen, sobald diese gefallen ist.
+    if (cat > 0.0)
     {
-        var hang = MathH.Lerp(-13.0, -4.0, Easings.EaseOutBack(crate));
-        var jolt = Shake.At(s - 1.34, amplitude: 1.4, duration: 0.20, frequency: 42.0);
-        TrapPiece(ctx, 1, 13.0 + (drop >= 1.0 ? jolt.X : 0.0), MathH.Lerp(hang, 7.0, drop));
+        var walk = drop > 0.0 ? 8.0 : MathH.Lerp(26.0, 8.0, cat);
+        TrapPiece(ctx, 5, walk, 7);
     }
 
-    TrapLight(ctx, s - 1.00);
+    if (crate > 0.0)
+    {
+        var hang = MathH.Lerp(-11.0, -3.0, Easings.EaseOutBack(crate));
+        var jolt = Shake.At(s - 1.44, amplitude: 1.4, duration: 0.20, frequency: 42.0);
+        TrapPiece(ctx, 1, 12.0 + (drop >= 1.0 ? jolt.X : 0.0), MathH.Lerp(hang, 7.0, drop));
+    }
+
+    if (mouse > 0.0) Running(ctx, 4, MathH.Lerp(-12.0, 1.0, Easings.EaseOutCubic(mouse)), 9, flipX: true);
+
+    TrapLight(ctx, s - 1.10);
 }
 
 double TrapIn(double s, double from, double to) => MathH.Clamp01((s - from) / (to - from));
@@ -984,7 +1003,7 @@ void ActWindow(RasterSurface ctx, double p)
 
 void WindowOpen(RasterSurface ctx, double s)
 {
-    ctx.DrawSurface(fieldWithTime);
+    ctx.DrawSurface(fieldPlain);
     for (var i = 0; i < 2; i++)
     {
         var local = s - i * 0.12;
@@ -1033,19 +1052,12 @@ void WindowChase(RasterSurface ctx, int level, double t, int visible)
 
 void WindowTime(RasterSurface ctx, double s)
 {
-    ctx.DrawSurface(paperPlain);
-    var top = Easings.EaseOutBack(MathH.Clamp01(s / 0.30));
-    var bottom = Easings.EaseOutBack(MathH.Clamp01((s - 0.13) / 0.30));
-    ctx.DrawSurface(bigTop.Surface, x: MathH.Lerp(27.0, 0.0, top));
-    ctx.DrawSurface(bigBottom.Surface, x: MathH.Lerp(-27.0, 0.0, bottom));
+    TimeFlyIn(ctx, s);
 }
 
 void WindowDissolve(RasterSurface ctx, double s, double duration)
 {
-    ctx.DrawSurface(paperPlain);
-    ctx.DrawSurface(bigTop.Surface, alpha: MathH.Clamp01(1.0 - s / 0.34));
-    ctx.DrawSurface(bigBottom.Surface);
-    ctx.DrawSurface(timeOnPaper.Surface, alpha: MathH.Clamp01((s - duration + 0.22) / 0.22));
+    ctx.DrawSurface(paperWithTime);
 }
 
 void WindowBack(RasterSurface ctx, double s)
@@ -1117,7 +1129,7 @@ void ActTumble(RasterSurface ctx, double p)
     {
         var u2 = MathH.Clamp01((s - cheeseStart) / cheeseSpan);
         var cx2 = MathH.Lerp(31.0, -9.0, u2);
-        TumbleEdge(ctx, fieldWithTime, paperPlain, cx2 - 5.0);
+        TumbleEdge(ctx, fieldPlain, paperPlain, cx2 - 5.0);
 
         var u1 = MathH.Clamp01((s - catStart) / catSpan);
         if (u1 < 1.0)
@@ -1130,20 +1142,18 @@ void ActTumble(RasterSurface ctx, double p)
         {
             var uU = MathH.Clamp01((s - bottomStart) / bottomSpan);
             var jolt = TumbleJolt(s - (topStart + topSpan * 0.6));
-            ctx.DrawSurface(bigBottom.Surface, y: (TumbleDrop(uU) - 1.0) * 21.0 + jolt);
+            flyIn.Draw(ctx, s - bottomStart);
         }
 
         if (s >= topStart)
         {
             var uO = MathH.Clamp01((s - topStart) / topSpan);
-            ctx.DrawSurface(bigTop.Surface, y: (TumbleDrop(uO) - 1.0) * 15.0);
+
         }
     }
     else if (s < backStart)
     {
-        var m = s - dissolveStart;
-        ctx.DrawSurface(paperPlain);
-        ctx.DrawSurface(bigTime.Surface, alpha: MathH.Clamp01(1.0 - m / 0.22));
+        ctx.DrawSurface(paperWithTime);
     }
     else if (s < backStart + backSpan)
     {
@@ -1222,182 +1232,6 @@ double TumbleDrop(double u)
 
 double TumbleJolt(double dt) => dt < 0.0 || dt > 0.16 ? 0.0 : Math.Sin(dt / 0.16 * Math.PI) * 1.4;
 
-// ---------------------------------------------------------------- act: catalogue
-
-void ActCatalogue(RasterSurface ctx, double p)
-{
-    const double catalogueTotal = 4.1;
-    const double catalogueOpen = 0.34;
-    const double catalogueBreath = 0.13;
-    const double catalogueTurn = 0.34;
-    const double catalogueHoldBig = 0.34;
-    const double catalogueFly = 0.55;
-    const double catalogueHoldSmall = 0.15;
-
-    var s = p * catalogueTotal;
-    var paging = 0.0;
-    for (var i = 0; i < CataloguePageCount(); i++) paging += CatalogueSlot(i);
-
-    var tPages = catalogueOpen + paging;
-    var tBreath = tPages + catalogueBreath;
-    var tTurn = tBreath + catalogueTurn;
-    var tHold = tTurn + catalogueHoldBig;
-    var tFly = tHold + catalogueFly;
-    var tSmall = tFly + catalogueHoldSmall;
-
-    if (s < catalogueOpen)
-    {
-        var u = Easings.EaseOutCubic(s / catalogueOpen);
-        CatalogueTurn(ctx, fieldWithTime, CataloguePage(ctx, 0), u, toLeft: true);
-    }
-    else if (s < tPages)
-    {
-        var m = s - catalogueOpen;
-        var nr = 0;
-        var start = 0.0;
-        while (nr < CataloguePageCount() - 1 && m >= start + CatalogueSlot(nr))
-        {
-            start += CatalogueSlot(nr);
-            nr++;
-        }
-        var slot = CatalogueSlot(nr);
-        var local = m - start;
-        var stamp = slot * 0.72;
-        var content = CatalogueContent(ctx, nr);
-        if (local < stamp)
-        {
-            ctx.DrawBackground(paper);
-            ctx.DrawSurface(content);
-        }
-        else
-        {
-            CatalogueSweep(ctx, content, (local - stamp) / (slot - stamp));
-        }
-    }
-    else if (s < tBreath)
-    {
-        ctx.DrawSurface(paperPlain);
-    }
-    else if (s < tTurn)
-    {
-        var u = Easings.EaseOutCubic((s - tBreath) / catalogueTurn);
-        CatalogueTurn(ctx, paperPlain, CatalogueTimePage(ctx, 3.0), u, toLeft: true);
-    }
-    else if (s < tHold)
-    {
-        var u = Easings.EaseOutBack(MathH.Clamp01((s - tTurn) / 0.26));
-        ctx.DrawSurface(paperPlain);
-        ctx.DrawSurface(bigTime.Surface, y: MathH.Lerp(3.0, 0.0, u));
-    }
-    else if (s < tFly)
-    {
-        var m = (s - tHold) / catalogueFly * 1.08;
-        ctx.DrawSurface(paperPlain);
-        ctx.DrawSurface(bigTime.Surface, alpha: MathH.Clamp01(1.0 - m / 0.5));
-    }
-    else if (s < tSmall)
-    {
-        ctx.DrawSurface(paperWithTime);
-    }
-    else
-    {
-        var u = Easings.EaseOutCubic(MathH.Clamp01((s - tSmall) / Math.Max(0.001, catalogueTotal - tSmall)));
-        CatalogueTurn(ctx, paperWithTime, fieldWithTime, u, toLeft: false);
-    }
-}
-
-int CataloguePageCount() => 9;
-
-double CatalogueSlot(int i) => Math.Max(0.11, 0.36 * Math.Pow(0.84, i));
-
-int CatalogueFigureNo(int i) => new[] { 2, 0, 1, 3, 4, 0, 2, 3, 4 }[i];
-
-int CataloguePageNo(int i) => new[] { 4, 7, 11, 17, 25, 34, 46, 61, 79 }[i];
-
-// One catalogue page without background: figure, floor shadow, two text bars, page number.
-RasterSurface CatalogueContent(RasterSurface ctx, int i)
-{
-    var content = ctx.CreateSurface(24, 24);
-    var nr = CatalogueFigureNo(i);
-    var w = FigureWidth(nr);
-    var h = FigureHeight(nr);
-    var x0 = (int)Math.Round((24 - w) / 2.0);
-    var y0 = 11 - (int)Math.Round(h / 2.0);
-
-    var box = accentLight;
-    var floor = Tone(0.46, 0.85, 0.000);
-    for (var y = 5; y <= 17; y++)
-    for (var x = 2; x <= 21; x++)
-        content[x, y] = box;
-    for (var x = x0 + 1; x < x0 + w - 1; x++)
-        if (x >= 2 && x <= 21 && y0 + h <= 17) content[x, y0 + h] = floor;
-
-    Figure(content, nr, x0, y0);
-
-    CatalogueBar(content, 3, 19, 8 + (i % 4) * 2, Tone(0.64, 0.06, 0.000));
-    CatalogueBar(content, 3, 21, 5 + (i % 3) * 2, Tone(0.78, 0.05, 0.000));
-    content.DrawTextVar3x5(CataloguePageNo(i).ToString(), 16, 0, accent);
-    return content;
-}
-
-void CatalogueBar(RasterSurface s, int x0, int y, int length, Color c)
-{
-    for (var x = x0; x < x0 + length; x++)
-        if (x >= 0 && x < 24 && y >= 0 && y < 24) s[x, y] = c;
-}
-
-RasterSurface CataloguePage(RasterSurface ctx, int i)
-{
-    var side = ctx.CreateSurface(24, 24);
-    side.DrawBackground(paper);
-    side.DrawSurface(CatalogueContent(ctx, i));
-    return side;
-}
-
-RasterSurface CatalogueTimePage(RasterSurface ctx, double dy)
-{
-    var side = ctx.CreateSurface(24, 24);
-    side.DrawBackground(paper);
-    side.DrawSurface(bigTime.Surface, y: dy);
-    return side;
-}
-
-// Turning page: a hard crease travels across, preceded by the shadow of the lifted sheet.
-void CatalogueTurn(RasterSurface ctx, RasterSurface older, RasterSurface newer, double u, bool toLeft)
-{
-    var k = MathH.Clamp01(u);
-    var edge = toLeft ? 24.0 * (1.0 - k) : 24.0 * k;
-    var view = MathH.Clamp01(Math.Min(k, 1.0 - k) * 8.0);
-    var crease = Tone(0.25, 0.50, 0.000);
-
-    for (var y = 0; y < 24; y++)
-    for (var x = 0; x < 24; x++)
-    {
-        var d = x + 0.5 - edge;
-        var isNewer = toLeft ? d > 0.0 : d < 0.0;
-        var ab = Math.Abs(d);
-        var c = isNewer ? newer[x, y] : older[x, y];
-        var core = MathH.Clamp01(1.3 - ab);
-        var dark = isNewer
-            ? Math.Max(0.80 * core, 0.45 * MathH.Clamp01(1.0 - ab / 4.0))
-            : 0.40 * MathH.Clamp01(1.0 - ab / 1.5);
-        ctx[x, y] = ColorOps.Lerp(c, crease, dark * view);
-    }
-}
-
-// In between: the discarded page snaps out to the left, edge on.
-void CatalogueSweep(RasterSurface ctx, RasterSurface content, double u)
-{
-    var k = MathH.Clamp01(u);
-    ctx.DrawBackground(paper);
-    var width = MathH.Lerp(0.62, 0.26, k) * 24.0;
-    var x = MathH.Lerp(3.0, -3.0, k);
-    ctx.DrawSurfaceRegion(content, 0, 0, 24, 24, destX: x, destY: 0, destWidth: width, destHeight: 24, alpha: 0.85);
-    var kx = (int)Math.Round(x + width);
-    if (kx >= 0 && kx < 24)
-        for (var y = 0; y < 24; y++) ctx[kx, y] = ColorOps.Lerp(ctx[kx, y], accentLight, 0.55);
-}
-
 // ---------------------------------------------------------------- act: flip board
 
 const double flipTotal = 4.45;
@@ -1426,7 +1260,7 @@ void ActFlipBoard(RasterSurface ctx, double p)
     var tSecond = tBig + FlipDuration(flipStepsTwo, flipStagger);
     var tSmall = tSecond + flipHoldSmall;
 
-    if (s < tFirst) FlipRound(ctx, s, fieldWithTime, bigSheet, flipStepsOne, flipStagger, 1);
+    if (s < tFirst) FlipRound(ctx, s, fieldPlain, bigSheet, flipStepsOne, flipStagger, 1);
     else if (s < tBig) ctx.DrawSurface(bigSheet);
     else if (s < tSecond) FlipRound(ctx, s - tBig, bigSheet, paperWithTime, flipStepsTwo, flipStagger, 2);
     else if (s < tSmall) ctx.DrawSurface(paperWithTime);
@@ -1775,24 +1609,21 @@ void SpotSearch(RasterSurface ctx, double s)
 void SpotFind(RasterSurface ctx, double s, double duration)
 {
     var u = MathH.Clamp01(s / duration);
-    var swing = MathH.Lerp(-27.0, 24.0, Easings.EaseInOutSine(u)) * (1.0 - Easings.EaseInCubic(MathH.Clamp01((u - 0.5) / 0.5)));
+    var swing = MathH.Lerp(SpotCorner() > 5.0 ? 6.0 : -27.0, 24.0, Easings.EaseInOutSine(u)) * (1.0 - Easings.EaseInCubic(MathH.Clamp01((u - 0.5) / 0.5)));
     var opening = Easings.EaseInCubic(MathH.Clamp01((u - 0.45) / 0.55));
-    SpotStage(ctx, MathH.Lerp(0.0, -12.0, Easings.EaseInCubic(MathH.Clamp01((u - 0.18) / 0.34))));
+    SpotStage(ctx, Easings.EaseInCubic(MathH.Clamp01((u - 0.18) / 0.34)));
     SpotPaint(ctx, 1.0, swing, MathH.Lerp(spotNarrow, 0.36, opening), MathH.Lerp(1.1, 1.8, opening), 34.0, 1.0, 0.0, 0.0);
 }
 
 void SpotFlood(RasterSurface ctx, double s)
 {
-    SpotStage(ctx, -99.0);
+    SpotStage(ctx, 1.0);
     SpotPaint(ctx, 1.0, 0.0, 0.36, 1.8, 34.0, 1.0, MathH.Clamp01(s / 0.06), Envelope.Bell(MathH.Clamp01(s / 0.18)) * 0.40);
 }
 
 void SpotDissolve(RasterSurface ctx, double s, double duration)
 {
-    ctx.DrawSurface(paperPlain);
-    ctx.DrawSurface(bigTop.Surface, alpha: MathH.Clamp01(1.0 - s / 0.26));
-    ctx.DrawSurface(bigBottom.Surface);
-    ctx.DrawSurface(timeOnPaper.Surface, alpha: MathH.Clamp01((s - duration + 0.30) / 0.20));
+    TimeFlyIn(ctx, s);
 }
 
 void SpotClose(RasterSurface ctx, double s, double duration)
@@ -1829,21 +1660,31 @@ void SpotPaint(RasterSurface ctx, double dimm, double angleDegrees, double halfS
     }
 }
 
-// The cone finds the mouse before the time; she scurries off once it moves on.
-void SpotStage(RasterSurface ctx, double mouseX = 0.0)
+// The stage is empty except for whoever the cone is about to find. Which of them it is
+// changes from minute to minute, and so does the corner they sit in.
+void SpotStage(RasterSurface ctx, double escape = 0.0)
 {
     ctx.DrawSurface(paperPlain);
-    ctx.DrawSurface(bigTime.Surface);
-    if (mouseX > -10.0) Figure(ctx, 4, mouseX, 16);
+    if (escape >= 1.0) return;
+    var nr = SpotFound();
+    var x = MathH.Lerp(SpotCorner(), SpotCorner() - 13.0, escape);
+    Figure(ctx, nr, x, 24 - cast[nr].Height - 1);
 }
+
+// Maus, Katze oder Kaese, abhaengig vom Minutenzaehler.
+int SpotFound() => spotPick switch { 0 => 4, 1 => 0, _ => 3 };
+
+// Mal links, mal rechts, damit der Kegel nicht immer denselben Weg sucht.
+double SpotCorner() => spotPick == 1 ? 11.0 : 0.0;
 
 double SpotSearchAngle(double s)
 {
+    var target = SpotCorner() > 5.0 ? 6.0 : -27.0;
     if (s < 0.34) return MathH.Lerp(-34.0, 27.0, Easings.EaseInOutCubic(s / 0.34));
     if (s < 0.42) return 27.0;
     if (s < 0.70) return MathH.Lerp(27.0, -9.0, Easings.EaseInOutCubic((s - 0.42) / 0.28));
     if (s < 0.76) return -9.0;
-    return MathH.Lerp(-9.0, -27.0, Easings.EaseInOutCubic(MathH.Clamp01((s - 0.76) / 0.26)));
+    return MathH.Lerp(-9.0, target, Easings.EaseInOutCubic(MathH.Clamp01((s - 0.76) / 0.26)));
 }
 
 double SpotSpark(double s)
