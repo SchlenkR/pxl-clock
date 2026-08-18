@@ -6,7 +6,7 @@
 // appType: ClockFace
 // ---
 
-// Eleven short stories, one per minute, never the same one twice in a row. Each ends with
+// Ten short stories, one per minute, never the same one twice in a row. Each ends with
 // the time filling the screen and then collapsing into the small readout.
 //
 // With the cast - cat, crate, bird, cheese, mouse:
@@ -19,10 +19,9 @@
 //
 // Without the cast, other mechanics:
 //   7 FlipBoard  a split-flap display steps through, staggered per row
-//   8 FloorPlan  a floor plan draws itself and turns into the time
-//   9 Fold       the field creases like paper and opens up white
-//  10 Spotlight  a cone searches the field, finds the mouse first, then the time
-//  11 Measure    dimension lines drive in and snap onto the outline of the digits
+//   8 Fold       the field creases like paper and opens up white
+//   9 Spotlight  a cone searches the field, finds the mouse first, then the time
+//  10 Measure    dimension lines drive in and snap onto the outline of the digits
 
 #:package Pxl@*
 
@@ -37,7 +36,7 @@ var secondsOpacity = Param.Float(0.95, min: 0.0, max: 1.0, label: "Seconds ring"
 // All times in seconds; each act runs its own schedule, stretched to fit the duration.
 var actDuration = Param.Float(4.0, min: 3.0, max: 15.0, label: "Act duration");
 var calmDuration = Param.Float(2.0, min: 1.5, max: 20.0, label: "Calm");
-var holdBigTime = Param.Float(2.0, min: 0.0, max: 6.0, label: "Hold big time");
+var holdBigTime = Param.Float(0.8, min: 0.0, max: 6.0, label: "Hold time");
 var waveDuration = Param.Float(2.2, min: 1.5, max: 5.0, label: "Wave duration");
 var previewInterval = Param.Float(9.0, min: 3.0, max: 30.0, label: "Preview interval");
 
@@ -52,10 +51,9 @@ var actWindow = Param.Bool(true, label: "4 Window");
 var actTumble = Param.Bool(true, label: "5 Tumble");
 var actCatalogue = Param.Bool(true, label: "6 Catalogue");
 var actFlipBoard = Param.Bool(true, label: "7 Flip board");
-var actFloorPlan = Param.Bool(true, label: "8 Floor plan");
-var actFold = Param.Bool(true, label: "9 Fold");
-var actSpotlight = Param.Bool(true, label: "10 Spotlight");
-var actMeasure = Param.Bool(true, label: "11 Measure");
+var actFold = Param.Bool(true, label: "8 Fold");
+var actSpotlight = Param.Bool(true, label: "9 Spotlight");
+var actMeasure = Param.Bool(true, label: "10 Measure");
 
 // Paper white is the counterpart of the field and stays out of the colour family.
 var paper = Color.FromRgbByte(255, 253, 248);
@@ -102,9 +100,6 @@ var bigBottom = new BakedSurface(24, 24);
 var timeOnPaper = new BakedSurface(24, 24);
 var timeOnField = new BakedSurface(24, 24);
 
-List<PixelTarget> bigTargets = null;
-List<PixelTarget> timeTargets = null;
-PixelAssembly dissolve = null;
 
 // Neutral on purpose - dark silhouettes read on any base colour. Only the cheese is yellow.
 var fur = new Dictionary<char, Color>
@@ -204,21 +199,6 @@ void Figure(RasterSurface ctx, int nr, double x0, double y0, bool flipX = false)
 void FigureRaw(RasterSurface ctx, int nr, double x0, double y0, bool flipX = false) =>
     cast[nr].Draw(ctx, (int)Math.Round(x0), (int)Math.Round(y0), flipX: flipX);
 
-// Seven-segment digits, 9 by 10 at two pixels stroke width; two per row, two rows.
-var bigDigits = new[]
-{
-    new[] { "#########", "#########", "##.....##", "##.....##", "##.....##", "##.....##", "##.....##", "##.....##", "#########", "#########" },
-    new[] { "...###...", "..####...", "....##...", "....##...", "....##...", "....##...", "....##...", "....##...", "..######.", "..######." },
-    new[] { "#########", "#########", ".......##", ".......##", "#########", "#########", "##.......", "##.......", "#########", "#########" },
-    new[] { "#########", "#########", ".......##", ".......##", "#########", "#########", ".......##", ".......##", "#########", "#########" },
-    new[] { "##.....##", "##.....##", "##.....##", "##.....##", "#########", "#########", ".......##", ".......##", ".......##", ".......##" },
-    new[] { "#########", "#########", "##.......", "##.......", "#########", "#########", ".......##", ".......##", "#########", "#########" },
-    new[] { "#########", "#########", "##.......", "##.......", "#########", "#########", "##.....##", "##.....##", "#########", "#########" },
-    new[] { "#########", "#########", ".......##", ".......##", ".......##", ".......##", ".......##", ".......##", ".......##", ".......##" },
-    new[] { "#########", "#########", "##.....##", "##.....##", "#########", "#########", "##.....##", "##.....##", "#########", "#########" },
-    new[] { "#########", "#########", "##.....##", "##.....##", "#########", "#########", ".......##", ".......##", "#########", "#########" },
-};
-
 var scene = (RasterSurface ctx) =>
 {
     var t = ctx.Elapsed.TotalSeconds;
@@ -226,26 +206,12 @@ var scene = (RasterSurface ctx) =>
     SetTones();
 
     var stamp = $"{now:HHmm}{baseTone.R:F2}{baseTone.G:F2}{baseTone.B:F2}";
-    var timeChanged = bigTime.Ensure($"whole{stamp}", s => { ClearSurface(s); BigNumber(s, now.Hour, 1, 0); BigNumber(s, now.Minute, 13, 1); });
-    bigTop.Ensure($"top{stamp}", s => { ClearSurface(s); BigNumber(s, now.Hour, 1, 0); });
-    bigBottom.Ensure($"bottom{stamp}", s => { ClearSurface(s); BigNumber(s, now.Minute, 13, 1); });
-    if (timeChanged || bigTargets is null)
-        bigTargets = PixelTargets.From(bigTime.Surface, alphaThreshold: 0.4);
+    bigTime.Ensure($"whole{stamp}{shadowStrength:F2}", s => SmallTime(s, now, accent, timeShadow));
+    bigTop.Ensure($"top{stamp}{shadowStrength:F2}", s => SmallTime(s, now, accent, timeShadow, 1));
+    bigBottom.Ensure($"bottom{stamp}{shadowStrength:F2}", s => SmallTime(s, now, accent, timeShadow, 2));
 
-    var changed = timeOnPaper.Ensure($"{stamp}{shadowStrength:F2}", s => SmallTime(s, now, accent, timeShadow));
+    timeOnPaper.Ensure($"{stamp}{shadowStrength:F2}", s => SmallTime(s, now, accent, timeShadow));
     timeOnField.Ensure($"{stamp}{shadowStrength:F2}", s => SmallTime(s, now, Colors.White, deepDark));
-    if (changed || timeTargets is null)
-    {
-        timeTargets = PixelTargets.From(timeOnPaper.Surface, alphaThreshold: 0.4);
-        dissolve = new PixelAssembly(timeTargets)
-        {
-            Duration = 0.65,
-            Spread = 3.5,
-            Gravity = 0.0,
-            SourceOf = i => (bigTargets[i % bigTargets.Count].X, bigTargets[i % bigTargets.Count].Y),
-            DelayOf = i => Scatter.Value(timeTargets[i].X, timeTargets[i].Y) * 0.4,
-        };
-    }
 
     Ground(t, now);
 
@@ -265,9 +231,8 @@ var scene = (RasterSurface ctx) =>
             case 4: ActTumble(ctx, progress); break;
             case 5: ActCatalogue(ctx, progress); break;
             case 6: ActFlipBoard(ctx, progress); break;
-            case 7: ActFloorPlan(ctx, progress); break;
-            case 8: ActFold(ctx, progress); break;
-            case 9: ActSpotlight(ctx, progress); break;
+            case 7: ActFold(ctx, progress); break;
+            case 8: ActSpotlight(ctx, progress); break;
             default: ActMeasure(ctx, progress); break;
         }
         return;
@@ -327,9 +292,8 @@ double HoldPoint(int act) => act switch
     4 => 2.25 / 3.85,
     5 => 2.95 / 4.10,
     6 => 1.87 / 4.45,
-    7 => 3.52 / 5.10,
-    8 => 2.74 / 3.62,
-    9 => 2.65 / 4.10,
+    7 => 2.74 / 3.62,
+    8 => 2.65 / 4.10,
     _ => 2.42 / 4.30,
 };
 
@@ -339,7 +303,7 @@ List<int> EnabledActs()
     var flags = new[]
     {
         actDelivery, actChase, actTrap, actWindow, actTumble, actCatalogue,
-        actFlipBoard, actFloorPlan, actFold, actSpotlight, actMeasure,
+        actFlipBoard, actFold, actSpotlight, actMeasure,
     };
     var enabled = new List<int>();
     for (var i = 0; i < flags.Length; i++)
@@ -406,28 +370,23 @@ void SecondsArc(RasterSurface s, DateTime now)
     }
 }
 
-void SmallTime(RasterSurface s, DateTime now, Color color, Color shadow)
+// part 0 draws the whole readout, 1 only the hours, 2 only the minutes with the colon.
+void SmallTime(RasterSurface s, DateTime now, Color color, Color shadow, int part = 0)
 {
     ClearSurface(s);
     var sch = shadow.WithAlpha(shadowStrength);
-    s.DrawTextAdafruitClassic($"{now:HH}", 4, 5, sch);
+    if (part != 2)
+    {
+        s.DrawTextAdafruitClassic($"{now:HH}", 4, 5, sch);
+        s.DrawTextAdafruitClassic($"{now:HH}", 3, 4, color);
+    }
+    if (part == 1) return;
     s.DrawTextAdafruitClassic($"{now:mm}", 10, 14, sch);
     s[7, 16] = sch;
     s[7, 18] = sch;
-    s.DrawTextAdafruitClassic($"{now:HH}", 3, 4, color);
     s.DrawTextAdafruitClassic($"{now:mm}", 9, 13, color);
     s[6, 15] = color;
     s[6, 17] = color;
-}
-
-// One row of the big time: two digits side by side, lighter at the top.
-void BigNumber(RasterSurface s, int value, int y0, int row)
-{
-    var top = row == 0 ? accent : ColorOps.Lerp(accent, accentLight, 0.45);
-    var bottom = row == 0 ? ColorOps.Lerp(accent, accentLight, 0.55) : accentLight;
-
-    Glyph(s, bigDigits[value / 10 % 10], 2, y0, top, bottom);
-    Glyph(s, bigDigits[value % 10], 13, y0, top, bottom);
 }
 
 void Glyph(RasterSurface s, string[] rows, int x0, int y0, Color top, Color bottom)
@@ -574,7 +533,6 @@ void ActDelivery(RasterSurface ctx, double p)
         var m = (s - holdOn) * 1.12;
         ctx.DrawSurface(paperPlain);
         ctx.DrawSurface(bigTime.Surface, alpha: MathH.Clamp01(1.0 - m / 0.36));
-        dissolve.Draw(ctx, m);
         return;
     }
 
@@ -644,7 +602,6 @@ void ActChase(RasterSurface ctx, double p)
         var m = (s - tDissolve) * 1.6;
         ctx.DrawSurface(paperPlain);
         ctx.DrawSurface(bigTime.Surface, alpha: MathH.Clamp01(1.0 - m / 0.30));
-        dissolve.Draw(ctx, m);
         return;
     }
 
@@ -764,7 +721,6 @@ void ActTrap(RasterSurface ctx, double p)
         var m = s - 2.72;
         ctx.DrawSurface(paperPlain);
         ctx.DrawSurface(bigTime.Surface, alpha: MathH.Clamp01(1.0 - m / 0.45));
-        dissolve.Draw(ctx, m);
         return;
     }
 
@@ -960,8 +916,7 @@ void WindowDissolve(RasterSurface ctx, double s, double duration)
 {
     ctx.DrawSurface(paperPlain);
     ctx.DrawSurface(bigTop.Surface, alpha: MathH.Clamp01(1.0 - s / 0.34));
-    ctx.DrawSurface(bigBottom.Surface, alpha: MathH.Clamp01(1.0 - (s - 0.12) / 0.34));
-    dissolve.Draw(ctx, s * 1.6);
+    ctx.DrawSurface(bigBottom.Surface);
     ctx.DrawSurface(timeOnPaper.Surface, alpha: MathH.Clamp01((s - duration + 0.22) / 0.22));
 }
 
@@ -1068,7 +1023,6 @@ void ActTumble(RasterSurface ctx, double p)
         var m = s - dissolveStart;
         ctx.DrawSurface(paperPlain);
         ctx.DrawSurface(bigTime.Surface, alpha: MathH.Clamp01(1.0 - m / 0.22));
-        dissolve.Draw(ctx, m * dissolveSpeed);
     }
     else if (s < backStart + backSpan)
     {
@@ -1219,7 +1173,6 @@ void ActCatalogue(RasterSurface ctx, double p)
         var m = (s - tHold) / catalogueFly * 1.08;
         ctx.DrawSurface(paperPlain);
         ctx.DrawSurface(bigTime.Surface, alpha: MathH.Clamp01(1.0 - m / 0.5));
-        dissolve.Draw(ctx, m);
     }
     else if (s < tSmall)
     {
@@ -1386,8 +1339,8 @@ void FlipRound(RasterSurface ctx, double u, RasterSurface older, RasterSurface t
         var j = (int)(local / step);
         var f = local / step - j;
         var source = f < 0.5
-            ? (j == 0 ? older : FlipBetween(ctx, i, lane * 11 + j, lane == 2))
-            : (j == mine - 1 ? target : FlipBetween(ctx, i, lane * 11 + j + 1, lane == 2));
+            ? (j == 0 ? older : FlipBetween(ctx, i, lane * 11 + j))
+            : (j == mine - 1 ? target : FlipBetween(ctx, i, lane * 11 + j + 1));
         FlipStrip(ctx, i, source, Math.Pow(Math.Abs(Math.Cos(f * Math.PI)), 0.55));
     }
 }
@@ -1424,28 +1377,15 @@ void FlipStrip(RasterSurface ctx, int i, RasterSurface source, double k)
 }
 
 // In-between flap: the roll runs through big digits first, then through clock readings.
-RasterSurface FlipBetween(RasterSurface ctx, int i, int j, bool digits)
+RasterSurface FlipBetween(RasterSurface ctx, int i, int j)
 {
     var sheet = ctx.CreateSurface(24, 24);
     sheet.DrawSurface(paperPlain);
-
-    if (digits)
-    {
-        var stamp = ctx.CreateSurface(24, 24);
-        var hour = (int)(FlipRandom(i * 41 + j * 17) * 24.0);
-        var min = (int)(FlipRandom(i * 29 + j * 23) * 60.0);
-        SmallTime(stamp, new DateTime(2000, 1, 1, hour, min, 0), accent, timeShadow);
-        sheet.DrawSurface(stamp);
-        return sheet;
-    }
-
-    var y0 = i * flipHeight;
-    for (var c = 0; c < 2; c++)
-    {
-        var w = (int)(FlipRandom(i * 37 + j * 13 + c * 5) * 10.0);
-        var y = y0 - 5 + (int)(FlipRandom(i * 23 + j * 11 + c) * 5.0);
-        Glyph(sheet, bigDigits[w], 2 + c * 11, y, accent, accentLight);
-    }
+    var stamp = ctx.CreateSurface(24, 24);
+    var hour = (int)(FlipRandom(i * 41 + j * 17) * 24.0);
+    var min = (int)(FlipRandom(i * 29 + j * 23) * 60.0);
+    SmallTime(stamp, new DateTime(2000, 1, 1, hour, min, 0), accent, timeShadow);
+    sheet.DrawSurface(stamp);
     return sheet;
 }
 
@@ -1456,215 +1396,6 @@ double FlipRandom(int n)
     h *= 2246822519u;
     h ^= h >> 13;
     return h % 10007u / 10007.0;
-}
-
-// ---------------------------------------------------------------- act: floor plan
-
-void ActFloorPlan(RasterSurface ctx, double p)
-{
-    var s = p * 5.1;
-    var stroke = Tone(0.92, 1.00, 0.030);
-
-    if (s < 2.74)
-    {
-        var plan = ctx.CreateSurface(24, 24);
-        PlanPaper(plan);
-        ctx.DrawSurface(fieldWithTime);
-        PlanWave(ctx, plan, 2, 2, PlanIn(s, 0.00, 0.38));
-
-        PlanRoom(ctx, 3, 3, 12, 20, PlanIn(s, 2.06, 2.34), 0);
-        PlanRoom(ctx, 14, 3, 20, 12, PlanIn(s, 2.12, 2.38), 1);
-        PlanRoom(ctx, 14, 14, 20, 20, PlanIn(s, 2.16, 2.42), 2);
-
-        PlanStroke(ctx, 2, 2, 21, 2, PlanIn(s, 0.28, 0.56), stroke);
-        PlanStroke(ctx, 21, 2, 21, 21, PlanIn(s, 0.52, 0.80), stroke);
-        PlanStroke(ctx, 21, 21, 2, 21, PlanIn(s, 0.76, 1.04), stroke);
-        PlanStroke(ctx, 2, 21, 2, 2, PlanIn(s, 1.00, 1.30), stroke);
-        PlanFlash(ctx, PlanIn(s, 1.30, 1.52));
-
-        var inner = PlanIn(s, 1.26, 1.58) * 19.0;
-        PlanStroke(ctx, 13, 2, 13, 5, MathH.Clamp01(inner / 3.0), stroke);
-        PlanStroke(ctx, 13, 9, 13, 21, MathH.Clamp01((inner - 7.0) / 12.0), stroke);
-        PlanStroke(ctx, 13, 13, 21, 13, PlanIn(s, 1.54, 1.78), stroke);
-
-        if (inner > 4.0) PlanDoor(ctx, PlanIn(s, 1.74, 2.02), stroke);
-
-        PlanDimension(ctx, s, 1.78, 2, 0, 21, 0, true);
-        PlanDimension(ctx, s, 1.88, 0, 2, 0, 21, false);
-        PlanDimension(ctx, s, 1.98, 17, 4, 17, 11, false);
-
-        PlanWave(ctx, paperPlain, 2, 2, PlanIn(s, 2.58, 2.76));
-        PlanReveal(ctx, bigTop.Surface, 1, 11, Easings.EaseOutCubic(PlanIn(s, 2.72, 3.06)), true);
-        return;
-    }
-
-    if (s < 3.52)
-    {
-        ctx.DrawSurface(paperPlain);
-        PlanReveal(ctx, bigTop.Surface, 1, 11, Easings.EaseOutCubic(PlanIn(s, 2.72, 3.06)), true);
-        PlanReveal(ctx, bigBottom.Surface, 12, 22, Easings.EaseOutCubic(PlanIn(s, 2.92, 3.28)), false);
-        return;
-    }
-
-    if (s < 4.56)
-    {
-        var m = s - 3.52;
-        ctx.DrawSurface(paperPlain);
-        ctx.DrawSurface(bigTime.Surface, alpha: MathH.Clamp01(1.0 - m / 0.32));
-        dissolve.Draw(ctx, m);
-        return;
-    }
-
-    ctx.DrawSurface(paperWithTime);
-    PlanWave(ctx, fieldWithTime, 21, 21, PlanIn(s, 4.56, 5.06));
-}
-
-double PlanIn(double s, double from, double to) => MathH.Clamp01((s - from) / (to - from));
-
-void PlanDot(RasterSurface ctx, int x, int y, Color c, double a)
-{
-    if (a <= 0.0 || x < 0 || x >= 24 || y < 0 || y >= 24) return;
-    ctx[x, y] = ColorOps.Lerp(ctx[x, y], c, MathH.Clamp01(a));
-}
-
-// The empty drawing sheet: a deeper tone with a fine dot grid.
-void PlanPaper(RasterSurface s)
-{
-    var up = Tone(0.46, 0.90, -0.010);
-    var down = Tone(0.26, 0.90, -0.030);
-    var point = Tone(0.74, 1.00, 0.020);
-    for (var y = 0; y < 24; y++)
-    for (var x = 0; x < 24; x++)
-    {
-        var c = ColorOps.Lerp(up, down, (x + y) / 46.0);
-        if (x % 4 == 1 && y % 4 == 1) c = ColorOps.Lerp(c, point, 0.30);
-        s[x, y] = c;
-    }
-}
-
-// Diagonal front that pushes target across the screen from one corner.
-void PlanWave(RasterSurface ctx, RasterSurface target, int cx, int cy, double a)
-{
-    if (a <= 0.0) return;
-    var e = Easings.EaseInOutSine(a) * 1.12;
-    for (var y = 0; y < 24; y++)
-    for (var x = 0; x < 24; x++)
-    {
-        var d = (Math.Abs(x - cx) + Math.Abs(y - cy)) / 44.0;
-        var w = MathH.Clamp01((e - d) * 7.0);
-        if (w > 0.0) ctx[x, y] = ColorOps.Lerp(ctx[x, y], target[x, y], w);
-    }
-}
-
-// Wall line growing from x0/y0 to x1/y1, with a bright drawing head at the front.
-void PlanStroke(RasterSurface ctx, int x0, int y0, int x1, int y1, double u, Color stroke)
-{
-    if (u <= 0.0) return;
-    var n = Math.Abs(x1 - x0) + Math.Abs(y1 - y0);
-    var sx = Math.Sign(x1 - x0);
-    var sy = Math.Sign(y1 - y0);
-    var far = u * n;
-    for (var i = 0; i <= n; i++)
-    {
-        var a = far - i + 1.0;
-        if (a <= 0.0) break;
-        PlanDot(ctx, x0 + sx * i, y0 + sy * i, stroke, a * 0.92);
-    }
-    if (u >= 1.0) return;
-    var k = (int)Math.Floor(far);
-    PlanDot(ctx, x0 + sx * k, y0 + sy * k, Colors.White, 1.0);
-    PlanDot(ctx, x0 + sx * k + sy, y0 + sy * k + sx, Colors.White, 0.28);
-    PlanDot(ctx, x0 + sx * k - sy, y0 + sy * k - sx, Colors.White, 0.28);
-}
-
-// Short flash along the outer wall the moment the room closes.
-void PlanFlash(RasterSurface ctx, double u)
-{
-    if (u <= 0.0 || u >= 1.0) return;
-    var a = (1.0 - u) * 0.85;
-    for (var i = 2; i <= 21; i++)
-    {
-        PlanDot(ctx, i, 2, Colors.White, a);
-        PlanDot(ctx, i, 21, Colors.White, a);
-        PlanDot(ctx, 2, i, Colors.White, a);
-        PlanDot(ctx, 21, i, Colors.White, a);
-    }
-}
-
-// Door leaf hinged at 13/9: sits in the wall, then swings into the room with its arc.
-void PlanDoor(RasterSurface ctx, double u, Color stroke)
-{
-    var e = Easings.EaseOutBack(u);
-    var w = MathH.Lerp(-90.0, -180.0, e) * Math.PI / 180.0;
-    for (var r = 1.0; r <= 3.0; r += 0.5)
-        PlanDot(ctx, (int)Math.Round(13 + Math.Cos(w) * r), (int)Math.Round(9 + Math.Sin(w) * r), stroke, 0.95);
-    if (u <= 0.0) return;
-    for (var i = 1; i < 6; i++)
-    {
-        var b = MathH.Lerp(-90.0, -180.0, i / 6.0) * Math.PI / 180.0;
-        if (b < w) continue;
-        PlanDot(ctx, (int)Math.Round(13 + Math.Cos(b) * 3.0), (int)Math.Round(9 + Math.Sin(b) * 3.0), stroke, 0.45 * u);
-    }
-}
-
-// Dimension line with end ticks, flashing up briefly and fading again.
-void PlanDimension(RasterSurface ctx, double s, double t0, int x0, int y0, int x1, int y1, bool horizontal)
-{
-    var an = PlanIn(s, t0, t0 + 0.06);
-    if (an <= 0.0) return;
-    var a = an * (1.0 - PlanIn(s, t0 + 0.24, t0 + 0.46));
-    if (a <= 0.0) return;
-    var tone = Tone(0.75, 1.00, 0.060);
-    var n = Math.Abs(x1 - x0) + Math.Abs(y1 - y0);
-    var sx = Math.Sign(x1 - x0);
-    var sy = Math.Sign(y1 - y0);
-    for (var i = 0; i <= n; i++)
-        PlanDot(ctx, x0 + sx * i, y0 + sy * i, tone, a * 0.9);
-    var qx = horizontal ? 0 : 1;
-    var qy = horizontal ? 1 : 0;
-    for (var k = 1; k <= 2; k++)
-    {
-        PlanDot(ctx, x0 + qx * k, y0 + qy * k, tone, a);
-        PlanDot(ctx, x1 + qx * k, y1 + qy * k, tone, a);
-    }
-}
-
-// Room area filling in one direction, with a brighter seam running ahead.
-void PlanRoom(RasterSurface ctx, int x0, int y0, int x1, int y1, double u, int direction)
-{
-    if (u <= 0.0) return;
-    var tone = Tone(0.67, 0.95, 0.020);
-    var rim = Tone(0.84, 1.00, 0.030);
-    var e = Easings.EaseOutCubic(u);
-    var width = x1 - x0 + 1.0;
-    var height = y1 - y0 + 1.0;
-    for (var y = y0; y <= y1; y++)
-    for (var x = x0; x <= x1; x++)
-    {
-        var q = direction == 0 ? (y - y0) / height
-              : direction == 1 ? (x - x0) / width
-              : (x1 - x) / width;
-        var a = (e - q) * 5.0;
-        PlanDot(ctx, x, y, tone, a);
-        PlanDot(ctx, x, y, rim, (1.0 - Math.Abs(a - 0.55) * 3.0) * 0.75);
-    }
-}
-
-// The pen carries on and uncovers one row of the big time as it goes.
-void PlanReveal(RasterSurface ctx, RasterSurface big, int yTop, int yBottom, double u, bool toRight)
-{
-    if (u <= 0.0) return;
-    var edge = toRight ? MathH.Lerp(-1.0, 25.0, u) : MathH.Lerp(25.0, -1.0, u);
-    for (var y = yTop; y <= yBottom; y++)
-    for (var x = 0; x < 24; x++)
-    {
-        if (toRight ? x + 0.5 > edge : x + 0.5 < edge) continue;
-        var c = big[x, y];
-        if (c.A > 0.0) ctx[x, y] = ColorOps.Lerp(ctx[x, y], c, c.A);
-    }
-    if (u >= 1.0) return;
-    var k = (int)Math.Round(edge - 0.5);
-    for (var y = yTop; y <= yBottom; y++) PlanDot(ctx, k, y, accent, 0.8);
 }
 
 // ---------------------------------------------------------------- act: fold
@@ -1939,8 +1670,7 @@ void SpotDissolve(RasterSurface ctx, double s, double duration)
 {
     ctx.DrawSurface(paperPlain);
     ctx.DrawSurface(bigTop.Surface, alpha: MathH.Clamp01(1.0 - s / 0.26));
-    ctx.DrawSurface(bigBottom.Surface, alpha: MathH.Clamp01(1.0 - (s - 0.08) / 0.26));
-    dissolve.Draw(ctx, s * 1.8);
+    ctx.DrawSurface(bigBottom.Surface);
     ctx.DrawSurface(timeOnPaper.Surface, alpha: MathH.Clamp01((s - duration + 0.30) / 0.20));
 }
 
@@ -2041,7 +1771,6 @@ void ActMeasure(RasterSurface ctx, double p)
         if (s < 3.52)
         {
             ctx.DrawSurface(bigTime.Surface, alpha: MathH.Clamp01(1.0 - m / 0.42));
-            dissolve.Draw(ctx, m);
         }
         else ctx.DrawSurface(paperWithTime);
         return;
