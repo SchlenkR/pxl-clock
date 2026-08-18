@@ -204,7 +204,7 @@ var cast = new[]
 
 // Galopp in drei Phasen und Trippeln in zwei: nur die Beine wechseln, Rumpf und Kopf
 // bleiben stehen, sonst flackert die Figur.
-var catRun = new SpriteAnimation(9.0,
+var catRun = new SpriteAnimation(1.0,
     PixelSprite.FromRows(new[]
     {
         ".kk.kk.......kk",
@@ -245,7 +245,7 @@ var catRun = new SpriteAnimation(9.0,
         "..kk...........",
     }, fur));
 
-var mouseRun = new SpriteAnimation(11.0,
+var mouseRun = new SpriteAnimation(1.0,
     PixelSprite.FromRows(new[]
     {
         "...kkk.....",
@@ -299,7 +299,7 @@ void FigureRaw(RasterSurface ctx, int nr, double x0, double y0, bool flipX = fal
 // The same, but cat and mouse move their legs while they travel.
 void Running(RasterSurface ctx, int nr, double x0, double y0, bool flipX = false)
 {
-    var sprite = nr == 0 ? catRun.At(frameTime) : nr == 4 ? mouseRun.At(frameTime) : cast[nr];
+    var sprite = Stride(nr, x0);
     var x = (int)Math.Round(x0);
     var y = (int)Math.Round(y0);
     var rim = ctx.CreateSurface(24, 24);
@@ -310,11 +310,16 @@ void Running(RasterSurface ctx, int nr, double x0, double y0, bool flipX = false
     sprite.Draw(ctx, x, y, flipX: flipX);
 }
 
-void RunningRaw(RasterSurface ctx, int nr, double x0, double y0, bool flipX = false)
+void RunningRaw(RasterSurface ctx, int nr, double x0, double y0, bool flipX = false) =>
+    Stride(nr, x0).Draw(ctx, (int)Math.Round(x0), (int)Math.Round(y0), flipX: flipX);
+
+// Ein Schritt alle paar Pixel Weg - dadurch stehen die Beine still, sobald die Figur steht.
+PixelSprite Stride(int nr, double x) => nr switch
 {
-    var sprite = nr == 0 ? catRun.At(frameTime) : nr == 4 ? mouseRun.At(frameTime) : cast[nr];
-    sprite.Draw(ctx, (int)Math.Round(x0), (int)Math.Round(y0), flipX: flipX);
-}
+    0 => catRun.At(-x / 3.0),
+    4 => mouseRun.At(-x / 2.0),
+    _ => cast[nr],
+};
 
 int RunWidth(int nr) => nr == 0 ? 15 : nr == 4 ? 11 : cast[nr].Width;
 
@@ -420,8 +425,8 @@ double HoldPoint(int act) => act switch
 {
     0 => 3.18 / 4.70,
     1 => 2.70 / 3.90,
-    2 => 3.20 / 4.90,
-    3 => 2.56 / 3.76,
+    2 => 4.10 / 5.90,
+    3 => 5.50 / 6.80,
     4 => 2.25 / 3.85,
     5 => 1.87 / 4.45,
     6 => 2.74 / 3.62,
@@ -826,71 +831,79 @@ void ChaseStreak(RasterSurface ctx, double from, double to, int y, double streng
 
 void ActTrap(RasterSurface ctx, double p)
 {
-    var s = p * 4.9;
-
-    if (s < 2.40)
-    {
-        TrapScene(ctx, s);
-        if (s > 2.00) TrapSweep(ctx, Easings.EaseInOutSine((s - 2.00) / 0.36), paperPlain);
-        return;
-    }
+    var s = p * 5.9;
 
     if (s < 3.30)
     {
-        TimeFlyIn(ctx, s - 2.40);
+        TrapScene(ctx, s);
+        if (s > 2.90) TrapSweep(ctx, Easings.EaseInOutSine((s - 2.90) / 0.36), paperPlain);
         return;
     }
 
     if (s < 4.20)
+    {
+        TimeFlyIn(ctx, s - 3.30);
+        return;
+    }
+
+    if (s < 5.20)
     {
         ctx.DrawSurface(paperWithTime);
         return;
     }
 
     ctx.DrawSurface(paperWithTime);
-    TrapSweep(ctx, Easings.EaseInOutSine((s - 4.20) / 0.44), fieldWithTime);
+    TrapSweep(ctx, Easings.EaseInOutSine((s - 5.20) / 0.44), fieldWithTime);
 }
 
 // The cat sneaks under the hanging crate to get the bait, and the crate comes down on it.
-// Der Kaese liegt links, die Kiste haengt rechts an ihrem Seil. Die Katze schleicht von
-// rechts zum Kaese und muss dabei unter der Kiste durch - die faellt genau dann. Danach
-// kommt die Maus von links und nimmt sich in Ruhe den Kaese.
+// Die Falle haengt ueber dem Koeder. Die Maus schnappt ihn sich und ist schon wieder
+// draussen, als die Falle zuschlaegt - auf nichts. Die Katze kommt zu spaet.
 void TrapScene(RasterSurface ctx, double s)
 {
-    var cheese = TrapIn(s, 0.18, 0.52);
-    var crate = TrapIn(s, 0.34, 0.72);
-    var cat = TrapIn(s, 0.70, 1.30);
-    var drop = Easings.EaseInCubic(TrapIn(s, 1.32, 1.44));
-    var mouse = TrapIn(s, 1.52, 1.86);
+    var cheese = TrapIn(s, 0.20, 0.55);
+    var crate = TrapIn(s, 0.35, 0.75);
+    var mouseIn = TrapIn(s, 0.85, 1.30);
+    var grab = Easings.EaseInCubic(TrapIn(s, 1.50, 1.85));
+    var drop = Easings.EaseInCubic(TrapIn(s, 1.86, 1.98));
+    var catIn = TrapIn(s, 2.10, 2.55);
 
     ctx.DrawSurface(fieldPlain);
     TrapStage(ctx, TrapIn(s, 0.02, 0.30));
-    TrapShadow(ctx, 0, 7, cheese * cheese);
+    TrapShadow(ctx, 1, 8, cheese * cheese);
 
-    if (cheese > 0.0) TrapPiece(ctx, 3, MathH.Lerp(-10.0, 0.0, Easings.EaseOutBack(cheese)), 12);
+    // Der Koeder und die Maus verlassen die Buehne gemeinsam nach links.
+    if (cheese > 0.0)
+        TrapPiece(ctx, 3, MathH.Lerp(MathH.Lerp(30.0, 2.0, Easings.EaseOutBack(cheese)), -14.0, grab), 12);
 
-    // Das Seil, an dem die Kiste haengt, bis sie faellt.
-    if (crate > 0.0 && drop < 1.0)
-        for (var y = 0; y < 3; y++)
-            ctx[16, y] = edgeTone;
-
-    // Die Katze bleibt unter der Kiste stehen, sobald diese gefallen ist.
-    if (cat > 0.0)
+    if (mouseIn > 0.0)
     {
-        var walk = drop > 0.0 ? 8.0 : MathH.Lerp(26.0, 8.0, cat);
-        TrapPiece(ctx, 5, walk, 7);
+        var walk = MathH.Lerp(26.0, 1.0, Easings.EaseOutCubic(mouseIn));
+        Running(ctx, 4, MathH.Lerp(walk, -13.0, grab), 10);
     }
+
+    // Das Seil haelt die Falle, bis sie faellt.
+    if (crate > 0.0 && drop < 1.0)
+        for (var y = 0; y < 4; y++)
+            ctx[5, y] = edgeTone;
 
     if (crate > 0.0)
     {
         var hang = MathH.Lerp(-11.0, -3.0, Easings.EaseOutBack(crate));
-        var jolt = Shake.At(s - 1.44, amplitude: 1.4, duration: 0.20, frequency: 42.0);
-        TrapPiece(ctx, 1, 12.0 + (drop >= 1.0 ? jolt.X : 0.0), MathH.Lerp(hang, 7.0, drop));
+        var jolt = Shake.At(s - 1.98, amplitude: 1.6, duration: 0.22, frequency: 42.0);
+        TrapPiece(ctx, 1, 1.0 + (drop >= 1.0 ? jolt.X : 0.0), MathH.Lerp(hang, 7.0, drop));
     }
 
-    if (mouse > 0.0) Running(ctx, 4, MathH.Lerp(-12.0, 1.0, Easings.EaseOutCubic(mouse)), 9, flipX: true);
+    // Die Katze rennt an die leere Falle, setzt sich davor und aergert sich.
+    if (catIn > 0.0 && catIn < 1.0)
+        Running(ctx, 0, MathH.Lerp(28.0, 11.0, Easings.EaseOutCubic(catIn)), 8);
+    else if (catIn >= 1.0)
+    {
+        var annoyed = Math.Sin((s - 2.55) * 24.0) * Math.Exp(-(s - 2.55) * 1.8) * 1.2;
+        TrapPiece(ctx, 0, 11.0 + annoyed, 5);
+    }
 
-    TrapLight(ctx, s - 1.10);
+    TrapLight(ctx, s - 1.30);
 }
 
 double TrapIn(double s, double from, double to) => MathH.Clamp01((s - from) / (to - from));
@@ -980,95 +993,105 @@ void TrapSweep(RasterSurface ctx, double u, RasterSurface target)
 
 void ActWindow(RasterSurface ctx, double p)
 {
-    const double dWindowOpen = 0.62;
-    const double dWindowBelt = 1.10;
-    const double dWindowClose = 0.24;
-    const double dWindowBig = 0.60;
-    const double dWindowDissolve = 0.80;
-    const double dWindowBack = 0.40;
+    const double raceEnd = 4.30;
+    const double sweepEnd = 4.66;
+    const double flyEnd = 5.50;
+    const double holdEnd = 6.30;
+    var s = p * 6.80;
 
-    var tOpen = dWindowOpen;
-    var tBelt = tOpen + dWindowBelt;
-    var tClose = tBelt + dWindowClose;
-    var tBig = tClose + dWindowBig;
-    var tDissolve = tBig + dWindowDissolve;
-    var s = p * (tDissolve + dWindowBack);
-
-    if (s < tOpen) WindowOpen(ctx, s);
-    else if (s < tClose) WindowBelt(ctx, s, s - tBelt);
-    else if (s < tBig) WindowTime(ctx, s - tClose);
-    else if (s < tDissolve) WindowDissolve(ctx, s - tBig, dWindowDissolve);
-    else WindowBack(ctx, s - tDissolve);
-}
-
-void WindowOpen(RasterSurface ctx, double s)
-{
-    ctx.DrawSurface(fieldPlain);
-    for (var i = 0; i < 2; i++)
+    if (s < raceEnd)
     {
-        var local = s - i * 0.12;
-        var blind = Easings.EaseOutCubic(MathH.Clamp01(local / 0.30));
-        var rows = (int)Math.Round(blind * 12.0);
-        if (rows <= 0) continue;
-        for (var r = 0; r < rows; r++)
-        for (var x = 0; x < 24; x++)
-            ctx[x, i * 12 + r] = paper;
-        WindowChase(ctx, i, s, Math.Min(rows, 11));
-        WindowShelf(ctx, i, Easings.EaseOutCubic(MathH.Clamp01((local - 0.30) / 0.16)));
+        WindowRace(ctx, s);
+        return;
     }
+
+    if (s < sweepEnd)
+    {
+        WindowRace(ctx, raceEnd);
+        WindowShut(ctx, (s - raceEnd) / (sweepEnd - raceEnd));
+        return;
+    }
+
+    if (s < flyEnd)
+    {
+        TimeFlyIn(ctx, s - sweepEnd);
+        return;
+    }
+
+    if (s < holdEnd)
+    {
+        ctx.DrawSurface(paperWithTime);
+        return;
+    }
+
+    WindowBack(ctx, (s - holdEnd) / (6.80 - holdEnd));
 }
 
-void WindowBelt(RasterSurface ctx, double tTravel, double tShut)
+// Ein Rennen ueber drei Etagen: die Maus im Zickzack nach unten, die Katze hinterher.
+// Auf der letzten Etage bleibt die Maus stehen und lugt - da stehen auch ihre Beine
+// still - und ist wieder weg, sobald die Katze bei ihr ankommt.
+void WindowRace(RasterSurface ctx, double s)
 {
     ctx.DrawSurface(paperPlain);
-    for (var i = 0; i < 2; i++)
+    for (var i = 0; i < 3; i++)
+        WindowShelf(ctx, i, Easings.EaseOutCubic(MathH.Clamp01((s - i * 0.10) / 0.28)));
+
+    WindowRunner(ctx, 4, 0, s, 0.10, 1.15, false);
+    WindowRunner(ctx, 4, 1, s, 1.15, 2.20, true);
+    WindowRunner(ctx, 0, 1, s, 1.48, 2.53, true);
+
+    // Untere Etage: die Maus haelt in der Mitte an, bis die Katze fast da ist.
+    if (s > 2.20)
     {
-        WindowShelf(ctx, i, 1.0);
-        WindowChase(ctx, i, tTravel, 11);
+        var arrive = MathH.Clamp01((s - 2.20) / 0.65);
+        var flee = MathH.Clamp01((s - 3.35) / 0.55);
+        var x = MathH.Lerp(MathH.Lerp(25.0, 11.0, Easings.EaseOutCubic(arrive)), -13.0, Easings.EaseInCubic(flee));
+        Running(ctx, 4, x, 16);
     }
 
-    if (tShut <= 0.0) return;
-    for (var i = 0; i < 2; i++)
+    if (s > 2.62)
     {
-        var u = MathH.Clamp01((tShut - i * 0.05) / 0.16);
-        var covered = (int)Math.Ceiling(u * 6.0);
+        var chase = MathH.Clamp01((s - 2.62) / 1.05);
+        var x = MathH.Lerp(27.0, 13.0, Easings.EaseOutCubic(chase));
+        Running(ctx, 0, x, 14);
+    }
+}
+
+// Eine Figur laeuft einmal quer durch ihre Etage.
+void WindowRunner(RasterSurface ctx, int nr, int level, double s, double from, double to, bool toRight)
+{
+    if (s < from || s > to) return;
+    var u = Easings.EaseInOutSine(MathH.Clamp01((s - from) / (to - from)));
+    var width = RunWidth(nr);
+    var x = toRight ? MathH.Lerp(-width - 2.0, 26.0, u) : MathH.Lerp(26.0, -width - 2.0, u);
+    Running(ctx, nr, x, level * 8 + 8 - RunHeight(nr), flipX: toRight);
+}
+
+// Die Etagen klappen von aussen zu.
+void WindowShut(RasterSurface ctx, double u)
+{
+    for (var i = 0; i < 3; i++)
+    {
+        var v = MathH.Clamp01((u - i * 0.08) / 0.5);
+        var covered = (int)Math.Ceiling(v * 4.0);
         for (var k = 0; k < covered; k++)
         for (var x = 0; x < 24; x++)
         {
-            ctx[x, i * 12 + k] = paper;
-            ctx[x, i * 12 + 11 - k] = paper;
+            ctx[x, i * 8 + k] = paper;
+            ctx[x, i * 8 + 7 - k] = paper;
         }
     }
 }
 
-// Die Jagd laeuft erst durch die obere Etage und dann durch die untere, als liefe sie
-// im Kreis: links raus, eine Etage tiefer rechts wieder herein.
-void WindowChase(RasterSurface ctx, int level, double t, int visible)
-{
-    var lead = level == 0 ? t : t - 0.95;
-    WindowFigure(ctx, 4, level, WindowTravel(lead), visible);
-    WindowFigure(ctx, 0, level, WindowTravel(lead - 0.38), visible);
-}
-
-void WindowTime(RasterSurface ctx, double s)
-{
-    TimeFlyIn(ctx, s);
-}
-
-void WindowDissolve(RasterSurface ctx, double s, double duration)
-{
-    ctx.DrawSurface(paperWithTime);
-}
-
 void WindowBack(RasterSurface ctx, double s)
 {
-    for (var i = 0; i < 2; i++)
+    for (var i = 0; i < 3; i++)
     {
-        var u = Easings.EaseOutCubic(MathH.Clamp01((s - (1 - i) * 0.08) / 0.24));
+        var u = Easings.EaseOutCubic(MathH.Clamp01((s - (2 - i) * 0.12) / 0.5));
         var edge = u * 25.0;
-        for (var r = 0; r < 12; r++)
+        for (var r = 0; r < 8; r++)
         {
-            var y = i * 12 + r;
+            var y = i * 8 + r;
             for (var x = 0; x < 24; x++)
             {
                 var free = i % 2 == 0 ? x >= 24 - edge : x < edge;
@@ -1078,31 +1101,13 @@ void WindowBack(RasterSurface ctx, double s)
     }
 }
 
-// Shelf board of level i, u = how far it has slid in.
+// Regalbrett der Etage i.
 void WindowShelf(RasterSurface ctx, int i, double u)
 {
     if (u <= 0.0) return;
     var span = Math.Min(24, (int)Math.Round(u * 24.0));
     for (var k = 0; k < span; k++)
-        ctx[i % 2 == 0 ? 23 - k : k, i * 12 + 11] = accent;
-}
-
-// Rechts herein, links hinaus - in der Bildmitte wird es kurz langsamer.
-double WindowTravel(double t)
-{
-    var v = MathH.Clamp01(t / 1.85);
-    var eased = v + 0.5 * Math.Sin(v * Math.PI * 2.0) / (Math.PI * 2.0);
-    return 24.0 - eased * 42.0;
-}
-
-void WindowFigure(RasterSurface ctx, int nr, int level, double x, int visible)
-{
-    var top = level * 12;
-    var helper = ctx.CreateSurface(24, 24);
-    Running(helper, nr, x, top + 11 - RunHeight(nr));
-    for (var py = top; py < Math.Min(24, top + visible); py++)
-    for (var px = 0; px < 24; px++)
-        if (helper[px, py].A > 0.0) ctx[px, py] = helper[px, py];
+        ctx[i % 2 == 0 ? 23 - k : k, i * 8 + 7] = accent;
 }
 
 // ---------------------------------------------------------------- act: tumble
