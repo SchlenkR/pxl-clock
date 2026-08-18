@@ -6,7 +6,7 @@
 // appType: ClockFace
 // ---
 
-// Ten short stories, one per minute, never the same one twice in a row. Each ends with
+// Nine short stories, one per minute, never the same one twice in a row. Each ends with
 // the time filling the screen and then collapsing into the small readout.
 //
 // With the cast - cat, crate, bird, cheese, mouse:
@@ -21,7 +21,6 @@
 //   7 FlipBoard  a split-flap display steps through, staggered per row
 //   8 Fold       the field creases like paper and opens up white
 //   9 Spotlight  a cone searches the field, finds the mouse first, then the time
-//  10 Measure    dimension lines drive in and snap onto the outline of the digits
 
 #:package Pxl@*
 
@@ -34,9 +33,9 @@ var secondsRadius = Param.Float(12.0, min: 5.0, max: 16.0, label: "Seconds radiu
 var secondsOpacity = Param.Float(0.95, min: 0.0, max: 1.0, label: "Seconds ring");
 
 // All times in seconds; each act runs its own schedule, stretched to fit the duration.
-var actDuration = Param.Float(4.0, min: 3.0, max: 15.0, label: "Act duration");
+var actDuration = Param.Float(7.0, min: 3.0, max: 15.0, label: "Act duration");
 var calmDuration = Param.Float(2.0, min: 1.5, max: 20.0, label: "Calm");
-var holdBigTime = Param.Float(0.8, min: 0.0, max: 6.0, label: "Hold time");
+var holdTime = Param.Float(1.2, min: 0.0, max: 6.0, label: "Hold time");
 var waveDuration = Param.Float(2.2, min: 1.5, max: 5.0, label: "Wave duration");
 var previewInterval = Param.Float(9.0, min: 3.0, max: 30.0, label: "Preview interval");
 
@@ -53,7 +52,6 @@ var actCatalogue = Param.Bool(true, label: "6 Catalogue");
 var actFlipBoard = Param.Bool(true, label: "7 Flip board");
 var actFold = Param.Bool(true, label: "8 Fold");
 var actSpotlight = Param.Bool(true, label: "9 Spotlight");
-var actMeasure = Param.Bool(true, label: "10 Measure");
 
 // Paper white is the counterpart of the field and stays out of the colour family.
 var paper = Color.FromRgbByte(255, 253, 248);
@@ -104,28 +102,39 @@ var timeOnField = new BakedSurface(24, 24);
 // Neutral on purpose - dark silhouettes read on any base colour. Only the cheese is yellow.
 var fur = new Dictionary<char, Color>
 {
-    ['k'] = Color.FromRgbByte(38, 42, 54),
+    ['k'] = Color.FromRgbByte(34, 36, 46),
+    ['d'] = Color.FromRgbByte(74, 78, 92),
     ['g'] = Color.FromRgbByte(104, 112, 130),
-    ['w'] = Color.FromRgbByte(238, 242, 248),
+    ['h'] = Color.FromRgbByte(176, 183, 198),
+    ['w'] = Color.FromRgbByte(240, 244, 250),
+    ['p'] = Color.FromRgbByte(226, 152, 156),
     ['a'] = Color.FromRgbByte(255, 214, 86),
     ['s'] = Color.FromRgbByte(255, 176, 48),
     ['c'] = Color.FromRgbByte(255, 216, 96),
-    ['d'] = Color.FromRgbByte(196, 134, 28),
+    ['y'] = Color.FromRgbByte(196, 134, 28),
 };
 
-// Index 0..4: cat, crate, bird, cheese, mouse.
+// Index 0..5: cat sitting, crate, bird, cheese, mouse, cat crouching.
 var cast = new[]
 {
+    // 0 - Katze sitzend
     PixelSprite.FromRows(new[]
     {
-        "k......k.k.",
-        "kk.....kkk.",
-        ".k....kkkkk",
-        ".kkkkkkkkak",
-        ".kkkkkkkkkk",
-        ".kggggkkk..",
-        "..k.k..k.k.",
+        ".kk...kk.....",
+        ".kdk.kdk..kk.",
+        ".kdddddddk.kk",
+        ".kdadddadk.kd",
+        ".kdddddddk.kd",
+        ".kddwpwddk.kd",
+        "..kdddddk..kd",
+        "..kdddddk.kd.",
+        ".kdddddddkkd.",
+        ".kddwwwddddk.",
+        ".kddwwwdddk..",
+        ".kdddddddk...",
+        ".kdk..kdk....",
     }, fur),
+    // 1 - Kiste
     PixelSprite.FromRows(new[]
     {
         "wwwwwwwww",
@@ -140,6 +149,7 @@ var cast = new[]
         "wkgggggkw",
         "wwwwwwwww",
     }, fur),
+    // 2 - Vogel
     PixelSprite.FromRows(new[]
     {
         "...kk....",
@@ -154,28 +164,114 @@ var cast = new[]
         "...kkkkkk",
         "....kk.kk",
     }, fur),
+    // 3 - Kaese
     PixelSprite.FromRows(new[]
     {
-        "....dddd",
-        "..ddcccd",
-        "ddckcccd",
-        "dcccccdd",
-        "dcckcccd",
-        "dddddddd",
+        "....yyyy",
+        "..yyccck",
+        "yykccckc",
+        "ycccccyy",
+        "yckccccy",
+        "yyyyyyyy",
     }, fur),
+    // 4 - Maus, stehend
     PixelSprite.FromRows(new[]
     {
-        "...kk....",
-        "..kkkk...",
-        "g.kkkkk..",
-        "gkkkkkkw.",
-        "gkkkkkak.",
-        "..kkkkk..",
-        "..k..k...",
+        "...kkk.....",
+        "..khphk....",
+        ".khhhhkkk.k",
+        "khhahhhhhhk",
+        "khhhhhhhhkk",
+        ".khhhhhhhk.",
+        "..kkhhhkk..",
+        "...k.k.k...",
+    }, fur),
+    // 5 - Katze geduckt, kurz vor dem Absprung
+    PixelSprite.FromRows(new[]
+    {
+        "..........kk.kk",
+        "..........kdkdk",
+        "kk.......kddddk",
+        ".kk.....kkdaddk",
+        "..kk..kkddwdddk",
+        "..kkkkdddddddk.",
+        "..kddddddddddk.",
+        "..kdddddddddk..",
+        "..kdddddddddk..",
+        "..kddk...kddk..",
+        "..kkk.....kkk..",
     }, fur),
 };
 
+// Galopp in drei Phasen und Trippeln in zwei: nur die Beine wechseln, Rumpf und Kopf
+// bleiben stehen, sonst flackert die Figur.
+var catRun = new SpriteAnimation(9.0,
+    PixelSprite.FromRows(new[]
+    {
+        "kk.......kk.kk.",
+        ".kk......kdkdk.",
+        "..kk....kdddddk",
+        "...kkkkkkdadadk",
+        "..kdddddddwpwdk",
+        ".kdddddddddddk.",
+        "kkddddddddddk..",
+        "k.kdk....kdk...",
+        "..kk.k..kk..k..",
+        ".....kk....kk..",
+    }, fur),
+    PixelSprite.FromRows(new[]
+    {
+        "kk.......kk.kk.",
+        ".kk......kdkdk.",
+        "..kk....kdddddk",
+        "...kkkkkkdadadk",
+        "..kdddddddwpwdk",
+        ".kdddddddddddk.",
+        "kkddddddddddk..",
+        "...kdkkkkdk....",
+        "...kdk..kdk....",
+        "...kkk..kkk....",
+    }, fur),
+    PixelSprite.FromRows(new[]
+    {
+        "kk.......kk.kk.",
+        ".kk......kdkdk.",
+        "..kk....kdddddk",
+        "...kkkkkkdadadk",
+        "..kdddddddwpwdk",
+        ".kdddddddddddk.",
+        "kkddddddddddk..",
+        ".kkdk.....kdkk.",
+        "kk..k......k.kk",
+        "...........kk..",
+    }, fur));
+
+var mouseRun = new SpriteAnimation(11.0,
+    PixelSprite.FromRows(new[]
+    {
+        "...kkk.....",
+        "..khphk....",
+        ".khhhhkkk.k",
+        "khhahhhhhhk",
+        "khhhhhhhhkk",
+        ".khhhhhhhk.",
+        "..kkhhhkk..",
+        "...k.k.k...",
+    }, fur),
+    PixelSprite.FromRows(new[]
+    {
+        "...kkk.....",
+        "..khphk....",
+        ".khhhhkkk.k",
+        "khhahhhhhhk",
+        "khhhhhhhhkk",
+        ".khhhhhhhk.",
+        "..kkhhhkk..",
+        "..k..k..k..",
+    }, fur));
+
 var rimTone = Color.FromRgbByte(255, 246, 226);
+var frameTime = 0.0;
 
 int FigureWidth(int nr) => cast[nr].Width;
 
@@ -199,10 +295,35 @@ void Figure(RasterSurface ctx, int nr, double x0, double y0, bool flipX = false)
 void FigureRaw(RasterSurface ctx, int nr, double x0, double y0, bool flipX = false) =>
     cast[nr].Draw(ctx, (int)Math.Round(x0), (int)Math.Round(y0), flipX: flipX);
 
+// The same, but cat and mouse move their legs while they travel.
+void Running(RasterSurface ctx, int nr, double x0, double y0, bool flipX = false)
+{
+    var sprite = nr == 0 ? catRun.At(frameTime) : nr == 4 ? mouseRun.At(frameTime) : cast[nr];
+    var x = (int)Math.Round(x0);
+    var y = (int)Math.Round(y0);
+    var rim = ctx.CreateSurface(24, 24);
+    sprite.Draw(rim, x, y - 1, flipX: flipX);
+    for (var py = 0; py < 24; py++)
+    for (var px = 0; px < 24; px++)
+        if (rim[px, py].A > 0.0) ctx[px, py] = ColorOps.Lerp(ctx[px, py], rimTone, 0.45);
+    sprite.Draw(ctx, x, y, flipX: flipX);
+}
+
+void RunningRaw(RasterSurface ctx, int nr, double x0, double y0)
+{
+    var sprite = nr == 0 ? catRun.At(frameTime) : nr == 4 ? mouseRun.At(frameTime) : cast[nr];
+    sprite.Draw(ctx, (int)Math.Round(x0), (int)Math.Round(y0), flipX: nr != 4 && nr != 0);
+}
+
+int RunWidth(int nr) => nr == 0 ? 15 : nr == 4 ? 11 : cast[nr].Width;
+
+int RunHeight(int nr) => nr == 0 ? 10 : nr == 4 ? 8 : cast[nr].Height;
+
 var scene = (RasterSurface ctx) =>
 {
     var t = ctx.Elapsed.TotalSeconds;
     var now = ctx.Now;
+    frameTime = t;
     SetTones();
 
     var stamp = $"{now:HHmm}{baseTone.R:F2}{baseTone.G:F2}{baseTone.B:F2}";
@@ -232,8 +353,7 @@ var scene = (RasterSurface ctx) =>
             case 5: ActCatalogue(ctx, progress); break;
             case 6: ActFlipBoard(ctx, progress); break;
             case 7: ActFold(ctx, progress); break;
-            case 8: ActSpotlight(ctx, progress); break;
-            default: ActMeasure(ctx, progress); break;
+            default: ActSpotlight(ctx, progress); break;
         }
         return;
     }
@@ -251,7 +371,7 @@ var scene = (RasterSurface ctx) =>
     if (actPicker is null || actPicker.Count != enabled.Count)
         actPicker = new CyclePicker(enabled.Count, avoidRepeat: true, seed: 20260801);
 
-    var total = actDuration + holdBigTime;
+    var total = actDuration + holdTime;
 
     if (preview)
     {
@@ -278,8 +398,8 @@ double WithHold(double second, int act)
     var point = HoldPoint(act);
     var hold = point * actDuration;
     if (second < hold) return second / actDuration;
-    if (second < hold + holdBigTime) return point;
-    return (second - holdBigTime) / actDuration;
+    if (second < hold + holdTime) return point;
+    return (second - holdTime) / actDuration;
 }
 
 // The moment (0..1) at which the big time stands complete, just before it dissolves.
@@ -293,8 +413,7 @@ double HoldPoint(int act) => act switch
     5 => 2.95 / 4.10,
     6 => 1.87 / 4.45,
     7 => 2.74 / 3.62,
-    8 => 2.65 / 4.10,
-    _ => 2.42 / 4.30,
+    _ => 2.65 / 4.10,
 };
 
 // Indices of the ticked acts, in the order of the header comment.
@@ -303,7 +422,7 @@ List<int> EnabledActs()
     var flags = new[]
     {
         actDelivery, actChase, actTrap, actWindow, actTumble, actCatalogue,
-        actFlipBoard, actFold, actSpotlight, actMeasure,
+        actFlipBoard, actFold, actSpotlight,
     };
     var enabled = new List<int>();
     for (var i = 0; i < flags.Length; i++)
@@ -490,17 +609,17 @@ void ActDelivery(RasterSurface ctx, double p)
         if (s > mouseOff)
         {
             var u = Easings.EaseOutBack(MathH.Clamp01((s - mouseOff) / (mouseOn - mouseOff)));
-            var x = MathH.Lerp(26.0, 16.0, u);
-            if (s < mouseOn) DeliveryFigureSoft(ctx, 4, x + 4.0, 17.0, 0.22);
-            Figure(ctx, 4, MathH.Lerp(x, -10.0, grab) + jolt.X, 17.0 + jolt.Y, flipX: true);
+            var x = MathH.Lerp(26.0, 15.0, u);
+            if (s < mouseOn) DeliveryFigureSoft(ctx, 4, x + 4.0, 16.0, 0.22);
+            Running(ctx, 4, MathH.Lerp(x, -12.0, grab) + jolt.X, 16.0 + jolt.Y);
         }
 
         if (s > catOff)
         {
             var u = Easings.EaseOutBounce(MathH.Clamp01((s - catOff) / (catOn - catOff)));
-            var y = MathH.Lerp(-10.0, 17.0, u);
-            if (s < catOn) DeliveryFigureSoft(ctx, 0, 7.0, y - 4.0, 0.22);
-            Figure(ctx, 0, 7.0 + jolt.X, y + jolt.Y, flipX: true);
+            var y = MathH.Lerp(-14.0, 11.0, u);
+            if (s < catOn) DeliveryFigureSoft(ctx, 0, 6.0, y - 4.0, 0.22);
+            Figure(ctx, 0, 6.0 + jolt.X, y + jolt.Y, flipX: true);
         }
 
         DeliveryDust(ctx, 11.5, 23.0, 9.0, s - cheeseOn, Colors.White);
@@ -575,7 +694,7 @@ void ActChase(RasterSurface ctx, double p)
         if (edge > 0.5)
         {
             ctx.DrawSurface(fieldWithTime);
-            ChaseRunner(ctx, 0, Math.Min(7.0, 7.0 - (16.0 - edge) * 1.7), 12.0, MathH.Clamp01((16.0 - edge) / 9.0));
+            ChaseRunner(ctx, 0, Math.Min(5.0, 5.0 - (16.0 - edge) * 1.7), 11.0, MathH.Clamp01((16.0 - edge) / 9.0));
             ChaseSheetEdge(ctx, edge);
             ctx.DrawSurface(paperPlain, x: edge);
         }
@@ -614,13 +733,13 @@ void ChaseConvoy(RasterSurface ctx, double s, double tMouse, double dMouse, doub
     if (s >= tMouse && s < tMouse + dMouse)
     {
         var u = (s - tMouse) / dMouse;
-        ChaseRunner(ctx, 4, MathH.Lerp(26.0, -14.0, u), 3, 1.0);
+        ChaseRunner(ctx, 4, MathH.Lerp(26.0, -13.0, u), 2, 1.0);
     }
 
     if (s >= tCheese && s < tCheese + dCheese)
     {
         var u = (s - tCheese) / dCheese;
-        ChaseRunner(ctx, 3, MathH.Lerp(26.0, -12.0, u), 18, 1.0);
+        ChaseRunner(ctx, 3, MathH.Lerp(26.0, -10.0, u), 18, 1.0);
     }
 
     if (s < tCat) return;
@@ -629,14 +748,14 @@ void ChaseConvoy(RasterSurface ctx, double s, double tMouse, double dMouse, doub
     var x = MathH.Lerp(26.0, 7.0, Easings.EaseOutBack(v));
     var after = s - tCat - dCat;
     var bounce = after > 0.0 ? Math.Sin(after * 24.0) * Math.Exp(-after * 8.0) * 1.4 : 0.0;
-    ChaseRunner(ctx, 0, x, 12.0 + bounce, (1.0 - v) * (1.0 - v));
+    ChaseRunner(ctx, 0, x, 11.0 + bounce, (1.0 - v) * (1.0 - v));
 }
 
 // Figure with speed streaks, ghost image and drop shadow, travelling left.
 void ChaseRunner(RasterSurface ctx, int nr, double x, double y, double tempo)
 {
-    var right = x + FigureWidth(nr);
-    var height = FigureHeight(nr);
+    var right = x + RunWidth(nr);
+    var height = RunHeight(nr);
 
     for (var r = -1; r <= height; r++)
     {
@@ -647,13 +766,13 @@ void ChaseRunner(RasterSurface ctx, int nr, double x, double y, double tempo)
 
     ChaseGhost(ctx, nr, x + 3.0 * tempo, y, 0.30 * tempo);
     ChaseShadow(ctx, nr, x, y);
-    Figure(ctx, nr, x, y, flipX: true);
+    Running(ctx, nr, x, y, flipX: nr != 4 && nr != 0);
 }
 
 void ChaseShadow(RasterSurface ctx, int nr, double x, double y)
 {
     var helper = ctx.CreateSurface(24, 24);
-    FigureRaw(helper, nr, x + 1.0, y + 1.0, flipX: true);
+    RunningRaw(helper, nr, x + 1.0, y + 1.0);
     var dark = deepDark;
     for (var py = 0; py < 24; py++)
     for (var px = 0; px < 24; px++)
@@ -676,7 +795,7 @@ void ChaseGhost(RasterSurface ctx, int nr, double x, double y, double alpha)
 {
     if (alpha <= 0.02) return;
     var helper = ctx.CreateSurface(24, 24);
-    FigureRaw(helper, nr, x, y, flipX: true);
+    RunningRaw(helper, nr, x, y);
     ctx.DrawSurface(helper, alpha: alpha);
 }
 
@@ -740,16 +859,16 @@ void TrapScene(RasterSurface ctx, double s)
     ctx.DrawSurface(fieldWithTime);
     TrapStage(ctx, TrapIn(s, 0.02, 0.30));
     TrapShadow(ctx, 0, 7, cheese * cheese);
-    TrapShadow(ctx, 14, 23, cat * cat);
+    TrapShadow(ctx, 11, 23, cat * cat);
 
     if (cheese > 0.0) TrapPiece(ctx, 3, MathH.Lerp(-10.0, 0.0, Easings.EaseOutBack(cheese)), 12);
-    if (cat > 0.0) TrapPiece(ctx, 0, MathH.Lerp(30.0, 13.0, Easings.EaseOutBack(cat)), 11, flipX: true);
-    if (mouse > 0.0) TrapPiece(ctx, 4, MathH.Lerp(-11.0, 7.0, Easings.EaseOutBack(mouse)), 11);
+    if (cat > 0.0) TrapPiece(ctx, 5, MathH.Lerp(30.0, 11.0, Easings.EaseOutBack(cat)), 7);
+    if (mouse > 0.0) TrapPiece(ctx, 4, MathH.Lerp(-12.0, 8.0, Easings.EaseOutBack(mouse)), 10);
     if (crate > 0.0)
     {
         var hang = MathH.Lerp(-13.0, -4.0, Easings.EaseOutBack(crate));
         var jolt = Shake.At(s - 1.34, amplitude: 1.4, duration: 0.20, frequency: 42.0);
-        TrapPiece(ctx, 1, 14.0 + (drop >= 1.0 ? jolt.X : 0.0), MathH.Lerp(hang, 7.0, drop));
+        TrapPiece(ctx, 1, 13.0 + (drop >= 1.0 ? jolt.X : 0.0), MathH.Lerp(hang, 7.0, drop));
     }
 
     TrapLight(ctx, s - 1.00);
@@ -866,16 +985,16 @@ void ActWindow(RasterSurface ctx, double p)
 void WindowOpen(RasterSurface ctx, double s)
 {
     ctx.DrawSurface(fieldWithTime);
-    for (var i = 0; i < 3; i++)
+    for (var i = 0; i < 2; i++)
     {
-        var local = s - i * 0.09;
+        var local = s - i * 0.12;
         var blind = Easings.EaseOutCubic(MathH.Clamp01(local / 0.30));
-        var rows = (int)Math.Round(blind * 8.0);
+        var rows = (int)Math.Round(blind * 12.0);
         if (rows <= 0) continue;
         for (var r = 0; r < rows; r++)
         for (var x = 0; x < 24; x++)
-            ctx[x, i * 8 + r] = paper;
-        WindowFigure(ctx, i, WindowTravel(i, s), Math.Min(rows, 7));
+            ctx[x, i * 12 + r] = paper;
+        WindowChase(ctx, i, s, Math.Min(rows, 11));
         WindowShelf(ctx, i, Easings.EaseOutCubic(MathH.Clamp01((local - 0.30) / 0.16)));
     }
 }
@@ -883,24 +1002,33 @@ void WindowOpen(RasterSurface ctx, double s)
 void WindowBelt(RasterSurface ctx, double tTravel, double tShut)
 {
     ctx.DrawSurface(paperPlain);
-    for (var i = 0; i < 3; i++)
+    for (var i = 0; i < 2; i++)
     {
         WindowShelf(ctx, i, 1.0);
-        WindowFigure(ctx, i, WindowTravel(i, tTravel), 7);
+        WindowChase(ctx, i, tTravel, 11);
     }
 
     if (tShut <= 0.0) return;
-    for (var i = 0; i < 3; i++)
+    for (var i = 0; i < 2; i++)
     {
-        var u = MathH.Clamp01((tShut - i * 0.04) / 0.16);
-        var covered = (int)Math.Ceiling(u * 4.0);
+        var u = MathH.Clamp01((tShut - i * 0.05) / 0.16);
+        var covered = (int)Math.Ceiling(u * 6.0);
         for (var k = 0; k < covered; k++)
         for (var x = 0; x < 24; x++)
         {
-            ctx[x, i * 8 + k] = paper;
-            ctx[x, i * 8 + 7 - k] = paper;
+            ctx[x, i * 12 + k] = paper;
+            ctx[x, i * 12 + 11 - k] = paper;
         }
     }
+}
+
+// Die Jagd laeuft erst durch die obere Etage und dann durch die untere, als liefe sie
+// im Kreis: links raus, eine Etage tiefer rechts wieder herein.
+void WindowChase(RasterSurface ctx, int level, double t, int visible)
+{
+    var lead = level == 0 ? t : t - 0.95;
+    WindowFigure(ctx, 4, level, WindowTravel(lead), visible);
+    WindowFigure(ctx, 0, level, WindowTravel(lead - 0.38), visible);
 }
 
 void WindowTime(RasterSurface ctx, double s)
@@ -922,13 +1050,13 @@ void WindowDissolve(RasterSurface ctx, double s, double duration)
 
 void WindowBack(RasterSurface ctx, double s)
 {
-    for (var i = 0; i < 3; i++)
+    for (var i = 0; i < 2; i++)
     {
-        var u = Easings.EaseOutCubic(MathH.Clamp01((s - (2 - i) * 0.06) / 0.24));
+        var u = Easings.EaseOutCubic(MathH.Clamp01((s - (1 - i) * 0.08) / 0.24));
         var edge = u * 25.0;
-        for (var r = 0; r < 8; r++)
+        for (var r = 0; r < 12; r++)
         {
-            var y = i * 8 + r;
+            var y = i * 12 + r;
             for (var x = 0; x < 24; x++)
             {
                 var free = i % 2 == 0 ? x >= 24 - edge : x < edge;
@@ -944,29 +1072,22 @@ void WindowShelf(RasterSurface ctx, int i, double u)
     if (u <= 0.0) return;
     var span = Math.Min(24, (int)Math.Round(u * 24.0));
     for (var k = 0; k < span; k++)
-        ctx[i % 2 == 0 ? 23 - k : k, i * 8 + 7] = accent;
+        ctx[i % 2 == 0 ? 23 - k : k, i * 12 + 11] = accent;
 }
 
-// Own speed, own direction, and the belt nearly stops in the middle of the screen.
-double WindowTravel(int i, double t)
+// Rechts herein, links hinaus - in der Bildmitte wird es kurz langsamer.
+double WindowTravel(double t)
 {
-    var delay = i == 0 ? 0.00 : i == 1 ? 0.18 : 0.38;
-    var duration = i == 0 ? 1.98 : i == 1 ? 1.86 : 1.72;
-    var v = MathH.Clamp01((t - delay) / duration);
+    var v = MathH.Clamp01(t / 1.85);
     var eased = v + 0.5 * Math.Sin(v * Math.PI * 2.0) / (Math.PI * 2.0);
-    var width = FigureWidth(WindowCast(i));
-    return i % 2 == 0 ? 24.0 - eased * (24.0 + width) : -width + eased * (24.0 + width);
+    return 24.0 - eased * 42.0;
 }
 
-// Top to bottom: cat, mouse, cheese - the food chain as three conveyor belts.
-int WindowCast(int i) => i switch { 0 => 0, 1 => 4, _ => 3 };
-
-void WindowFigure(RasterSurface ctx, int i, double x, int visible)
+void WindowFigure(RasterSurface ctx, int nr, int level, double x, int visible)
 {
-    var nr = WindowCast(i);
-    var top = i * 8;
+    var top = level * 12;
     var helper = ctx.CreateSurface(24, 24);
-    Figure(helper, nr, x, top + 7 - FigureHeight(nr), flipX: i % 2 == 0);
+    Running(helper, nr, x, top + 11 - RunHeight(nr));
     for (var py = top; py < Math.Min(24, top + visible); py++)
     for (var px = 0; px < 24; px++)
         if (helper[px, py].A > 0.0) ctx[px, py] = helper[px, py];
@@ -1713,7 +1834,7 @@ void SpotStage(RasterSurface ctx, double mouseX = 0.0)
 {
     ctx.DrawSurface(paperPlain);
     ctx.DrawSurface(bigTime.Surface);
-    if (mouseX > -10.0) Figure(ctx, 4, mouseX, 17, flipX: true);
+    if (mouseX > -10.0) Figure(ctx, 4, mouseX, 16);
 }
 
 double SpotSearchAngle(double s)
@@ -1731,216 +1852,4 @@ double SpotSpark(double s)
     if (s < 0.07) return 0.9;
     if (s < 0.13) return 0.0;
     return MathH.Clamp01(0.4 + (s - 0.13) / 0.09);
-}
-
-// ---------------------------------------------------------------- act: measure
-
-// Guides and dimension arrows measure the screen and snap onto the outline of the digits.
-void ActMeasure(RasterSurface ctx, double p)
-{
-    var s = p * 4.3;
-    var pen = Tone(0.67, 0.80, 0.010);
-    var dim = accent;
-    var ink = edgeTone;
-
-    if (s < 0.34)
-    {
-        ctx.DrawSurface(fieldWithTime);
-        MeasureSweep(ctx, paperPlain, Easings.EaseInOutSine(s / 0.34), true);
-        return;
-    }
-
-    if (s >= 3.85)
-    {
-        ctx.DrawSurface(paperWithTime);
-        MeasureSweep(ctx, fieldWithTime, Easings.EaseInOutSine((s - 3.85) / 0.45), false);
-        return;
-    }
-
-    ctx.DrawSurface(paperPlain);
-
-    if (s >= 2.42)
-    {
-        var m = s - 2.42;
-        var away = MeasureIn(s, 2.42, 2.76);
-        if (away < 1.0)
-        {
-            var off = MathH.Lerp(0.0, 7.0, Easings.EaseInCubic(away));
-            MeasureFrame(ctx, MeasureRound(-off), MeasureRound(2.0 - off), MeasureRound(23.0 + off), MeasureRound(20.0 + off), pen, 1.0, 1.0 - away);
-        }
-        if (s < 3.52)
-        {
-            ctx.DrawSurface(bigTime.Surface, alpha: MathH.Clamp01(1.0 - m / 0.42));
-        }
-        else ctx.DrawSurface(paperWithTime);
-        return;
-    }
-
-    var z = s < 1.06 ? 0.0 : MeasureSnap((s - 1.06) / 0.42);
-    var air = s < 1.86 ? 0.0 : s < 1.94 ? 2.0 : 1.0;
-    var lx = MathH.Lerp(-2.0, 1.0, z) - air;
-    var rx = MathH.Lerp(25.0, 22.0, z) + air;
-    var oy = MathH.Lerp(-2.0, 0.0, z) - air;
-    var uy = MathH.Lerp(25.0, 23.0, z) + air;
-    var x0 = Math.Max(0, MeasureRound(lx));
-    var x1 = Math.Min(23, MeasureRound(rx));
-    var y0 = Math.Max(0, MeasureRound(oy));
-    var y1 = Math.Min(23, MeasureRound(uy));
-
-    var snapping = (s > 1.14 && s < 1.26) || (s > 1.86 && s < 1.96);
-    MeasureFrame(ctx, x0, y0, x1, y1, snapping ? ink : pen, MeasureIn(s, 0.32, 0.62), 1.0);
-    MeasureCorners(ctx, x0, y0, x1, y1, ink, MeasureIn(s, 1.04, 1.10) * (1.0 - MeasureIn(s, 1.26, 1.48)));
-
-    var fade = 1.0 - MeasureIn(s, 1.34, 1.48);
-    if (fade > 0.0)
-    {
-        var eb = Easings.EaseOutBack(MeasureIn(s, 0.48, 0.78));
-        if (eb > 0.0) MeasureArrowH(ctx, 11, MathH.Lerp(11.5, lx, eb), MathH.Lerp(11.5, rx, eb), dim, fade);
-        var eh = Easings.EaseOutBack(MeasureIn(s, 0.56, 0.86));
-        if (eh > 0.0) MeasureArrowV(ctx, 11, MathH.Lerp(11.5, oy, eh), MathH.Lerp(11.5, uy, eh), dim, fade);
-
-        var ab = Easings.EaseOutBack(MeasureIn(s, 0.78, 0.90));
-        if (ab > 0.0) MeasureNumber(ctx, x1 - x0 + 1, 3, 5 + MeasureRound(2.0 - ab * 2.0), dim, fade * MathH.Clamp01(ab * 2.0));
-        var ah = Easings.EaseOutBack(MeasureIn(s, 0.86, 0.98));
-        if (ah > 0.0) MeasureNumber(ctx, y1 - y0 + 1, 14, 13 + MeasureRound(2.0 - ah * 2.0), dim, fade * MathH.Clamp01(ah * 2.0));
-    }
-
-    if (s > 1.50)
-        MeasureReveal(ctx, s < 1.86 ? MathH.Lerp(0.5, 23.5, Easings.EaseInOutSine((s - 1.50) / 0.36)) : 30.0, ink);
-}
-
-// Four corner marks that flash the moment things snap into place.
-void MeasureCorners(RasterSurface ctx, int x0, int y0, int x1, int y1, Color c, double a)
-{
-    if (a <= 0.0) return;
-    for (var i = 1; i <= 2; i++)
-    {
-        MeasureBlend(ctx, x0 + i, y0, c, a);
-        MeasureBlend(ctx, x0, y0 + i, c, a);
-        MeasureBlend(ctx, x1 - i, y0, c, a);
-        MeasureBlend(ctx, x1, y0 + i, c, a);
-        MeasureBlend(ctx, x0 + i, y1, c, a);
-        MeasureBlend(ctx, x0, y1 - i, c, a);
-        MeasureBlend(ctx, x1 - i, y1, c, a);
-        MeasureBlend(ctx, x1, y1 - i, c, a);
-    }
-}
-
-// Paper slides in behind a hard measuring edge, left to right or back.
-void MeasureSweep(RasterSurface ctx, RasterSurface target, double u, bool toRight)
-{
-    var edge = MathH.Lerp(-2.0, 26.0, MathH.Clamp01(u));
-    var blade = edgeTone;
-    var stroke = Tone(0.67, 0.80, 0.010);
-    for (var y = 0; y < 24; y++)
-    for (var x = 0; x < 24; x++)
-    {
-        var d = toRight ? x + 0.5 : 23.5 - x;
-        if (d < edge - 2.0) ctx[x, y] = target[x, y];
-        else if (d < edge - 1.0) ctx[x, y] = stroke;
-        else if (d < edge) ctx[x, y] = blade;
-    }
-}
-
-// Rectangle outline drawn as one continuous line starting at the top left corner.
-void MeasureFrame(RasterSurface ctx, int x0, int y0, int x1, int y1, Color c, double e, double a)
-{
-    var w = x1 - x0;
-    var h = y1 - y0;
-    var n = 2 * (w + h);
-    var to = (int)Math.Round(MathH.Clamp01(e) * n);
-    for (var i = 0; i < to; i++)
-    {
-        int x;
-        int y;
-        if (i < w) { x = x0 + i; y = y0; }
-        else if (i < w + h) { x = x1; y = y0 + (i - w); }
-        else if (i < 2 * w + h) { x = x1 - (i - w - h); y = y1; }
-        else { x = x0; y = y1 - (i - 2 * w - h); }
-        MeasureBlend(ctx, x, y, c, a);
-    }
-}
-
-void MeasureArrowH(RasterSurface ctx, int y, double from, double to, Color c, double a)
-{
-    var x0 = MeasureRound(from);
-    var x1 = MeasureRound(to);
-    for (var x = x0; x <= x1; x++) MeasureBlend(ctx, x, y, c, a);
-    MeasureBlend(ctx, x0 + 1, y - 1, c, a);
-    MeasureBlend(ctx, x0 + 1, y + 1, c, a);
-    MeasureBlend(ctx, x1 - 1, y - 1, c, a);
-    MeasureBlend(ctx, x1 - 1, y + 1, c, a);
-}
-
-void MeasureArrowV(RasterSurface ctx, int x, double from, double to, Color c, double a)
-{
-    var y0 = MeasureRound(from);
-    var y1 = MeasureRound(to);
-    for (var y = y0; y <= y1; y++) MeasureBlend(ctx, x, y, c, a);
-    MeasureBlend(ctx, x - 1, y0 + 1, c, a);
-    MeasureBlend(ctx, x + 1, y0 + 1, c, a);
-    MeasureBlend(ctx, x - 1, y1 - 1, c, a);
-    MeasureBlend(ctx, x + 1, y1 - 1, c, a);
-}
-
-// Two-digit dimension number in 3x5 digits.
-void MeasureNumber(RasterSurface ctx, int value, int x0, int y0, Color c, double a)
-{
-    var digits = new[]
-    {
-        new[] { "###", "#.#", "#.#", "#.#", "###" },
-        new[] { ".#.", "##.", ".#.", ".#.", "###" },
-        new[] { "###", "..#", "###", "#..", "###" },
-        new[] { "###", "..#", "###", "..#", "###" },
-        new[] { "#.#", "#.#", "###", "..#", "..#" },
-        new[] { "###", "#..", "###", "..#", "###" },
-        new[] { "###", "#..", "###", "#.#", "###" },
-        new[] { "###", "..#", "..#", "..#", "..#" },
-        new[] { "###", "#.#", "###", "#.#", "###" },
-        new[] { "###", "#.#", "###", "..#", "###" },
-    };
-    var text = Math.Clamp(value, 0, 99).ToString("00");
-    for (var i = 0; i < text.Length; i++)
-    {
-        var glyph = digits[text[i] - '0'];
-        for (var r = 0; r < 5; r++)
-        for (var col = 0; col < 3; col++)
-            if (glyph[r][col] == '#') MeasureBlend(ctx, x0 + i * 4 + col, y0 + r, c, a);
-    }
-}
-
-// A dark scan line uncovers the big time row by row.
-void MeasureReveal(RasterSurface ctx, double scan, Color c)
-{
-    for (var y = 1; y <= 22; y++)
-    {
-        if (y > scan) continue;
-        for (var x = 0; x < 24; x++)
-        {
-            var pixel = bigTime.Surface[x, y];
-            if (pixel.A <= 0.0) continue;
-            ctx[x, y] = ColorOps.Lerp(ctx[x, y], pixel, pixel.A);
-        }
-    }
-    var row = MeasureRound(scan);
-    if (row < 1 || row > 22) return;
-    for (var x = 1; x <= 22; x++) MeasureBlend(ctx, x, row, c, 0.85);
-}
-
-void MeasureBlend(RasterSurface ctx, int x, int y, Color c, double a)
-{
-    if (x < 0 || x > 23 || y < 0 || y > 23 || a <= 0.0) return;
-    ctx[x, y] = ColorOps.Lerp(ctx[x, y], c, MathH.Clamp01(a));
-}
-
-double MeasureIn(double s, double from, double to) => MathH.Clamp01((s - from) / (to - from));
-
-int MeasureRound(double v) => (int)Math.Round(v);
-
-// Fast run-up with two decaying overshoots - the snap.
-double MeasureSnap(double u)
-{
-    if (u >= 1.0) return 1.0;
-    var run = 1.0 - Math.Exp(-7.0 * u);
-    return run + Math.Sin(u * Math.PI * 3.0) * 0.18 * Math.Exp(-4.5 * u);
 }
