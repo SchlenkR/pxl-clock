@@ -1601,22 +1601,27 @@ void ActSpotlight(RasterSurface ctx, double p)
 
 void SpotIgnite(RasterSurface ctx, double s)
 {
-    SpotStage(ctx);
-    SpotPaint(ctx, Easings.EaseOutCubic(MathH.Clamp01(s / 0.14)), -34.0, spotNarrow, 1.1, 34.0, SpotSpark(s - 0.17), 0.0, 0.0);
+    SpotStage(ctx, 0.0);
+    SpotPaint(ctx, Easings.EaseOutCubic(MathH.Clamp01(s / 0.14)), SpotSweepStart(), spotNarrow, 1.1, 34.0, SpotSpark(s - 0.17), 0.0, 0.0);
 }
 
 void SpotSearch(RasterSurface ctx, double s)
 {
-    SpotStage(ctx);
+    SpotStage(ctx, 0.0);
     SpotPaint(ctx, 1.0, SpotSearchAngle(s), spotNarrow, 1.1, 34.0, 1.0, 0.0, 0.0);
 }
 
 void SpotFind(RasterSurface ctx, double s, double duration)
 {
     var u = MathH.Clamp01(s / duration);
-    var swing = MathH.Lerp(SpotCorner() > 5.0 ? 6.0 : -27.0, 24.0, Easings.EaseInOutSine(u)) * (1.0 - Easings.EaseInCubic(MathH.Clamp01((u - 0.5) / 0.5)));
-    var opening = Easings.EaseInCubic(MathH.Clamp01((u - 0.45) / 0.55));
-    SpotStage(ctx, Easings.EaseInCubic(MathH.Clamp01((u - 0.18) / 0.34)));
+    var opening = Easings.EaseInCubic(MathH.Clamp01((u - 0.55) / 0.45));
+
+    // Nummer 0 verliert die Maus und sucht ihr hinterher, die anderen bleiben auf dem Fund.
+    var swing = spotPick == 0
+        ? MathH.Lerp(SpotTargetAngle(), 22.0, Easings.EaseInOutSine(MathH.Clamp01((u - 0.45) / 0.55))) * (1.0 - Easings.EaseInCubic(MathH.Clamp01((u - 0.7) / 0.3)))
+        : SpotTargetAngle() * (1.0 - Easings.EaseInCubic(MathH.Clamp01((u - 0.6) / 0.4)));
+
+    SpotStage(ctx, u);
     SpotPaint(ctx, 1.0, swing, MathH.Lerp(spotNarrow, 0.36, opening), MathH.Lerp(1.1, 1.8, opening), 34.0, 1.0, 0.0, 0.0);
 }
 
@@ -1626,10 +1631,7 @@ void SpotFlood(RasterSurface ctx, double s)
     SpotPaint(ctx, 1.0, 0.0, 0.36, 1.8, 34.0, 1.0, MathH.Clamp01(s / 0.06), Envelope.Bell(MathH.Clamp01(s / 0.18)) * 0.40);
 }
 
-void SpotDissolve(RasterSurface ctx, double s, double duration)
-{
-    TimeFlyIn(ctx, s);
-}
+void SpotDissolve(RasterSurface ctx, double s, double duration) => TimeFlyIn(ctx, s);
 
 void SpotClose(RasterSurface ctx, double s, double duration)
 {
@@ -1665,26 +1667,61 @@ void SpotPaint(RasterSurface ctx, double dimm, double angleDegrees, double halfS
     }
 }
 
-// The stage is empty except for whoever the cone is about to find. Which of them it is
-// changes from minute to minute, and so does the corner they sit in.
-void SpotStage(RasterSurface ctx, double escape = 0.0)
+// Drei Nummern, die der Kegel auffuehren kann - welche, entscheidet die Minute.
+// 0: die Maus erstarrt im Licht und ist weg, sobald der Kegel zuckt.
+// 1: die Katze sitzt im Licht und laesst sich nicht stoeren, bis sie gemuetlich abgeht.
+// 2: der Kegel findet den Kaese, und die Maus klaut ihn ihm vor der Nase weg.
+void SpotStage(RasterSurface ctx, double u)
 {
     ctx.DrawSurface(paperPlain);
-    if (escape >= 1.0) return;
-    var nr = SpotFound();
-    var x = MathH.Lerp(SpotCorner(), SpotCorner() - 13.0, escape);
-    Figure(ctx, nr, x, 24 - cast[nr].Height - 1);
+
+    if (spotPick == 0)
+    {
+        var flee = Easings.EaseInCubic(MathH.Clamp01((u - 0.42) / 0.38));
+        if (flee < 1.0) Running(ctx, 4, MathH.Lerp(1.0, -13.0, flee), 15);
+        return;
+    }
+
+    if (spotPick == 1)
+    {
+        var leave = Easings.EaseInCubic(MathH.Clamp01((u - 0.62) / 0.38));
+        if (leave <= 0.0) Figure(ctx, 0, 6, 10);
+        else if (leave < 1.0) Running(ctx, 0, MathH.Lerp(6.0, -17.0, leave), 13);
+        return;
+    }
+
+    var steal = Easings.EaseInCubic(MathH.Clamp01((u - 0.62) / 0.38));
+    if (steal < 1.0) Figure(ctx, 3, MathH.Lerp(13.0, -11.0, steal), 17);
+    var comes = MathH.Clamp01((u - 0.2) / 0.42);
+    if (comes > 0.0) Running(ctx, 4, MathH.Lerp(26.0, 2.0, Easings.EaseOutCubic(comes)) - steal * 15.0, 16);
 }
 
-// Maus, Katze oder Kaese, abhaengig vom Minutenzaehler.
-int SpotFound() => spotPick switch { 0 => 4, 1 => 0, _ => 3 };
+// Wohin der Kegel am Ende der Suche zeigt, und aus welcher Ecke er losfaehrt.
+double SpotTargetAngle() => spotPick switch { 0 => -27.0, 1 => -9.0, _ => 2.0 };
 
-// Mal links, mal rechts, damit der Kegel nicht immer denselben Weg sucht.
-double SpotCorner() => spotPick == 1 ? 11.0 : 0.0;
+double SpotSweepStart() => spotPick == 2 ? 34.0 : -34.0;
 
+// Jede Nummer sucht anders: eine fahrig hin und her, eine in ruhigen Zuegen, eine
+// startet auf der falschen Seite und muss ganz herum.
 double SpotSearchAngle(double s)
 {
-    var target = SpotCorner() > 5.0 ? 6.0 : -27.0;
+    var target = SpotTargetAngle();
+    if (spotPick == 1)
+    {
+        if (s < 0.46) return MathH.Lerp(-34.0, 24.0, Easings.EaseInOutSine(s / 0.46));
+        if (s < 0.58) return 24.0;
+        return MathH.Lerp(24.0, target, Easings.EaseInOutCubic(MathH.Clamp01((s - 0.58) / 0.44)));
+    }
+
+    if (spotPick == 2)
+    {
+        if (s < 0.30) return MathH.Lerp(34.0, 12.0, Easings.EaseInOutCubic(s / 0.30));
+        if (s < 0.40) return 12.0;
+        if (s < 0.62) return MathH.Lerp(12.0, -30.0, Easings.EaseInOutCubic((s - 0.40) / 0.22));
+        if (s < 0.70) return -30.0;
+        return MathH.Lerp(-30.0, target, Easings.EaseInOutCubic(MathH.Clamp01((s - 0.70) / 0.32)));
+    }
+
     if (s < 0.34) return MathH.Lerp(-34.0, 27.0, Easings.EaseInOutCubic(s / 0.34));
     if (s < 0.42) return 27.0;
     if (s < 0.70) return MathH.Lerp(27.0, -9.0, Easings.EaseInOutCubic((s - 0.42) / 0.28));
