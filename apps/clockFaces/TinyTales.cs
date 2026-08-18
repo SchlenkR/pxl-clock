@@ -38,7 +38,7 @@ var holdTime = Param.Float(1.2, min: 0.0, max: 6.0, label: "Hold time");
 var waveDuration = Param.Float(2.2, min: 1.5, max: 5.0, label: "Wave duration");
 var previewInterval = Param.Float(9.0, min: 3.0, max: 30.0, label: "Preview interval");
 
-var everyNMinutes = Param.Int(1, min: 1, max: 15, label: "Play every N minutes");
+var everyNMinutes = Param.Int(1, min: 1, max: 60, label: "Play every N minutes");
 var preview = Param.Bool(false, label: "Preview");
 
 // Only the ticked acts take part in the draw.
@@ -352,11 +352,11 @@ var scene = (RasterSurface ctx) =>
         var targets = PixelTargets.From(timeOnPaper.Surface, alphaThreshold: 0.4);
         flyIn = new PixelAssembly(targets)
         {
-            Duration = 0.62,
+            Duration = 0.58,
             Spread = 15.0,
             Gravity = 0.0,
             FlightColor = accentLight,
-            DelayOf = i => Scatter.Value(targets[i].X, targets[i].Y) * 0.34,
+            DelayOf = i => Scatter.Value(targets[i].X, targets[i].Y) * 0.27,
         };
     }
     timeOnField.Ensure($"{stamp}{shadowStrength:F2}", s => SmallTime(s, now, Colors.White, deepDark));
@@ -431,11 +431,11 @@ double WithHold(double second, int act)
 // The moment (0..1) at which the big time stands complete, just before it dissolves.
 double HoldPoint(int act) => act switch
 {
-    0 => 3.18 / 4.70,
-    1 => 2.70 / 3.90,
-    2 => 4.10 / 5.90,
-    3 => 6.40 / 7.70,
-    4 => 2.25 / 3.85,
+    0 => 3.50 / 4.70,
+    1 => 2.72 / 3.90,
+    2 => 4.18 / 5.90,
+    3 => 6.45 / 7.70,
+    4 => 1.78 / 3.85,
     5 => 1.87 / 4.45,
     6 => 2.74 / 3.62,
     _ => 2.65 / 4.10,
@@ -454,6 +454,10 @@ List<int> EnabledActs()
         if (flags[i]) enabled.Add(i);
     return enabled;
 }
+
+// Duration plus laengste Verzoegerung: so lange braucht der Einflug, und so viel Zeit
+// muss jeder Akt ihm lassen.
+const double flySpan = 0.85;
 
 // The digits fly in pixel by pixel on the white sheet - carries the end of every act.
 void TimeFlyIn(RasterSurface ctx, double seconds)
@@ -624,8 +628,8 @@ void ActDelivery(RasterSurface ctx, double p)
     const double stampOff = 2.30;
     const double stampOn = 2.60;
     const double settleOn = 2.82;
-    const double holdOn = 3.18;
-    const double dissolveOn = 4.25;
+    const double holdOn = 3.50;
+    const double dissolveOn = 3.66;
 
     var s = p * deliveryTotal;
 
@@ -709,8 +713,8 @@ void ActChase(RasterSurface ctx, double p)
     var tBig = 1.80;
     var dBig = 0.40;
     var stagger = 0.12;
-    var tDissolve = 2.70;
-    var tEnd = 3.48;
+    var tDissolve = 2.72;
+    var tEnd = 2.88;
     var dEnd = 0.42;
 
     if (s < tSheet)
@@ -854,14 +858,14 @@ void ActTrap(RasterSurface ctx, double p)
         return;
     }
 
-    if (s < 5.20)
+    if (s < 4.38)
     {
         ctx.DrawSurface(paperWithTime);
         return;
     }
 
     ctx.DrawSurface(paperWithTime);
-    TrapSweep(ctx, Easings.EaseInOutSine((s - 5.20) / 0.44), fieldWithTime);
+    TrapSweep(ctx, Easings.EaseInOutSine((s - 4.38) / 0.44), fieldWithTime);
 }
 
 // The cat sneaks under the hanging crate to get the bait, and the crate comes down on it.
@@ -1003,8 +1007,8 @@ void ActWindow(RasterSurface ctx, double p)
 {
     const double raceEnd = 5.20;
     const double sweepEnd = 5.56;
-    const double flyEnd = 6.40;
-    const double holdEnd = 7.20;
+    const double flyEnd = 6.45;
+    const double holdEnd = 6.62;
     var s = p * 7.70;
 
     if (s < raceEnd)
@@ -1666,7 +1670,7 @@ void ActSpotlight(RasterSurface ctx, double p)
     const double dSpotSearch = 1.02;
     const double dSpotFind = 0.68;
     const double dSpotFlood = 0.62;
-    const double dSpotDissolve = 0.80;
+    const double dSpotDissolve = 0.90;
     const double dSpotClose = 0.58;
 
     var tIgnite = dSpotIgnite;
