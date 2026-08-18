@@ -25,31 +25,67 @@
 
 using Pxl.Ui.CSharp;
 
-var baseTone = Param.Color(Color.FromRgbByte(255, 121, 26), label: "Base colour");
+var baseTone = Param.Color(
+    Color.FromRgbByte(255, 121, 26),
+    label: "Background colour",
+    description: "Everything on the clock face is mixed from this one colour");
 
-var shadowStrength = Param.Float(0.40, min: 0.0, max: 1.0, label: "Drop shadow");
-var secondsRadius = Param.Float(12.0, min: 5.0, max: 16.0, label: "Seconds radius");
-var secondsOpacity = Param.Float(0.95, min: 0.0, max: 1.0, label: "Seconds ring");
+var everyNMinutes = Param.Int(
+    1, min: 1, max: 60,
+    label: "Play a short story every ... minutes",
+    description: "1 plays one every minute, 15 on every quarter hour, 60 on the full hour");
 
 // All times in seconds; each act runs its own schedule, stretched to fit the duration.
-var actDuration = Param.Float(7.0, min: 3.0, max: 15.0, label: "Act duration");
-var calmDuration = Param.Float(2.0, min: 1.5, max: 20.0, label: "Calm");
-var holdTime = Param.Float(1.2, min: 0.0, max: 6.0, label: "Hold time");
-var waveDuration = Param.Float(2.2, min: 1.5, max: 5.0, label: "Wave duration");
-var previewInterval = Param.Float(9.0, min: 3.0, max: 30.0, label: "Preview interval");
+var actDuration = Param.Float(
+    7.0, min: 3.0, max: 15.0,
+    label: "How long a story lasts",
+    description: "Seconds from the first movement until the clock face is back");
 
-var everyNMinutes = Param.Int(1, min: 1, max: 60, label: "Play every N minutes");
-var preview = Param.Bool(false, label: "Preview");
+var holdTime = Param.Float(
+    1.2, min: 0.0, max: 6.0,
+    label: "How long the time stays after a story",
+    description: "Seconds the digits rest on the white sheet before it clears");
+
+var shadowStrength = Param.Float(
+    0.40, min: 0.0, max: 1.0,
+    label: "Shadow behind the digits");
+
+var secondsRadius = Param.Float(
+    12.0, min: 5.0, max: 16.0,
+    label: "Size of the seconds ring");
+
+var secondsOpacity = Param.Float(
+    0.95, min: 0.0, max: 1.0,
+    label: "Brightness of the seconds ring",
+    description: "Turn all the way down to hide the ring");
+
+var waveDuration = Param.Float(
+    2.2, min: 1.5, max: 5.0,
+    label: "How long a wave takes to cross",
+    description: "The slow shimmer that runs over the background");
+
+var calmDuration = Param.Float(
+    2.0, min: 1.5, max: 20.0,
+    label: "Pause between two waves");
+
+var preview = Param.Bool(
+    false,
+    label: "Preview mode: ignore the clock",
+    description: "Plays one story after another so you can watch them all");
+
+var previewInterval = Param.Float(
+    9.0, min: 3.0, max: 30.0,
+    label: "Preview mode: seconds between stories");
 
 // Only the ticked acts take part in the draw.
-var actDelivery = Param.Bool(true, label: "1 Delivery");
-var actChase = Param.Bool(true, label: "2 Chase");
-var actTrap = Param.Bool(true, label: "3 Trap");
-var actWindow = Param.Bool(true, label: "4 Window");
-var actTumble = Param.Bool(true, label: "5 Tumble");
-var actFlipBoard = Param.Bool(true, label: "6 Flip board");
-var actFold = Param.Bool(true, label: "7 Fold");
-var actSpotlight = Param.Bool(true, label: "8 Spotlight");
+var actDelivery = Param.Bool(true, label: "Story 1: cheese falls from the sky");
+var actChase = Param.Bool(true, label: "Story 2: the chase through the room");
+var actTrap = Param.Bool(true, label: "Story 3: the trap that misses");
+var actWindow = Param.Bool(true, label: "Story 4: the race across three shelves");
+var actTumble = Param.Bool(true, label: "Story 5: tumbling head over heels");
+var actFlipBoard = Param.Bool(true, label: "Story 6: the split-flap display");
+var actFold = Param.Bool(true, label: "Story 7: the folding paper");
+var actSpotlight = Param.Bool(true, label: "Story 8: the searching spotlight");
 
 // Paper white is the counterpart of the field and stays out of the colour family.
 var paper = Color.FromRgbByte(255, 253, 248);
