@@ -15,22 +15,17 @@ using Pxl.Ui.CSharp;
 // ============================================================================
 
 // --- DAY-NIGHT TIME SOURCE --------------------------------------------------
-// Where the sun + moon position comes from each frame. Three modes:
-//   0 = realtime — drive from the actual wall-clock time via ctx.Now. The
-//                  day cycle takes a real 24 hours. Use on the production
-//                  clock so the sun rises at sunrise, etc.
-//   1 = animated — fast-forward through one full cycle every `dayDuration`
-//                  seconds (independent of wall-clock). Use for previews,
-//                  GIF renders, demo videos.
-//   2 = fixed    — freeze the sun + moon at `sceneFixedHour` (24h notation)
-//                  so you can study a specific moment.
-//
-// `sceneFixedHour` reference points (only used in mode 2 = fixed):
-//   0.0 = 0:00 midnight    6.0 = 6:00 sunrise
-//   12.0 = 12:00 midday   18.0 = 18:00 sunset
-const int    sceneTimeMode  = 0;          // 0 realtime · 1 animated · 2 fixed
-const double sceneFixedHour = 12.0;
-const double dayDuration    = 24.0;       // seconds per full cycle in "animated" mode
+// Where the sun + moon position comes from each frame:
+//   clock     — the actual wall-clock time via ctx.Now; the day cycle takes
+//               a real 24 hours, so the sun rises at sunrise, etc.
+//   scrub     — freeze the sky at `sceneFixedHour` (24h notation)
+//   timelapse — fast-forward through one full cycle every `dayDuration` seconds
+var sceneTimeMode = Param.Choice("clock", ["clock", "scrub", "timelapse"], label: "Time source",
+    description: "clock follows the real time, scrub freezes the sky at 'Time of day', timelapse plays a whole day in 'Day length' seconds");
+var sceneFixedHour = Param.Float(12.0, min: 0.0, max: 24.0, label: "Time of day",
+    description: "Which hour the sky shows while the time source is scrub");
+var dayDuration = Param.Float(120.0, min: 10.0, max: 600.0, label: "Day length",
+    description: "Seconds per full day while the time source is timelapse");
 
 // --- WORLD-MOTION SPEED -----------------------------------------------------
 // Multiplier for the boat's apparent motion and island streaming ONLY. Does
@@ -54,12 +49,10 @@ const bool sceneDebugTopDown = false;
 //   • BOTH on   → crossfade by day/night (sky by day, water by night)
 //   • ONLY ONE  → that clock shows at full strength all the time (no fade)
 //   • BOTH off  → no time displayed
-const bool   clockShowTop       = false;
-const bool   clockShowBottom    = true;
-// Master alpha multiplier on top of the day/night crossfade — single dial
-// for "how present should the clock be at all?".
-//   1.0 = fully opaque text       0.0 = invisible
-const double clockTextIntensity = 0.75;
+var clockShowTop = Param.Bool(false, label: "Clock in the sky");
+var clockShowBottom = Param.Bool(true, label: "Clock in the water");
+var clockTextIntensity = Param.Float(0.75, min: 0.0, max: 1.0, label: "Clock intensity",
+    description: "How present the time readout is on top of the day/night crossfade");
 
 // Island visibility is purely positional — an island fades in when its
 // projected screen-x enters the canvas band from the right, and fades out as
@@ -106,12 +99,12 @@ const double moonPhaseOffset = Math.PI;
 const double moonRadius      =  1.6;      // small disc — moon shouldn't look like a second sun
 const double moonGlowRadius  =  4.5;      // soft radial glow around the disc (in pixels)
 const double moonGlowStrength = 0.65;     // alpha of the glow at its centre (fades out radially)
-const bool   moonShowPhases  = false;     // true = animated phases (sliver→half→full→…), false = always full
+var moonShowPhases = Param.Bool(false, label: "Moon phases",
+    description: "Animated phases (sliver, half, full) instead of an always-full moon");
 // Master brightness multiplier for the moon — applied uniformly to the disc,
-// the radial glow/halo, and the water reflection. Lets you dim the entire
-// moon presence with a single dial without re-tuning each individual layer.
-//   1.0 = current full moon         0.0 = moon gone entirely (dark night sky)
-const double moonBrightness  =  1.0;
+// the radial glow/halo, and the water reflection.
+var moonBrightness = Param.Float(1.0, min: 0.0, max: 1.0, label: "Moon brightness",
+    description: "One dial for disc, glow and water reflection");
 
 // --- wave field shaping (break up the strict 1D look) -----------------------
 // 0 = old behaviour (pure single-direction wave train).
@@ -130,7 +123,7 @@ const double moonReflectionMinPhase  = 0.3;   // |moonPhase| below this → no r
 
 // --- stars ------------------------------------------------------------------
 const double starTwinkleSpeed  = 0.1;         // radians/sec for the sin() drive (was 4.0). Lower = slower.
-const double starBrightness    = 0.6;         // overall brightness multiplier applied to every star (1.0 = previous strong default)
+var starBrightness = Param.Float(0.6, min: 0.0, max: 1.0, label: "Star brightness");
 const double starRayBrightness = 0.45;        // brightness of ray pixels relative to the centre pixel (0..1)
 const double starDensity       = 0.035;       // ~3.5% of sky pixels become stars — keeps the night feeling sparse, not crowded
 // Shape distribution — relative weights for each star shape. Don't have to
@@ -228,7 +221,7 @@ const double frustumSafetyMargin = 0.8;
 // enter any such disc. Bigger islandClearance = comfortable buffer.
 const double islandClearance      =  4.0;   // world-units of buffer around every island (HARD constraint)
 const double pathSafetyMargin     =  1.5;   // EXTRA buffer the picker requires AROUND the chosen path — keeps boat from grazing edges
-const double targetMinTravel      =  6.0;   // new target must be at least this far from current pos (force big swings)
+const double targetMinTravel      =  3.0;   // new target must be at least this far from current pos
 const double targetReachRadius    =  0.7;   // when boat is within this distance of target, pick a new one
 const int    targetPickerAttempts = 80;     // how many random samples to try per pass
 
@@ -237,7 +230,7 @@ const int    targetPickerAttempts = 80;     // how many random samples to try pe
 // near (huge boat at canvas bottom) and far (tiny boat at horizon) rather
 // than getting stuck in the comfortable middle. 0 = uniform, 1 = always
 // opposite half.
-const double targetDepthBias      = 0.90;
+const double targetDepthBias      = 0.75;
 
 // LATERAL DRIFT — gentle ambient sideways motion. The boat does NOT actively
 // chase the lateral position at full travel speed; instead the wx component
@@ -250,7 +243,7 @@ const double lateralDriftPeriodA    = 33.0;  // seconds (slowest layer)
 const double lateralDriftPeriodB    = 51.0;
 const double lateralDriftPeriodC    = 73.0;
 const double boatLateralPursuitRate = 0.15;  // 1/sec — how fast wx tracks the drift target (small = lazy following)
-const double boatDepthSpeed         = 1.00;  // wu/sec — faster depth travel so the boat visibly comes near + recedes (was 0.35)
+const double boatDepthSpeed         = 0.35;  // wu/sec — slow depth travel so size change feels relaxed (was 0.65)
 
 // Boat sprite size — REFERENCE dimensions in world units. They get scaled to
 // canvas pixels by the perspective factor `Math.Max(boatMinPxPerWorld, camFocal / boatWz)`.
@@ -438,7 +431,7 @@ var matLeavesFront  = Color.FromRgb(0.18, 0.42, 0.14);    // leaves — shadow u
 var matSnow         = Color.FromRgb(0.95, 0.97, 1.00);
 
 // ============================================================================
-// ISLAND SHAPE LIBRARY — hand-pixelled sprites
+// ISLAND SHAPE LIBRARY — hand-pixelled sprites (from island-pixel-tests/)
 // ============================================================================
 // Each island is a 3D VOXEL MODEL — list of (vx, vy, vz, material) cubes.
 //   vx: 0..sizeX-1, lateral (left-to-right)
@@ -904,33 +897,26 @@ var scene = (RasterSurface ctx) =>
     }
 
     // --- celestial bodies (parameters defined at top of file) --------------
-    // Time-of-day phase. Source depends on `sceneTimeMode` (top of file):
-    //   0 realtime → drive from ctx.Now (wall-clock); cycle = real 24h
-    //   1 animated → fast-forward via `dayDuration` seconds per cycle
-    //   2 fixed    → freeze at `sceneFixedHour`
+    // Time-of-day phase. Source depends on the `sceneTimeMode` parameter.
     // Map (clock-hour) → dayProgress: -0.25 shift makes 06:00 (sunrise) = 0.
     //   00:00 midnight → 0.75   06:00 sunrise → 0.00
     //   12:00 midday   → 0.25   18:00 sunset  → 0.50
     double dayProgress;
-    // CS0162: branches are intentionally const-folded — that's the point of
-    // sceneTimeMode being a tunable compile-time switch.
-#pragma warning disable CS0162
-    if (sceneTimeMode == 0)        // realtime
+    if (sceneTimeMode == "scrub")
+    {
+        dayProgress = (sceneFixedHour / 24.0 - 0.25 + 1.0) % 1.0;
+    }
+    else if (sceneTimeMode == "timelapse")
+    {
+        dayProgress = (t / dayDuration) % 1.0;
+    }
+    else
     {
         // Sub-minute precision so the sky transitions smoothly through the
         // day instead of in discrete hour steps.
         var hourFrac = ctx.Now.Hour + ctx.Now.Minute / 60.0 + ctx.Now.Second / 3600.0;
         dayProgress = (hourFrac / 24.0 - 0.25 + 1.0) % 1.0;
     }
-    else if (sceneTimeMode == 1)   // animated
-    {
-        dayProgress = (t / dayDuration) % 1.0;
-    }
-    else                           // 2 = fixed
-    {
-        dayProgress = (sceneFixedHour / 24.0 - 0.25 + 1.0) % 1.0;
-    }
-#pragma warning restore CS0162
     var phase = dayProgress * 2.0 * Math.PI;
     var sunX  = sunCenterX  - sunXAmp  * Math.Cos(phase + sunPhaseOffset);
     var sunY  = sunCenterY  - sunYAmp  * Math.Sin(phase + sunPhaseOffset);

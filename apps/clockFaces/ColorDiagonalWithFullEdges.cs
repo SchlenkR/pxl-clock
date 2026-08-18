@@ -10,6 +10,13 @@
 
 using Pxl.Ui.CSharp;
 
+var direction = Param.Choice("alternate", ["alternate", "right", "left"], label: "Direction",
+    description: "Which way the lines lean; alternate flips every minute");
+var colours = Param.Choice("rainbow", ["rainbow", "single"], label: "Colours");
+var lineColor = Param.Color(Color.FromRgbByte(69, 197, 230), label: "Line colour");
+var backdrop = Param.Float(0.3, min: 0.0, max: 1.0, label: "Text backdrop",
+    description: "Darkening behind the time for readability");
+
 // Generate 30 HSV colors
 var colors = new Color[30];
 for (var i = 0; i < 30; i++)
@@ -44,53 +51,64 @@ var scene = (RasterSurface ctx) =>
 {
     var now = ctx.Now;
     var sec = now.Second;
-    var min = now.Minute;
-    var even = min % 2 == 0;
+    var usingLines1 = direction switch
+    {
+        "right" => true,
+        "left" => false,
+        _ => now.Minute % 2 == 0,
+    };
 
     // Main diagonal lines
     var lMin = sec <= 30 ? 0 : sec - 30;
     var lMax = Math.Min(sec, 29);
-    var lines = even ? lines1 : lines2;
+    var lines = usingLines1 ? lines1 : lines2;
 
     for (var l = lMin; l <= lMax; l++)
     {
         var (x1, y1, x2, y2) = lines[l % 30];
-        ctx.DrawLine(x1, y1, x2, y2, color: colors[l % 30]);
+        ctx.DrawLine(x1, y1, x2, y2, color: colours == "rainbow" ? colors[l % 30] : lineColor);
     }
 
     // Corner fills (depend on direction and half of minute)
-    var corners1 = (even, sec < 30) switch
+    var corners1 = (usingLines1, sec < 30) switch
     {
         (true, true) => cornersTopRight,
         (false, true) => cornersTopLeft,
         _ => null
     };
-    var corners2 = (even, sec >= 30) switch
+    var corners2 = (usingLines1, sec >= 30) switch
     {
         (true, true) => cornersBottomLeft,
         (false, true) => cornersBottomRight,
         _ => null
     };
 
+    Color CornerColor(int i)
+    {
+        var v = Math.Max(0, 0.7 - (8 - i) * 0.1);
+        return colours == "rainbow"
+            ? Color.FromHsv360(0, 0.7, v)
+            : lineColor.LitBy(Colors.White, v / 0.7);
+    }
+
     if (corners1 != null)
         for (var i = 0; i < corners1.Length; i++)
         {
-            var color = Color.FromHsv360(0, 0.7, Math.Max(0, 0.7 - (8 - i) * 0.1));
             var (x1, y1, x2, y2) = corners1[i];
-            ctx.DrawLine(x1, y1, x2, y2, color: color);
+            ctx.DrawLine(x1, y1, x2, y2, color: CornerColor(i));
         }
 
     if (corners2 != null)
         for (var i = 0; i < corners2.Length; i++)
         {
-            var color = Color.FromHsv360(0, 0.7, Math.Max(0, 0.7 - (8 - i) * 0.1));
             var (x1, y1, x2, y2) = corners2[i];
-            ctx.DrawLine(x1, y1, x2, y2, color: color);
+            ctx.DrawLine(x1, y1, x2, y2, color: CornerColor(i));
         }
 
     // Diffuser + time
-    ctx.DrawRectXyWh(0, 7, 24, 9, colorFill: Color.FromArgbByte(80, 0, 0, 0), isAntialias: true);
-    ctx.DrawRectXyWh(0, 8, 24, 7, colorFill: Color.FromArgbByte(80, 0, 0, 0), isAntialias: true);
+    var shade = Color.FromArgbByte((byte)Math.Round(backdrop * 255), 0, 0, 0);
+    ctx.DrawRectXyWh(0, 7, 24, 9, colorFill: shade, isAntialias: true);
+    ctx.DrawRectXyWh(0, 8, 24, 7, colorFill: shade, isAntialias: true);
     ctx.DrawTextVar4x5($"{now:HH}:{now:mm}", 1, 9, color: Colors.White);
 };
 

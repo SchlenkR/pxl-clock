@@ -10,6 +10,10 @@
 
 using Pxl.Ui.CSharp;
 
+var colours = Param.Choice("rainbow", ["rainbow", "single"], label: "Colours");
+var rainColor = Param.Color(Color.FromHsv360(200, 0.8, 1.0), label: "Rain colour");
+var dropLength = Param.Int(4, min: 2, max: 12, label: "Drop length");
+
 var offsets = new[] { 10, 4, 17, 7, 12, 1, 13, 19, 9, 14, 1, 7, 18, 9, 5, 17, 8, 4, 9, 19, 2, 6, 13, 17 };
 
 var scene = (RasterSurface ctx) =>
@@ -21,8 +25,9 @@ var scene = (RasterSurface ctx) =>
     for (var i = 0; i < 24; i++)
     {
         var y = (step + offsets[i]) % 24;
-        ctx.DrawLine(i, y, i, y + 3,
-            color: Color.FromHsv360(i * 15.0, 0.8, 1.0).WithAlpha(0.6),
+        var color = colours == "rainbow" ? Color.FromHsv360(i * 15.0, 0.8, 1.0) : rainColor;
+        ctx.DrawLine(i, y, i, y + dropLength - 1,
+            color: color.WithAlpha(0.6),
             isAntialias: false);
     }
 

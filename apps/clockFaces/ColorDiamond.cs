@@ -10,6 +10,10 @@
 
 using Pxl.Ui.CSharp;
 
+var dimByDaytime = Param.Bool(true, label: "Dim by daytime",
+    description: "Colours mute at night and brighten towards the afternoon");
+var dotColor = Param.Color(Colors.Black, label: "Seconds dot");
+
 // Seconds hand positions around the diamond border (0-59)
 var handPos = new (int x, int y)[]
 {
@@ -28,8 +32,8 @@ var scene = (RasterSurface ctx) =>
     var sec = now.Second;
 
     // Saturation and value shift with time of day
-    var sat = hour <= 15 ? 0.3 + 0.7 * hour / 15.0 : 0.3 + 0.7 * (23.0 - hour) / 9.0;
-    var val = hour <= 15 ? 0.5 + 0.5 * hour / 15.0 : 0.5 + 0.5 * (23.0 - hour) / 9.0;
+    var sat = !dimByDaytime ? 1.0 : hour <= 15 ? 0.3 + 0.7 * hour / 15.0 : 0.3 + 0.7 * (23.0 - hour) / 9.0;
+    var val = !dimByDaytime ? 1.0 : hour <= 15 ? 0.5 + 0.5 * hour / 15.0 : 0.5 + 0.5 * (23.0 - hour) / 9.0;
     var seed = (double)(hour * now.Minute * 20);
 
     // Draw nested rectangles (up to 5 passes based on seconds)
@@ -60,7 +64,7 @@ var scene = (RasterSurface ctx) =>
 
     // Seconds hand (large dot on the border)
     var (hx, hy) = handPos[sec];
-    ctx.DrawPoint(hx, hy, color: Colors.Black, strokeWidth: 3, isAntialias: true);
+    ctx.DrawPoint(hx, hy, color: dotColor, strokeWidth: 3, isAntialias: true);
 
     // Centered time
     ctx.DrawTextVar4x5($"{now:HH}:{now:mm}", 1, 9, color: Colors.White);

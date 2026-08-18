@@ -2,7 +2,7 @@
 // app: AroundTheClock
 // displayName: Around The Clock
 // appType: ClockFace
-// author: Urs Enzler
+// author: "Nico & Urs Enzler"
 // description: Three concentric pixel paths show seconds, minutes and hours
 // ---
 
@@ -10,24 +10,38 @@
 
 using Pxl.Ui.CSharp;
 
+var style = Param.Choice("classic", ["classic", "rainbow"], label: "Style");
+var tint = Param.Color(Color.FromHsv360(190, 1.0, 1.0), label: "Tint",
+    description: "Base colour of the rings in classic style");
+var backgroundColor = Param.Color(Color.FromHsv360(195, 0.9, 0.2), label: "Background");
+var showDigits = Param.Bool(true, label: "Show digits");
+
 var scene = (RasterSurface ctx) =>
 {
     var now = ctx.Now;
-    ctx.DrawBackground(Color.FromHsv360(195, 0.9, 0.2));
+    ctx.DrawBackground(backgroundColor);
 
-    // Centered time (no leading zero for hour, like the original)
-    var timeText = $"{now.Hour}:{now:mm}";
-    var textWidth = ctx.MeasureTextVar4x5(timeText);
-    var marginLeft = (ctx.Width - textWidth) / 2.0;
-    var marginTop = (ctx.Height - Fonts.Var4x5.DefaultHeight - 1) / 2.0;
-    ctx.DrawTextVar4x5(timeText, marginLeft, marginTop, color: Colors.White);
+    // The two inner rings use the tint shifted a bit further around the wheel
+    var minuteTint = tint.ShiftHue(10.0 / 360.0);
+    var hourTint = tint.ShiftHue(20.0 / 360.0);
+
+    if (showDigits)
+    {
+        // Centered time (no leading zero for hour, like the original)
+        var timeText = $"{now.Hour}:{now:mm}";
+        var textWidth = ctx.MeasureTextVar4x5(timeText);
+        var marginLeft = (ctx.Width - textWidth) / 2.0;
+        var marginTop = (ctx.Height - Fonts.Var4x5.DefaultHeight - 1) / 2.0;
+        ctx.DrawTextVar4x5(timeText, marginLeft, marginTop, color: Colors.White);
+    }
 
     // Seconds (outermost ring)
     for (var s = 0; s < now.Second; s++)
     {
         var delta = (double)(now.Second - s);
-        var v = 0.8 * (59.0 - delta) / 60.0 + 0.2;
-        var color = Color.FromHsv360(190, 1.0, v);
+        var color = style == "rainbow"
+            ? Color.FromHsv360((140.0 + 5.0 * s) % 360, 1.0, 0.7 * (59.0 - delta) / 60.0 + 0.3)
+            : tint.LitBy(Colors.White, 0.8 * (59.0 - delta) / 60.0 + 0.2);
         var (x, y) = s switch
         {
             <= 21 => (s + 1, 1),
@@ -44,8 +58,9 @@ var scene = (RasterSurface ctx) =>
     for (var m = 0; m < now.Minute; m++)
     {
         var delta = (double)(now.Minute - m);
-        var v = 0.8 * (59.0 - delta) / 60.0 + 0.2;
-        var color = Color.FromHsv360(200, 1.0, v);
+        var color = style == "rainbow"
+            ? Color.FromHsv360((240.0 + 5.0 * m) % 360, 1.0, 0.7 * (59.0 - delta) / 60.0 + 0.3)
+            : minuteTint.LitBy(Colors.White, 0.8 * (59.0 - delta) / 60.0 + 0.2);
         var (x, y) = m switch
         {
             <= 19 => (m + 2, 2),
@@ -62,8 +77,9 @@ var scene = (RasterSurface ctx) =>
     for (var h = 0; h < now.Hour; h++)
     {
         var delta = (double)(now.Hour - h);
-        var v = 0.8 * (23.0 - delta) / 24.0 + 0.2;
-        var color = Color.FromHsv360(210, 1.0, v);
+        var color = style == "rainbow"
+            ? Color.FromHsv360((40.0 + 15.0 * h) % 360, 1.0, 0.8 * (59.0 - delta) / 60.0 + 0.2)
+            : hourTint.LitBy(Colors.White, 0.8 * (23.0 - delta) / 24.0 + 0.2);
         var (x, y) = h switch
         {
             <= 9 => (h + 7, 6),
@@ -76,4 +92,3 @@ var scene = (RasterSurface ctx) =>
         ctx.DrawPoint(x, y, color: color, isAntialias: false);
     }
 };
-

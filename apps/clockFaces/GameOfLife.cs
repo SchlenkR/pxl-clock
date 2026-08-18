@@ -25,6 +25,13 @@ var digits = new string[][]
     [ " XX ", "X  X", " XXX", "   X", " XX " ],  // 9
 };
 
+var aliveColor = Param.Color(Color.FromHsv360(0, 0.8, 0.6), label: "Cells");
+var emptyColor = Param.Color(Color.FromHsv360(200, 0.6, 0.2), label: "Background");
+var speed = Param.Float(2.0, min: 0.5, max: 8.0, label: "Speed", description: "Generations per second");
+var reseedMinutes = Param.Int(1, min: 1, max: 10, label: "Reseed every N minutes",
+    description: "How long the evolution may run before the time digits are seeded again");
+var timeOverlay = Param.Bool(true, label: "Time overlay");
+
 void DrawDigit(string[] digit, bool[] world, int x, int y)
 {
     for (var r = 0; r < 5; r++)
@@ -79,28 +86,28 @@ bool[] NextGeneration(bool[] world)
     return next;
 }
 
-var aliveColor = Color.FromHsv360(0, 0.8, 0.6);
-var emptyColor = Color.FromHsv360(200, 0.6, 0.2);
-
 // State
 var world = CreateWorld(DateTime.Now);
 var lastMinute = -1;
-var lastHalfSec = -1;
+var lastStep = -1L;
 
 var scene = (RasterSurface ctx) =>
 {
     var now = ctx.Now;
-    var halfSec = now.Millisecond / 500;
+    var step = (long)(ctx.Elapsed.TotalSeconds * speed);
 
     if (now.Minute != lastMinute)
     {
         lastMinute = now.Minute;
-        world = CreateWorld(now);
-        lastHalfSec = halfSec;
+        if (now.Minute % reseedMinutes == 0)
+        {
+            world = CreateWorld(now);
+            lastStep = step;
+        }
     }
-    else if (halfSec != lastHalfSec)
+    if (step != lastStep)
     {
-        lastHalfSec = halfSec;
+        lastStep = step;
         world = NextGeneration(world);
     }
 
@@ -110,10 +117,11 @@ var scene = (RasterSurface ctx) =>
         pixels[i] = world[i] ? aliveColor : emptyColor;
     ctx.SetPixels(pixels, BlendMode.Source);
 
-    // Time overlay
-    ctx.DrawTextVar4x5($"{now:HH}:{now:mm}", 1, 5,
-        color: Colors.White.WithAlpha(0.7));
-    ctx.DrawTextVar4x5($"{now:dd}.{now:MM}.", 1, 13,
-        color: Colors.White.WithAlpha(0.7));
+    if (timeOverlay)
+    {
+        ctx.DrawTextVar4x5($"{now:HH}:{now:mm}", 1, 5,
+            color: Colors.White.WithAlpha(0.7));
+        ctx.DrawTextVar4x5($"{now:dd}.{now:MM}.", 1, 13,
+            color: Colors.White.WithAlpha(0.7));
+    }
 };
-
