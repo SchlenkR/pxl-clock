@@ -1,7 +1,7 @@
 // ---
-// app: TinyTales
-// displayName: Tiny Tales
-// author: Claude
+// app: CatAndMouse
+// displayName: Cat & Mouse
+// author: Cumin & Potato
 // description: Colour field with a running wave and a seconds arc; every full minute one of eleven short stories plays and ends with the time
 // appType: ClockFace
 // ---
@@ -30,20 +30,25 @@ var baseTone = Param.Color(
     label: "Background colour",
     description: "Everything on the clock face is mixed from this one colour");
 
+var figureTone = Param.Color(
+    Color.FromRgbByte(34, 36, 46),
+    label: "Colour of cat and mouse",
+    description: "The animals are shaded from this one colour; keep it dark so they read on the white sheet");
+
 var everyNMinutes = Param.Int(
     1, min: 1, max: 60,
-    label: "Play a short story every ... minutes",
+    label: "Play a short story every ... (min)",
     description: "1 plays one every minute, 15 on every quarter hour, 60 on the full hour");
 
 // All times in seconds; each act runs its own schedule, stretched to fit the duration.
 var actDuration = Param.Float(
     7.0, min: 3.0, max: 15.0,
-    label: "How long a story lasts",
+    label: "How long a story lasts (sec)",
     description: "Seconds from the first movement until the clock face is back");
 
 var holdTime = Param.Float(
     1.2, min: 0.0, max: 6.0,
-    label: "How long the time stays after a story",
+    label: "How long the time stays afterwards (sec)",
     description: "Seconds the digits rest on the white sheet before it clears");
 
 var shadowStrength = Param.Float(
@@ -52,7 +57,7 @@ var shadowStrength = Param.Float(
 
 var secondsRadius = Param.Float(
     12.0, min: 5.0, max: 16.0,
-    label: "Size of the seconds ring");
+    label: "Size of the seconds ring (pixels)");
 
 var secondsOpacity = Param.Float(
     0.95, min: 0.0, max: 1.0,
@@ -61,12 +66,12 @@ var secondsOpacity = Param.Float(
 
 var waveDuration = Param.Float(
     2.2, min: 1.5, max: 5.0,
-    label: "How long a wave takes to cross",
+    label: "How long a wave takes to cross (sec)",
     description: "The slow shimmer that runs over the background");
 
 var calmDuration = Param.Float(
     2.0, min: 1.5, max: 20.0,
-    label: "Pause between two waves");
+    label: "Pause between two waves (sec)");
 
 var preview = Param.Bool(
     false,
@@ -75,7 +80,7 @@ var preview = Param.Bool(
 
 var previewInterval = Param.Float(
     9.0, min: 3.0, max: 30.0,
-    label: "Preview mode: seconds between stories");
+    label: "Preview mode: gap between stories (sec)");
 
 // Only the ticked acts take part in the draw.
 var actDelivery = Param.Bool(true, label: "Story 1: cheese falls from the sky");
@@ -135,25 +140,32 @@ var timeOnField = new BakedSurface(24, 24);
 
 
 // Neutral on purpose - dark silhouettes read on any base colour. Only the cheese is yellow.
-var fur = new Dictionary<char, Color>
+// Fell, Kiste und Vogel werden aus dem Figurenton gemischt; Nase, Auge und Kaese
+// behalten ihre eigene Farbe, sonst verlieren die Figuren ihre Merkmale.
+Dictionary<char, Color> FurPalette(Color tone)
 {
-    ['k'] = Color.FromRgbByte(34, 36, 46),
-    ['d'] = Color.FromRgbByte(74, 78, 92),
-    ['g'] = Color.FromRgbByte(104, 112, 130),
-    ['h'] = Color.FromRgbByte(176, 183, 198),
-    ['w'] = Color.FromRgbByte(240, 244, 250),
-    ['p'] = Color.FromRgbByte(226, 152, 156),
-    ['a'] = Color.FromRgbByte(255, 214, 86),
-    ['s'] = Color.FromRgbByte(255, 176, 48),
-    ['c'] = Color.FromRgbByte(255, 216, 96),
-    ['y'] = Color.FromRgbByte(196, 134, 28),
-};
+    var (h, sat, l) = ColorOps.ToHsl(tone);
+    Color Shade(double lightness) => Color.FromHsl(h, sat * 0.85, MathH.Clamp01(lightness));
+    return new Dictionary<char, Color>
+    {
+        ['k'] = tone,
+        ['d'] = Shade(l + 0.09),
+        ['g'] = Shade(l + 0.16),
+        ['h'] = Shade(l + 0.44),
+        ['w'] = Shade(l + 0.78),
+        ['p'] = Color.FromRgbByte(226, 152, 156),
+        ['a'] = Color.FromRgbByte(255, 214, 86),
+        ['s'] = Color.FromRgbByte(255, 176, 48),
+        ['c'] = Color.FromRgbByte(255, 216, 96),
+        ['y'] = Color.FromRgbByte(196, 134, 28),
+    };
+}
 
 // Index 0..5: cat sitting, crate, bird, cheese, mouse, cat crouching.
-var cast = new[]
+var castRows = new[]
 {
     // 0 - Katze sitzend
-    PixelSprite.FromRows(new[]
+    new[]
     {
         ".kk...kk.....",
         ".kdk.kdk..kk.",
@@ -168,9 +180,9 @@ var cast = new[]
         ".kddwwwdddk..",
         ".kdddddddk...",
         ".kdk..kdk....",
-    }, fur),
+    },
     // 1 - Kiste
-    PixelSprite.FromRows(new[]
+    new[]
     {
         "wwwwwwwww",
         "wkkkkkkkw",
@@ -183,9 +195,9 @@ var cast = new[]
         "wkgggggkw",
         "wkgggggkw",
         "wwwwwwwww",
-    }, fur),
+    },
     // 2 - Vogel
-    PixelSprite.FromRows(new[]
+    new[]
     {
         "...kk....",
         "..kkkk...",
@@ -198,9 +210,9 @@ var cast = new[]
         "..kkkkkk.",
         "...kkkkkk",
         "....kk.kk",
-    }, fur),
+    },
     // 3 - Kaese
-    PixelSprite.FromRows(new[]
+    new[]
     {
         "....yyyy",
         "..yyccck",
@@ -208,9 +220,9 @@ var cast = new[]
         "ycccccyy",
         "yckccccy",
         "yyyyyyyy",
-    }, fur),
+    },
     // 4 - Maus, stehend
-    PixelSprite.FromRows(new[]
+    new[]
     {
         "...kkk.....",
         "..khphk....",
@@ -220,9 +232,9 @@ var cast = new[]
         ".khhhhhhhk.",
         "..kkhhhkk..",
         "...k.k.k...",
-    }, fur),
+    },
     // 5 - Katze geduckt, kurz vor dem Absprung
-    PixelSprite.FromRows(new[]
+    new[]
     {
         "kk.kk..........",
         "kdkdk..........",
@@ -235,13 +247,14 @@ var cast = new[]
         "..kdddddddddk..",
         "..kddk...kddk..",
         "..kkk.....kkk..",
-    }, fur),
+    },
 };
 
 // Galopp in drei Phasen und Trippeln in zwei: nur die Beine wechseln, Rumpf und Kopf
 // bleiben stehen, sonst flackert die Figur.
-var catRun = new SpriteAnimation(1.0,
-    PixelSprite.FromRows(new[]
+var catRunRows = new[]
+{
+    new[]
     {
         ".kk.kk.......kk",
         ".kdkdk......kk.",
@@ -253,8 +266,8 @@ var catRun = new SpriteAnimation(1.0,
         "...kdk....kdk.k",
         "..k..kk..k.kk..",
         "..kk....kk.....",
-    }, fur),
-    PixelSprite.FromRows(new[]
+    },
+    new[]
     {
         ".kk.kk.......kk",
         ".kdkdk......kk.",
@@ -266,8 +279,8 @@ var catRun = new SpriteAnimation(1.0,
         "....kdkkkkdk...",
         "....kdk..kdk...",
         "....kkk..kkk...",
-    }, fur),
-    PixelSprite.FromRows(new[]
+    },
+    new[]
     {
         ".kk.kk.......kk",
         ".kdkdk......kk.",
@@ -279,10 +292,12 @@ var catRun = new SpriteAnimation(1.0,
         ".kkdk.....kdkk.",
         "kk.k......k..kk",
         "..kk...........",
-    }, fur));
+    },
+};
 
-var mouseRun = new SpriteAnimation(1.0,
-    PixelSprite.FromRows(new[]
+var mouseRunRows = new[]
+{
+    new[]
     {
         "...kkk.....",
         "..khphk....",
@@ -292,8 +307,8 @@ var mouseRun = new SpriteAnimation(1.0,
         ".khhhhhhhk.",
         "..kkhhhkk..",
         "...k.k.k...",
-    }, fur),
-    PixelSprite.FromRows(new[]
+    },
+    new[]
     {
         "...kkk.....",
         "..khphk....",
@@ -303,7 +318,35 @@ var mouseRun = new SpriteAnimation(1.0,
         ".khhhhhhhk.",
         "..kkhhhkk..",
         "..k..k..k..",
-    }, fur));
+    },
+};
+
+PixelSprite[] cast = null;
+SpriteAnimation catRun = null;
+SpriteAnimation mouseRun = null;
+var castTone = Colors.TransparentBlack;
+
+// Die Figuren werden neu gemischt, sobald der Regler eine andere Fellfarbe liefert.
+void EnsureCast()
+{
+    if (cast is not null && castTone.R == figureTone.R && castTone.G == figureTone.G && castTone.B == figureTone.B) return;
+    castTone = figureTone;
+    var fur = FurPalette(figureTone);
+
+    cast = new PixelSprite[castRows.Length];
+    for (var i = 0; i < castRows.Length; i++)
+        cast[i] = PixelSprite.FromRows(castRows[i], fur);
+
+    var catFrames = new PixelSprite[catRunRows.Length];
+    for (var i = 0; i < catRunRows.Length; i++)
+        catFrames[i] = PixelSprite.FromRows(catRunRows[i], fur);
+    catRun = new SpriteAnimation(1.0, catFrames);
+
+    var mouseFrames = new PixelSprite[mouseRunRows.Length];
+    for (var i = 0; i < mouseRunRows.Length; i++)
+        mouseFrames[i] = PixelSprite.FromRows(mouseRunRows[i], fur);
+    mouseRun = new SpriteAnimation(1.0, mouseFrames);
+}
 
 var rimTone = Color.FromRgbByte(255, 246, 226);
 var frameTime = 0.0;
@@ -373,6 +416,7 @@ var scene = (RasterSurface ctx) =>
     var t = ctx.Elapsed.TotalSeconds;
     var now = ctx.Now;
     frameTime = t;
+    EnsureCast();
     frameMinute = (int)((now.Hour * 60L + now.Minute) % 720);
     spotPick = frameMinute % 3;
     SetTones();
