@@ -45,14 +45,15 @@ const bool sceneDebugTopDown = false;
 
 // --- TIME READOUT (CLOCK OVERLAY) -------------------------------------------
 // HH/MM glyphs in the canvas corners — hours left, minutes right, no colon.
-// Two positions (sky-top + water-bottom) with independent toggles:
-//   • BOTH on   → crossfade by day/night (sky by day, water by night)
-//   • ONLY ONE  → that clock shows at full strength all the time (no fade)
-//   • BOTH off  → no time displayed
-var clockShowTop = Param.Bool(false, label: "Clock in the sky");
-var clockShowBottom = Param.Bool(true, label: "Clock in the water");
-var clockTextIntensity = Param.Float(0.75, min: 0.0, max: 1.0, label: "Clock intensity",
-    description: "How present the time readout is on top of the day/night crossfade");
+// One position at a time - sky, water, or handed over from one to the other as the sun
+// rises and sets.
+var clockPlacement = Param.Choice(
+    "water", ["water", "sky", "day and night", "hidden"],
+    label: "Where the time is shown",
+    description: "day and night puts it in the sky while the sun is up and on the water once it sets");
+var clockTextIntensity = Param.Float(0.75, min: 0.0, max: 1.0,
+    label: "How visible the time is",
+    description: "0 hides it completely, 1 is full strength");
 
 // Island visibility is purely positional — an island fades in when its
 // projected screen-x enters the canvas band from the right, and fades out as
@@ -1656,16 +1657,14 @@ var scene = (RasterSurface ctx) =>
             paintGroup(mm, mmStartX, yTop, alpha);
         };
 
-        // Position alpha:
-        //   - both enabled  → crossfade by ambientLight (sky day, water night)
-        //   - only one      → that one shows at full strength all the time
-        //   - none          → drawClock's alpha gate skips both
-        var topAlpha = clockShowTop
-            ? (clockShowBottom ? ambientLight             : 1.0)
-            : 0.0;
-        var botAlpha = clockShowBottom
-            ? (clockShowTop    ? clamp01(1.0 - ambientLight) : 1.0)
-            : 0.0;
+        // In "day and night" the two positions hand the time over via ambientLight,
+        // otherwise exactly one of them carries it at full strength.
+        var topAlpha = clockPlacement == "sky" ? 1.0
+                     : clockPlacement == "day and night" ? ambientLight
+                     : 0.0;
+        var botAlpha = clockPlacement == "water" ? 1.0
+                     : clockPlacement == "day and night" ? clamp01(1.0 - ambientLight)
+                     : 0.0;
 
         drawClock(clockTextYTop, topAlpha * clockTextIntensity);
         drawClock(clockTextYBot, botAlpha * clockTextIntensity);
