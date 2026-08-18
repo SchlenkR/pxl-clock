@@ -15,7 +15,7 @@
 //   3 Trap       a trap is set, the light comes on, the crate catches the wrong animal
 //   4 Window     three shelves run as conveyor belts, each its own chase
 //   5 Tumble     cat and cheese tumble through in throwing arcs
-//   6 Catalogue  the cast as catalogue pages, the mouse and the cheese on the last one
+//   6 Catalogue  the cast as catalogue pages, cheese and mouse on the last two
 //
 // Without the cast, other mechanics:
 //   7 FlipBoard  a split-flap display steps through, staggered per row
