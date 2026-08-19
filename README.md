@@ -76,9 +76,8 @@ Install it, open this repo, and hit play on any `.cs` file.
   </a>
 </p>
 
-**Examples in this repo:** `apps/demos/` walks from `01-hello-pixel.cs` upwards,
-`apps/clockFaces/` holds the clock faces that ship with every device, and `llms.txt` is the
-full API reference - handy to paste into an AI assistant.
+**Examples in this repo:** `apps/demos/` walks from `01-hello-pixel.cs` upwards, and
+`llms.txt` is the full API reference - handy to paste into an AI assistant.
 
 Prefer the command line? [`Pxl.Render`](https://www.nuget.org/packages/Pxl.Render)
 (`dotnet tool install --global Pxl.Render`) turns any script into a GIF, APNG or video.
