@@ -141,7 +141,7 @@ var scene = (RasterSurface ctx) =>
 
 ## The Way to Think
 
-<!-- BEGIN GENERATED: pixogram-approach (source: src/pxl-backend/src/ai/prompts/pixogram-examples.md - do not edit here, run build/generate-llms.mjs) -->
+<!-- BEGIN GENERATED: pixogram-approach (source: src/pxl-llm-relay/src/prompts/pixogram-examples.md - do not edit here, run build/generate-llms.mjs) -->
 
 # Approach: turning an idea into a pixogram
 
